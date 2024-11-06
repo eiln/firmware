@@ -101,7 +101,7 @@ void _log_str(char* data);
 #define PWR_LOSS_PIN  15
 
 #define LOG_ENABLE_PORT GPIOC
-#define LOG_ENABLE_PIN  7
+#define LOG_ENABLE_PIN  15
 
 #define PER 1
 #define GREAT PER

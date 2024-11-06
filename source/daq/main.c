@@ -68,17 +68,16 @@ GPIOInitConfig_t gpio_config[] = {
 };
 
 /* SPI CONFIG FOR ETHERNET MODULE */
-dma_init_t spi_rx_dma_config = SPI2_RXDMA_CONT_CONFIG(NULL, 2);
-dma_init_t spi_tx_dma_config = SPI2_TXDMA_CONT_CONFIG(NULL, 1);
+dma_init_t spi_rx_dma_config = SPI1_RXDMA_CONT_CONFIG(NULL, 2);
+dma_init_t spi_tx_dma_config = SPI1_TXDMA_CONT_CONFIG(NULL, 1);
 SPI_InitConfig_t eth_spi_config = {
-    .data_rate = 42000000 / 2,
     .data_len  = 8,
     .nss_sw = false,
     .nss_gpio_port = ETH_CS_PORT,
     .nss_gpio_pin = ETH_CS_PIN,
     .rx_dma_cfg = &spi_rx_dma_config,
     .tx_dma_cfg = &spi_tx_dma_config,
-    .periph = SPI2
+    .periph = SPI1,
 };
 
 RTC_timestamp_t start_time =
@@ -99,6 +98,7 @@ extern uint32_t APB2ClockRateHz;
 extern uint32_t AHBClockRateHz;
 extern uint32_t PLLClockRateHz;
 
+#if 0
 #define TargetCoreClockrateHz 168000000
 ClockRateConfig_t clock_config = {
     .system_source              =SYSTEM_CLOCK_SRC_PLL,
@@ -109,6 +109,17 @@ ClockRateConfig_t clock_config = {
     .apb1_clock_target_hz       =(TargetCoreClockrateHz / 4),
     .apb2_clock_target_hz       =(TargetCoreClockrateHz / 4),
 };
+#else
+#define TargetCoreClockrateHz 16000000
+ClockRateConfig_t clock_config = {
+    .system_source              =SYSTEM_CLOCK_SRC_HSI,
+    .vco_output_rate_target_hz  =16000000,
+    .system_clock_target_hz     =TargetCoreClockrateHz,
+    .ahb_clock_target_hz        =(TargetCoreClockrateHz / 1),
+    .apb1_clock_target_hz       =(TargetCoreClockrateHz / (1)),
+    .apb2_clock_target_hz       =(TargetCoreClockrateHz / (1)),
+};
+#endif
 
 volatile uint32_t tick_ms; // Systick 1ms counter
 
