@@ -2,7 +2,7 @@
 #define _MAIN_H_
 
 // Enable the CAN2 bus
-#define EN_CAN2 1
+//#define EN_CAN2 1
 #define ID_LWS_STANDARD 0x2b0 // hehe
 
 typedef enum {
@@ -74,10 +74,10 @@ void _log_str(char* data);
 #endif
 
 // TODO: SD Detect LED
-#define SD_DETECT_LED_PORT GPIOA
+#define SD_DETECT_LED_PORT GPIOD
 #define SD_DETECT_LED_PIN  10
-#define SD_CD_PORT         GPIOC
-#define SD_CD_PIN          6
+#define SD_CD_PORT         GPIOD
+#define SD_CD_PIN          4
 
 // W5500 ETH SPI1
 #define ETH_CS_PORT   GPIOA // SPI1 NSS PA4
