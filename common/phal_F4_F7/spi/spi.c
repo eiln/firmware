@@ -235,20 +235,30 @@ bool PHAL_WSPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, ui
     return true;
 }
 
-// w5500 uses a fucked spi frame format where it sends a 8*3=24 bit address
-// > W5500 SPI Frame consists 3 phases, Address Phase, Control Phase and Data Phase.
+#define _W5500_SPI_READ_			   (0x00 << 2) //< SPI interface Read operation in Control Phase
+#define _W5500_SPI_WRITE_			   (0x01 << 2) //< SPI interface Write operation in Control Phase
+
+#define _W5500_SPI_VDM_OP_          0x00
+#define _W5500_SPI_FDM_OP_LEN1_     0x01
+#define _W5500_SPI_FDM_OP_LEN2_     0x02
+#define _W5500_SPI_FDM_OP_LEN4_     0x03
+
+// w5500 uses a fucked custom spi frame format where it sends a 8*3=24 bit address
+// >> W5500 SPI Frame consists 3 phases, Address Phase, Control Phase and Data Phase.
 // set spi->nss_sw false bc csel/desel after sending all three u8s (VDM)
 // blocks in VDM, transfer needs to be sequential
-bool PHAL_WSPI_noDMA_read(SPI_InitConfig_t *spi, const uint32_t address, uint8_t *rx_data, uint32_t rxlen)
+bool PHAL_WSPI_noDMA_read(SPI_InitConfig_t *spi, uint32_t addr, uint8_t *rx_data, uint32_t rxlen)
 {
     uint8_t tx_data[3] = {0, 0, 0};
     bool ret;
 
+    addr |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
+
     PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 0);
 
-	tx_data[0] = (address & 0x00FF0000) >> 16;
-	tx_data[1] = (address & 0x0000FF00) >>  8;
-	tx_data[2] = (address & 0x000000FF) >>  0;
+	tx_data[0] = (addr & 0x00FF0000) >> 16;
+	tx_data[1] = (addr & 0x0000FF00) >>  8;
+	tx_data[2] = (addr & 0x000000FF) >>  0;
 
     ret = PHAL_WSPI_transfer_noDMA(spi, tx_data, 3, rxlen, rx_data);
 

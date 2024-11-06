@@ -80,15 +80,33 @@ void HardFault_Handler();
 void ledblink();
 void ledoff();
 
-static void eth_init(void)
+static void eth_reset(void)
 {
     uint32_t timeout_ms;
+
+    PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 1);
+
     timeout_ms = tick_ms;
     PHAL_writeGPIO(DAQ_ETH_RST_PORT, DAQ_ETH_RST_PIN, 0);
     while (tick_ms - timeout_ms < ETH_PHY_RESET_PERIOD_MS);
     PHAL_writeGPIO(DAQ_ETH_RST_PORT, DAQ_ETH_RST_PIN, 1);
     timeout_ms = tick_ms;
     while (tick_ms - timeout_ms < ETH_PHY_RESET_PERIOD_MS);
+
+    PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 1); // sometimes it turns off after rst
+}
+
+static int eth_init(void)
+{
+    eth_reset();
+
+    if (PHAL_WSPI_noDMA_read32(&daq_spi1_config, VERSIONR) != 0x4)
+    {
+        // failed to read version code
+        return -1;
+    }
+
+    return 0;
 }
 
 int main()
@@ -102,7 +120,7 @@ int main()
         HardFault_Handler();
     }
 
-#if 1
+    // pull it high while doing other shit
     PHAL_writeGPIO(DAQ_ETH_RST_PORT, DAQ_ETH_RST_PIN, 1);
 
     if (!PHAL_SPI_init(&daq_spi1_config))
@@ -112,54 +130,14 @@ int main()
 
     ledoff();
 
-    /* Task Creation */
-    //schedInit(APB1ClockRateHz);
-    /* Schedule Periodic tasks here */
-    //taskCreate(ledblink, 250);
-    //schedStart();
-
-    PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 1);
-    eth_init();
-    PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 1);
-
-    uint32_t addr =  VERSIONR;
-    addr |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
-
-#if 0
-    PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 0);
-    uint8_t out_data[3] = {0, 0, 0};
-    uint8_t in_data[3] = {0, 0, 0};
-    #if 1
-	in_data[0] = (addr & 0x00FF0000) >> 16;
-	in_data[1] = (addr & 0x0000FF00) >> 8;
-	in_data[2] = (addr & 0x000000FF) >> 0;
-    #endif
-
-    PHAL_SPI_transfer_noDMA(&daq_spi1_config, (uint8_t *)&in_data, 3, 3, out_data);
-    PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 1);
-#endif
-
-    uint32_t ret = PHAL_WSPI_noDMA_read32(&daq_spi1_config, addr);
-
-    while (PHAL_SPI_busy(&daq_spi1_config))
-        ;
-
-    if (ret == 0x4)
+    if (eth_init())
     {
-        ledblink();
-        //ledoff();
-        //schedStart();
+        HardFault_Handler();
     }
-    else
-    {
-        //ledoff();
-        //ledblink();
-    }
-#else
+
     schedInit(APB1ClockRateHz);
     taskCreate(ledblink, 250);
     schedStart();
-#endif
 
     return 0;
 }
