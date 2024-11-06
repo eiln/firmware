@@ -102,7 +102,7 @@ int main()
         HardFault_Handler();
     }
 
-#if 0
+#if 1
     PHAL_writeGPIO(DAQ_ETH_RST_PORT, DAQ_ETH_RST_PIN, 1);
 
     if (!PHAL_SPI_init(&daq_spi1_config))
@@ -110,10 +110,10 @@ int main()
 
     SysTick_Config(SystemCoreClock / 1000);
 
+    ledoff();
+
     /* Task Creation */
     //schedInit(APB1ClockRateHz);
-
-    ledoff();
     /* Schedule Periodic tasks here */
     //taskCreate(ledblink, 250);
     //schedStart();
@@ -122,29 +122,29 @@ int main()
     eth_init();
     PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 1);
 
-#define WHO_AM_I 0x8F
-#define I_AM_HIM 0x3F
-
-    PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 0);
-
     uint32_t addr =  VERSIONR;
     addr |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
 
-    uint8_t out_data[3] = {WHO_AM_I, 0, 0};
+#if 0
+    PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 0);
+    uint8_t out_data[3] = {0, 0, 0};
     uint8_t in_data[3] = {0, 0, 0};
-    #if 0
+    #if 1
 	in_data[0] = (addr & 0x00FF0000) >> 16;
 	in_data[1] = (addr & 0x0000FF00) >> 8;
 	in_data[2] = (addr & 0x000000FF) >> 0;
     #endif
 
-    PHAL_SPI_transfer_noDMA(&daq_spi1_config, (uint8_t *)&out_data, 3, 3, in_data);
-
+    PHAL_SPI_transfer_noDMA(&daq_spi1_config, (uint8_t *)&in_data, 3, 3, out_data);
     PHAL_writeGPIO(DAQ_SPI1_NSS_PORT, DAQ_SPI1_NSS_PIN, 1);
+#endif
+
+    uint32_t ret = PHAL_WSPI_noDMA_read32(&daq_spi1_config, addr);
+
     while (PHAL_SPI_busy(&daq_spi1_config))
         ;
 
-    if (in_data[0] || in_data[1] || in_data[2])
+    if (ret == 0x4)
     {
         ledblink();
         //ledoff();

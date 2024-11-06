@@ -164,6 +164,106 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uin
     return true;
 }
 
+// for daq w5500
+bool PHAL_WSPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data)
+{
+    //in_data += txlen; // why is this shifted?
+
+    if (PHAL_SPI_busy(spi))
+        return false;
+
+    active_transfer = spi;
+    spi->_busy = true;
+    // Enable SPI
+    spi->periph->CR1 |= SPI_CR1_SPE;
+
+    // Select peripheral
+    if (spi->nss_sw)
+        PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 0);
+    // Add messages to TX FIFO
+    for (uint32_t i = 0; i < txlen; i++)
+    {
+        while (!(spi->periph->SR & SPI_SR_TXE))
+            ;
+        // TODO: check byte size and set DR accordingly
+        // if (i + 1 < txlen)
+        // {
+        //     uint16_t data = out_data[i + 1] << 8 | (uint16_t)out_data[i];
+        //     spi->periph->DR = data;
+        //     i++;
+        // }
+        // else
+        // {
+        spi->periph->DR = out_data[i];
+        // }
+    }
+    // Wait till TX FIFO is empty and spi is not active
+    while (!(spi->periph->SR & SPI_SR_TXE) || (spi->periph->SR & SPI_SR_BSY))
+        ;
+    // Clear overrun
+    uint8_t trash = spi->periph->DR;
+    trash = spi->periph->SR;
+
+    // RX
+    for (uint32_t i = 0; i < rxlen; i++)
+    {
+        // Wait till SPI is not in active transaction, send dummy
+        while ((spi->periph->SR & SPI_SR_BSY))
+            ;
+        spi->periph->DR = 0;
+        // With for RX FIFO to recieve a message, read it in
+        while (!(spi->periph->SR & SPI_SR_RXNE))
+            ;
+        in_data[i] = (uint8_t)(spi->periph->DR);
+    }
+    // Wait till transaction is finished, disable spi, and clear the queue
+    while ((spi->periph->SR & SPI_SR_BSY))
+        ;
+    spi->periph->CR1 &= ~SPI_CR1_SPE;
+    #ifdef STM32F732xx
+        while ((spi->periph->SR & SPI_SR_FRLVL))
+        {
+            trash = spi->periph->DR;
+        }
+    #endif
+    // Stop message by disabling CS
+    if (spi->nss_sw)
+        PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 1);
+
+    spi->_busy = false;
+
+    return true;
+}
+
+// w5500 uses a fucked spi frame format where it sends a 8*3=24 bit address
+// > W5500 SPI Frame consists 3 phases, Address Phase, Control Phase and Data Phase.
+// set spi->nss_sw false bc csel/desel after sending all three u8s (VDM)
+// blocks in VDM, transfer needs to be sequential
+bool PHAL_WSPI_noDMA_read(SPI_InitConfig_t *spi, const uint32_t address, uint8_t *rx_data, uint32_t rxlen)
+{
+    uint8_t tx_data[3] = {0, 0, 0};
+    bool ret;
+
+    PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 0);
+
+	tx_data[0] = (address & 0x00FF0000) >> 16;
+	tx_data[1] = (address & 0x0000FF00) >>  8;
+	tx_data[2] = (address & 0x000000FF) >>  0;
+
+    ret = PHAL_WSPI_transfer_noDMA(spi, tx_data, 3, rxlen, rx_data);
+
+    PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 1);
+
+    return ret;
+}
+
+uint32_t PHAL_WSPI_noDMA_read32(SPI_InitConfig_t *spi, const uint32_t address)
+{
+    uint32_t ret;
+    PHAL_WSPI_noDMA_read(spi, address, (uint8_t *)&ret, sizeof(ret));
+    return ret;
+}
+
 bool PHAL_SPI_transfer(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t data_len, const uint8_t *in_data)
 {
     /*
