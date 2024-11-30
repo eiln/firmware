@@ -153,16 +153,16 @@ static bool receive_frame_start(void)
     uint8_t b = 0;
 
     PHAL_usartRxBl(&lte_usart_config, &b, 1);
-    if (b == (STARTCODE & 0xff))
+    if (b == (uint8_t)(STARTCODE & 0xff))
     {
         PHAL_usartRxBl(&lte_usart_config, &b, 1);
-        if (b == ((STARTCODE & (0xff << 8)) >> 8))
+        if (b == (uint8_t)((STARTCODE >> 8) & 0xff))
         {
             PHAL_usartRxBl(&lte_usart_config, &b, 1);
-            if (b == ((STARTCODE & (0xff << 16)) >> 16))
+            if (b == (uint8_t)((STARTCODE >> 16) & 0xff))
             {
                 PHAL_usartRxBl(&lte_usart_config, &b, 1);
-                if (b == ((STARTCODE & (0xff << 24)) >> 24))
+                if (b == (uint8_t)((STARTCODE >> 24) & 0xff))
                 {
                     return true;
                 }
