@@ -12,7 +12,7 @@
 
 #ifdef F4_TESTING_DAQ_DISCO_UART
 
-#if 0
+#if 1
 // USART6
 dma_init_t usart_tx_dma_config = USART6_TXDMA_CONT_CONFIG(NULL, 1);
 dma_init_t usart_rx_dma_config = USART6_RXDMA_CONT_CONFIG(NULL, 2);
@@ -49,10 +49,28 @@ usart_init_t lte_usart_config = {
 };
 #endif
 
+#define GPIO1_PORT GPIOD
+#define GPIO1_PIN  13
+#define GPIO2_PORT GPIOD
+#define GPIO2_PIN  14
+#define GPIO3_PORT GPIOD
+#define GPIO3_PIN  15
+#define GPIO4_PORT GPIOA
+#define GPIO4_PIN  8
+#define GPIO5_PORT GPIOA
+#define GPIO5_PIN  9
+#define GPIO6_PORT GPIOA
+#define GPIO6_PIN  10
+
 GPIOInitConfig_t gpio_config[] = {
-    GPIO_INIT_USART_TX(GPIOA, 2),
-    GPIO_INIT_USART_RX(GPIOA, 3),
-    GPIO_INIT_OUTPUT(GPIOD, 13, GPIO_OUTPUT_LOW_SPEED),
+    GPIO_INIT_USART6TX_PC6,
+    GPIO_INIT_USART6RX_PC7,
+    GPIO_INIT_OUTPUT(GPIO1_PORT, GPIO1_PIN, GPIO_OUTPUT_LOW_SPEED),
+    GPIO_INIT_OUTPUT(GPIO2_PORT, GPIO2_PIN, GPIO_OUTPUT_LOW_SPEED),
+    GPIO_INIT_OUTPUT(GPIO3_PORT, GPIO3_PIN, GPIO_OUTPUT_LOW_SPEED),
+    GPIO_INIT_OUTPUT(GPIO4_PORT, GPIO4_PIN, GPIO_OUTPUT_LOW_SPEED),
+    GPIO_INIT_OUTPUT(GPIO5_PORT, GPIO5_PIN, GPIO_OUTPUT_LOW_SPEED),
+    GPIO_INIT_OUTPUT(GPIO6_PORT, GPIO6_PIN, GPIO_OUTPUT_LOW_SPEED),
 };
 
 #if 1
@@ -159,12 +177,17 @@ static void uart_frame_handler(void)
 {
     if (receive_frame_start())
     {
-        PHAL_toggleGPIO(GPIOD, 13);
         daq_uart_frame_t frame;
         PHAL_usartRxBl(&lte_usart_config, (uint8_t *)&frame, sizeof(frame));
         switch (frame.type)
         {
             case 0x1: // heartbeat
+                PHAL_writeGPIO(GPIO1_PORT, GPIO1_PIN, (frame.data >> 0) & 1);
+                PHAL_writeGPIO(GPIO2_PORT, GPIO2_PIN, (frame.data >> 1) & 1);
+                PHAL_writeGPIO(GPIO3_PORT, GPIO3_PIN, (frame.data >> 2) & 1);
+                PHAL_writeGPIO(GPIO4_PORT, GPIO4_PIN, (frame.data >> 3) & 1);
+                PHAL_writeGPIO(GPIO5_PORT, GPIO5_PIN, (frame.data >> 4) & 1);
+                PHAL_writeGPIO(GPIO6_PORT, GPIO6_PIN, (frame.data >> 5) & 1);
                 break;
             case 0x2: // helloworld
                 _iodev_printf(&lte_usart_config, "Hello World\n");
