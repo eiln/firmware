@@ -1,4 +1,4 @@
-# CMAKE file for building STM32CubeL4 CMSIS module
+# CMAKE file for building STM32CubeF4 FreeRTOS module
 
 set(LIB_PATH "${CMAKE_SOURCE_DIR}/common/STM32CubeF4/Middlewares/Third_Party/FreeRTOS/Source")
 
