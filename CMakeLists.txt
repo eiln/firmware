@@ -51,10 +51,11 @@ make_cmsis_library(CMSIS_F732 STM32F7xx STM32F732xx ${CMAKE_SOURCE_DIR}/common/S
 add_subdirectory(common/phal_F4_F7) #L4, F4/F7 directories are never linked together
 add_subdirectory(common/phal_L4)
 add_subdirectory(common/psched)
-add_subdirectory(common/bootloader)
 add_subdirectory(common/queue)
 add_subdirectory(common/common_defs)
 add_subdirectory(common/log)
+add_subdirectory(common/uds)
+add_subdirectory(common/bootloader)
 add_subdirectory(common/faults)
 add_subdirectory(common/daq)
 add_subdirectory(common/plettenberg)

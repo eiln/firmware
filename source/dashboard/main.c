@@ -1,5 +1,4 @@
 /* System Includes */
-#include "common/bootloader/bootloader_common.h"
 #include "common/common_defs/common_defs.h"
 #include "common/psched/psched.h"
 #include "common/phal_F4_F7/usart/usart.h"
@@ -14,7 +13,7 @@
 /* Module Includes */
 #include "main.h"
 #include "can_parse.h"
-#include "daq.h"
+#include "uds.h"
 #include "pedals.h"
 #include "lcd.h"
 #include "nextion.h"
@@ -256,8 +255,7 @@ void preflightChecks(void) {
         case 3:
             /* Module Initialization */
             initCANParse();
-            if (daqInit(&q_tx_can1_s[2]))
-                HardFault_Handler();
+            uds_init();
             break;
         case 4:
             enableInterrupts();
@@ -550,12 +548,6 @@ void usartTxUpdate()
 void CAN1_RX0_IRQHandler()
 {
     canParseIRQHandler(CAN1);
-}
-
-void dashboard_bl_cmd_CALLBACK(CanParsedData_t *msg_data_a)
-{
-    if (can_data.dashboard_bl_cmd.cmd == BLCMD_RST)
-        Bootloader_ResetForFirmwareDownload();
 }
 
 

@@ -20,6 +20,7 @@ sdc_nodes_t sdc_mux;
 // Historical record of Brake stat and Current Sense to tell if BSPD has failed
 int16_t hist_current[NUM_HIST_BSPD] = {0};
 uint8_t hist_curr_idx;
+uint32_t dummy_test_uds = 0xcafebabe;
 
 uint8_t prchg_start;
 

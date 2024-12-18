@@ -12,6 +12,8 @@
  *
  */
 
+#include <string.h>
+
 /* System Includes */
 #include "common/common_defs/common_defs.h"
 #include "common/modules/Wiznet/W5500/Ethernet/wizchip_conf.h"
@@ -27,6 +29,7 @@
 #include "ftpd.h"
 #include "main.h"
 #include "sdio.h"
+#include "can_parse.h"
 
 typedef struct
 {
@@ -74,9 +77,8 @@ static void eth_update_tcp_connection_state(void);
 static bool eth_get_tcp_connected(void);
 static int8_t eth_init_udp_broadcast(void);
 static void eth_send_udp_periodic(void);
-
+static void eth_send_tcp_periodic(void);
 static void eth_rx_tcp_periodic(void);
-static void eth_tx_tcp_periodic(void);
 
 static void conv_tcp_frame_to_can_msg(timestamped_frame_t *t, CanMsgTypeDef_t *c);
 static void conv_can_msg_to_tcp_frame(CanMsgTypeDef_t *c, timestamped_frame_t *t);
@@ -96,7 +98,7 @@ void daq_init(void)
     dh.eth_last_err = ETH_ERROR_NONE;
     dh.eth_tcp_state = ETH_TCP_IDLE;
     dh.eth_tcp_last_rx_ms = 0;
-    //bActivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX); // start active
+    bActivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX); // start active
 
     // SD Card
     dh.sd_state = SD_IDLE;
@@ -140,10 +142,10 @@ void daq_loop(void)
         eth_rx_tcp_periodic();
         uds_receive_periodic(); // src-> CAN interrupt or TCP RX
         can_relay_can2_periodic();
+        eth_send_tcp_periodic();
 
         // TX
         can_tx_periodic(); // send accumulated can at the end
-        eth_tx_tcp_periodic();
 
         // TODO: flow control, multiple at once?
         // Update timing info
@@ -152,6 +154,7 @@ void daq_loop(void)
         dh.loop_time_avg_ms = (tic + dh.loop_time_avg_ms) / 2;
         if (tick_ms - last_hb_toggle_ms >= 500)
         {
+            SEND_DAQ_HB(dh.loop_time_avg_ms);
             PHAL_toggleGPIO(HEARTBEAT_LED_PORT, HEARTBEAT_LED_PIN);
             last_hb_toggle_ms = tick_ms;
         }
@@ -680,7 +683,7 @@ static void eth_update_tcp_connection_state(void)
                 if (eth_get_tcp_connected())
                 {
                     // Reset buffer state
-                    // b_rx_tcp._head = 0;
+                    b_rx_tcp._head = 0;
                     bActivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX);
                     dh.eth_tcp_state = ETH_TCP_ESTABLISHED;
                 }
@@ -692,7 +695,7 @@ static void eth_update_tcp_connection_state(void)
             {
                 if (!eth_get_tcp_connected())
                 {
-                    bDeactivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX);
+                    //bDeactivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX);
                     dh.eth_tcp_state = ETH_TCP_LISTEN;
                 }
                 last_link_check_time = tick_ms;
@@ -707,43 +710,6 @@ static void eth_update_tcp_connection_state(void)
 }
 
 static void eth_read_tcp_periodic(void);
-
-#if 0
-static void eth_send_tcp_periodic(void)
-{
-    int32_t ret;
-    timestamped_frame_t *buf;
-    uint32_t consecutive_items;
-    static uint32_t last_send_ms;
-
-    // Should be sending?
-    if (!dh.eth_enable_udp_broadcast ||
-        dh.eth_state != ETH_LINK_UP) return;
-
-    if (bGetItemCount(&b_rx_can, TCP_RX_TAIL_CAN_TX) >= TCP_MAX_WRITE_COUNT ||
-        (tick_ms - last_send_ms) >= UDP_MAX_WRITE_PERIOD_MS)
-    {
-        if (bGetTailForRead(&b_rx_can, TCP_RX_TAIL_CAN_TX, (void**) &buf, &consecutive_items) == 0)
-        {
-            if (consecutive_items > TCP_MAX_WRITE_COUNT) consecutive_items = TCP_MAX_WRITE_COUNT; // limit
-            // Write time :D
-            ret = sendto(eth_config.udp_bc_sock, (uint8_t *)buf,
-                         consecutive_items * sizeof(*buf),
-                         eth_config.udp_bc_addr,
-                         eth_config.udp_bc_port);
-            if (ret != consecutive_items * sizeof(*buf))
-            {
-                eth_handle_error(ETH_ERROR_UDP_SEND);
-            }
-            else
-            {
-                bCommitRead(&b_rx_can, TCP_RX_TAIL_CAN_TX, consecutive_items);
-                last_send_ms = tick_ms;
-            }
-        }
-    }
-}
-#endif
 
 static void eth_rx_tcp_periodic(void)
 {
@@ -838,38 +804,46 @@ static void conv_tcp_frame_to_can_msg(timestamped_frame_t *t, CanMsgTypeDef_t *c
     for (uint8_t i = 0; i < 8; ++i) c->Data[i] = t->data[i];
 }
 
-static void conv_can_msg_to_tcp_frame(CanMsgTypeDef_t *c, timestamped_frame_t *t)
+static void eth_tcp_send_daq_frame(timestamped_frame_t *frame)
 {
-    t->cmd = MSG_TCP_TX_FRAME;
-    t->tick_ms = tick_ms;
-    t->bus_id = c->Bus == CAN1 ? BUS_ID_CAN1 : BUS_ID_CAN2;
-    if (c->IDE)
-    {
-        t->msg_id = c->ExtId & ~CAN_EFF_MASK; // TODO is this right?
-    }
-    else
-    {
-        t->msg_id = c->StdId & ~CAN_SFF_MASK; // TODO
-    }
-    t->dlc = c->DLC;
-    for (uint8_t i = 0; i < 8; ++i) t->data[i] = c->Data[i];
-}
-
-static void eth_tcp_send(uint8_t *buf, uint16_t size)
-{
-    int32_t ret;
+    int32_t ret; // TODO error handle
     if (eth_get_tcp_connected())
     {
-        ret = send(eth_config.tcp_sock, buf, size);
+        frame->frame_type = DAQ_FRAME_TCP_TX;
+        ret = send(eth_config.tcp_sock, (uint8_t *)frame, sizeof(*frame));
     }
 }
 
-// send CAN frame over TCP
-static void eth_tcp_send_can_frame(CanMsgTypeDef_t *c)
+static void eth_udp_send_daq_frame(timestamped_frame_t *frame)
+{
+    timestamped_frame_t *rx;
+    uint32_t cont;
+    if (bGetHeadForWrite(&b_rx_can, (void**) &rx, &cont) == 0)
+    {
+        memcpy(rx, frame, sizeof(*frame));
+        rx->frame_type = DAQ_FRAME_UDP_TX;
+        bCommitWrite(&b_rx_can, 1); // simply add it to regular CAN RX queue that DAQ broadcasts
+    }
+}
+
+void uds_frame_send(uint64_t data)
+{
+    timestamped_frame_t frame = {.frame_type = DAQ_FRAME_UDP_TX, .tick_ms = tick_ms, .msg_id = ID_UDS_RESPONSE_DAQ, .bus_id = BUS_ID_CAN1, .dlc = 8 };
+    frame.msg_id |= CAN_EFF_FLAG;
+    memcpy(frame.data, (uint8_t *)&data, sizeof(uint64_t));
+
+    eth_udp_send_daq_frame(&frame);
+    eth_tcp_send_daq_frame(&frame);
+    SEND_UDS_RESPONSE_DAQ(data);
+}
+
+static void eth_send_tcp_periodic(void)
 {
     timestamped_frame_t frame;
-    conv_can_msg_to_tcp_frame(c, &frame);
-    eth_tcp_send((uint8_t *)&frame, sizeof(frame));
+    while (qReceive(&q_tx_tcp, &frame) == SUCCESS_G)
+    {
+        eth_tcp_send_daq_frame(&frame);
+    }
 }
 
 // Pull out of TCP queue and add it to CAN TX queue
@@ -883,7 +857,6 @@ static void eth_tcp_relay_can_frame(timestamped_frame_t *t)
 // Pull out of TCP queue and add it to UDS queue
 static void eth_tcp_relay_uds_frame(timestamped_frame_t *t)
 {
-    t->cmd |= MSG_TCP_RX_FRAME; // Mask to store source of message
     qSendToBack(&q_rx_can_uds, t);
 }
 
@@ -908,15 +881,12 @@ static void eth_read_tcp_periodic(void)
             //cont = MIN(cont, TCP_MAX_CAN_TX_COUNT);
             for (uint32_t i = 0; i < cont; ++i)
             {
-                switch(rx_msg_a->cmd)
+                switch(rx_msg_a->frame_type)
                 {
-                    case TCP_CMD_HANDSHAKE:
-                        PHAL_toggleGPIO(ERROR_LED_PORT, ERROR_LED_PIN); // TODO send something back?
-                        break;
-                    case TCP_CMD_CAN_FRAME:
+                    case DAQ_FRAME_TCP2CAN:
                         eth_tcp_relay_can_frame(rx_msg_a);
                         break;
-                    case TCP_CMD_UDS_FRAME:
+                    case DAQ_FRAME_TCP2UDS:
                         eth_tcp_relay_uds_frame(rx_msg_a);
                         break;
                     default:
@@ -947,17 +917,16 @@ static bool get_log_enable(void)
     return dh.log_enable_uds;
 }
 
-#define DAQ_BL_CMD_HANDSHAKE  0x00
-#define DAQ_BL_CMD_RST        0x05
+#define DAQ_BL_CMD_RST        0x55
 
-#define DAQ_BL_CMD_NTP_DATE   0x10
-#define DAQ_BL_CMD_NTP_TIME   0x11
-#define DAQ_BL_CMD_NTP_GET    0x12
+#define DAQ_BL_CMD_NTP_DATE   0x30
+#define DAQ_BL_CMD_NTP_TIME   0x31
+#define DAQ_BL_CMD_NTP_GET    0x32
 
-#define DAQ_BL_CMD_LOG_ENABLE 0x20
-#define DAQ_BL_CMD_LOG_STATUS 0x21
-
-#define DAQ_BL_CMD_LED_DISCO  0x30
+#define DAQ_BL_CMD_HANDSHAKE  0x40
+#define DAQ_BL_CMD_LOG_ENABLE 0x41
+#define DAQ_BL_CMD_LOG_STATUS 0x42
+#define DAQ_BL_CMD_LED_DISCO  0x43
 
 static RTC_timestamp_t start_time =
 {
@@ -981,28 +950,10 @@ static void uds_process_cmd_ntp_get(void)
             time.time.minutes_bcd, time.time.seconds_bcd);
 }
 
-#if 0
-// send UDS response
-// TODO grab source from rx_msg and determine TCP vs CAN
-static void daq_uds_send_frame(uint8_t cmd, uint32_t data)
-{
-    CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_DAQ_RESPONSE_MAIN_MODULE, .DLC=DLC_DAQ_RESPONSE_MAIN_MODULE, .IDE=1};
-    CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;
-    data_a->daq_response_MAIN_MODULE.daq_response = daq_response_;
-    canTxSendToBack(&msg);
-    eth_tcp_send_can_frame(&msg);
-}
-#endif
-
-static void eth_tx_tcp_periodic(void)
-{
-    ; // TODO pull out of TCP TX queue
-}
-
 /**
  * Process DAQ-specific UDS commands
  */
-static void daq_uds_handle_cmd(uint8_t cmd, uint32_t data)
+void uds_handle_sub_command_callback(uint8_t cmd, uint32_t data)
 {
     switch (cmd)
     {
@@ -1059,8 +1010,8 @@ static void uds_receive_periodic(void)
     timestamped_frame_t rx_msg;
     if (qReceive(&q_rx_can_uds, &rx_msg) == SUCCESS_G)
     {
-        uint32_t data = rx_msg.data[4] << 24 | rx_msg.data[3] << 16 | rx_msg.data[2] << 8 | rx_msg.data[1];
-        daq_uds_handle_cmd(rx_msg.data[0], data);
+        CanParsedData_t *msg_data_a = (CanParsedData_t *) &rx_msg.data;
+        uds_command_daq_CALLBACK(msg_data_a->uds_command_daq.payload);
     }
 }
 

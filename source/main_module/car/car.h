@@ -143,6 +143,6 @@ typedef struct __attribute__((packed))
 } sdc_nodes_t;
 
 extern sdc_nodes_t sdc_mux;
-
+extern uint32_t dummy_test_uds;
 
 #endif

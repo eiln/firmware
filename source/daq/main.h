@@ -24,7 +24,7 @@ typedef enum {
 #include "common/log/log.h"
 
 // #define DISCO_BOARD
-// Status LEDs
+// #define BUILD_BACKUP_FIRMWARE
 #ifdef DISCO_BOARD
 
 #define RED    14
@@ -54,10 +54,17 @@ typedef enum {
 #define SD_ERROR_LED_PORT    RED_LED_PORT
 #define SD_ERROR_LED_PIN     RED_LED_PIN
 #else
+#ifndef BUILD_BACKUP_FIRMWARE
 #define HEARTBEAT_LED_PORT   GPIOD
 #define HEARTBEAT_LED_PIN    13
 #define CONNECTION_LED_PORT  GPIOD
 #define CONNECTION_LED_PIN   14
+#else // BUILD_BACKUP_FIRMWARE
+#define HEARTBEAT_LED_PORT   GPIOD
+#define HEARTBEAT_LED_PIN    14
+#define CONNECTION_LED_PORT  GPIOD
+#define CONNECTION_LED_PIN   13
+#endif // BUILD_BACKUP_FIRMWARE
 #define ERROR_LED_PORT       GPIOD
 #define ERROR_LED_PIN        15
 #define SD_ACTIVITY_LED_PORT GPIOA
@@ -101,6 +108,7 @@ typedef enum {
 extern volatile uint32_t tick_ms; // Systick 1ms counter
 extern q_handle_t q_tx_can2_to_can1;
 extern q_handle_t q_rx_can_uds;
+extern q_handle_t q_tx_tcp;
 extern b_handle_t b_rx_can;
 extern b_handle_t b_rx_tcp;
 

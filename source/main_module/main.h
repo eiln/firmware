@@ -19,15 +19,23 @@
 #include "common/phal_F4_F7/can/can.h"
 
 #define FAULT_NODE_NAME NODE_MAIN_MODULE
+//#define BUILD_BACKUP_FIRMWARE
 
 // Internal Status Indicators
 #define ERR_LED_GPIO_Port           (GPIOD)
 #define ERR_LED_Pin                 (4)
+#define CONN_LED_MS_THRESH          (500)
+#ifndef BUILD_BACKUP_FIRMWARE
 #define CONN_LED_GPIO_Port          (GPIOD)
 #define CONN_LED_Pin                (3)
-#define CONN_LED_MS_THRESH          (500)
 #define HEARTBEAT_GPIO_Port         (GPIOD)
 #define HEARTBEAT_Pin               (2)
+#else // BUILD_BACKUP_FIRMWARE
+#define CONN_LED_GPIO_Port          (GPIOD)
+#define CONN_LED_Pin                (2)
+#define HEARTBEAT_GPIO_Port         (GPIOD)
+#define HEARTBEAT_Pin               (3)
+#endif
 
 // External Status Indicators
 #define BRK_LIGHT_GPIO_Port         (GPIOD)

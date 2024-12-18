@@ -1,5 +1,4 @@
 /* System Includes */
-#include "common/bootloader/bootloader_common.h"
 #include "common/common_defs/common_defs.h"
 #include "common/faults/faults.h"
 // #include "common/modules/wheel_speeds/wheel_speeds.h"
@@ -14,13 +13,14 @@
 #include "common/plettenberg/plettenberg.h"
 #include "common/psched/psched.h"
 #include "common/queue/queue.h"
+#include "common/uds/uds.h"
 
 /* Module Includes */
 #include "car.h"
 #include "can_parse.h"
 #include "cooling.h"
-#include "daq.h"
 #include "main.h"
+#include "uds.h"
 
 GPIOInitConfig_t gpio_config[] = {
     // Internal Status Indicators
@@ -248,7 +248,6 @@ int main(void){
     }
     PHAL_writeGPIO(SDC_CTRL_GPIO_Port, SDC_CTRL_Pin, 1);
 
-
     /* Task Creation */
     schedInit(APB1ClockRateHz);
     configureAnim(preflightAnimation, preflightChecks, 60, 750);
@@ -263,7 +262,6 @@ int main(void){
     taskCreate(heartBeatTask, 100);
     taskCreate(send_shockpots, 15);
     taskCreate(parseMCDataPeriodic, MC_LOOP_DT);
-    taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
     // taskCreate(memFg, MEM_FG_TIME);
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
@@ -274,6 +272,7 @@ int main(void){
     // for (uint8_t i = 0; i < 10; i++)
     //     SEND_LWS_CONFIG(0x05, 0, 0); // reset cal
     // SEND_LWS_CONFIG(0x03, 0, 0); // start new
+
 
     schedStart();
 
@@ -337,10 +336,9 @@ void preflightChecks(void) {
            coolingInit();
            break;
        case 5:
-           initCANParse();
-           if(daqInit(&q_tx_can1_s[2]))
-               HardFault_Handler();
+            initCANParse();
             initFaultLibrary(FAULT_NODE_NAME, &q_tx_can1_s[0], ID_FAULT_SYNC_MAIN_MODULE);
+            uds_init();
            break;
         default:
             registerPreflightComplete(1);
@@ -492,14 +490,16 @@ void CAN1_RX0_IRQHandler()
     canParseIRQHandler(CAN1);
 }
 
-void main_module_bl_cmd_CALLBACK(CanParsedData_t *msg_data_a)
+#define UDS_CMD_MAIN_MODULE_HELLO 0x30
+
+void uds_handle_sub_command_callback(uint8_t cmd, uint64_t data)
 {
-    if (can_data.main_module_bl_cmd.cmd == 0x00)
+    switch (cmd)
     {
-        PHAL_toggleGPIO(ERR_LED_GPIO_Port, ERR_LED_Pin);
+        case UDS_CMD_MAIN_MODULE_HELLO:
+            PHAL_toggleGPIO(ERR_LED_GPIO_Port, ERR_LED_Pin);
+        break;
     }
-    else if (can_data.main_module_bl_cmd.cmd == BLCMD_RST)
-        Bootloader_ResetForFirmwareDownload();
 }
 
 void HardFault_Handler()

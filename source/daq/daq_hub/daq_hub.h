@@ -50,19 +50,22 @@ typedef uint32_t canid_t;
 // TODO: add like UDP, USB, etc. ?
 typedef uint8_t busid_t;
 
+// from DAQ POV
+#define DAQ_FRAME_CAN_RX  0  // RX to DAQ over CAN (interrupt), broadcast message
+#define DAQ_FRAME_TCP2CAN 1  // RX to DAQ over TCP, relay to other nodes on CAN
+#define DAQ_FRAME_TCP2UDS 2  // RX to DAQ over TCP, process within DAQ (encapsulates CAN msg intended for DAQ)
+#define DAQ_FRAME_TCP_TX  3  // TX from DAQ over TCP
+#define DAQ_FRAME_UDP_TX  4  // TX from DAQ over UDP
+
 typedef struct __attribute__((packed))
 {
-    uint8_t  cmd;          //!< command
+    uint8_t  frame_type;   //!< command
     uint32_t tick_ms;      //!< ms timestamp of reception
     canid_t  msg_id;       //!< message id
     busid_t  bus_id;       //!< bus the message was rx'd on
     uint8_t  dlc;          //!< data length code
     uint8_t  data[8];      //!< message data
 } timestamped_frame_t;
-
-#define MSG_CAN_FRAME    (1 << 0)  // authentic CAN frame, i.e. daq can't TX CAN to itself
-#define MSG_TCP_RX_FRAME (1 << 1)  // authentic CAN frame, i.e. daq can't TX CAN to itself
-#define MSG_TCP_TX_FRAME (1 << 2)  // TXing CAN frame over TCP
 
 typedef enum
 {
@@ -90,13 +93,14 @@ typedef enum
     SD_ERROR_DETEC,
 } sd_error_t;
 
-typedef enum
+typedef enum __attribute__ ((__packed__))
 {
     ETH_IDLE,
     ETH_LINK_DOWN,
     ETH_LINK_UP,
     ETH_FAIL,
 } eth_state_t;
+static_assert(sizeof(eth_state_t) == sizeof(uint8_t));
 
 typedef enum
 {
@@ -131,10 +135,10 @@ typedef enum
 #define UDP_MAX_WRITE_COUNT     (20)  // Assuming approx 1kHz  rx rate
 
 // TCP Receive Buffer Configuration
-#define TCP_RX_BUFF_ITEM_COUNT 200 // Shouldn't need to be much larger than max write count
+#define TCP_RX_BUFF_ITEM_COUNT 10 // Shouldn't need to be much larger than max write count
 #define TCP_MIN_RX_PERIOD_MS   10
 #define TCP_MAX_WRITE_COUNT    (100)
-#define TCP_MAX_CAN_TX_COUNT   (3)
+#define TCP_MAX_CAN_TX_COUNT   (10)
 
 typedef struct
 {

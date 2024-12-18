@@ -1,14 +1,15 @@
 /**
  * @file daq.c
  * @author Luke Oxley (lcoxley@purdue.edu)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2023-01-18
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
+#if 0
 #include "daq.h"
 #include "common/daq/daq_base.h"
 #include "common/phal_L4/can/can.h"
@@ -65,3 +66,4 @@ void daq_command_TEST_NODE_CALLBACK(CanMsgTypeDef_t* msg_header_a)
 {
     daq_command_callback(msg_header_a);
 }
+#endif

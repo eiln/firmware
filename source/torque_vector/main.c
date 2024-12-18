@@ -1,5 +1,4 @@
 /* System Includes */
-#include "common/bootloader/bootloader_common.h"
 #include "common/phal_F4_F7/gpio/gpio.h"
 #include "common/phal_F4_F7/rcc/rcc.h"
 #include "common/phal_F4_F7/spi/spi.h"
@@ -415,7 +414,7 @@ void VCU_MAIN(void)
     setFault(ID_MM_DISABLED_FAULT,!rtY_em.MM_STATE);
     setFault(ID_TV_UNCALIBRATED_FAULT,!TV_Calibrated);
     setFault(ID_NO_GPS_FIX_FAULT,!rtU_tv.F_raw[8]);
-    
+
     setFault(ID_TV_ENABLED_FAULT,rtY_tv.TVS_STATE);
     setFault(ID_MM_ENABLED_FAULT,rtY_em.MM_STATE);
     setFault(ID_TV_CALIBRATED_FAULT,TV_Calibrated);
@@ -433,12 +432,6 @@ void VCU_MAIN(void)
 
     SEND_SFS_ACC((int16_t)(rtY_tv.sig_filt[15] * 100),(int16_t)(rtY_tv.sig_filt[16] * 100), (int16_t)(rtY_tv.sig_filt[17] * 100));
     SEND_SFS_ANG_VEL((int16_t)(rtY_tv.sig_filt[7] * 10000),(int16_t)(rtY_tv.sig_filt[8] * 10000), (int16_t)(rtY_tv.sig_filt[9] * 10000));
-}
-
-void torquevector_bl_cmd_CALLBACK(CanParsedData_t *msg_data_a)
-{
-    if (can_data.torquevector_bl_cmd.cmd == BLCMD_RST)
-        Bootloader_ResetForFirmwareDownload();
 }
 
 void HardFault_Handler()
