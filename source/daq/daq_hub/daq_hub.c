@@ -19,6 +19,7 @@
 #include "common/phal_F4_F7/can/can.h"
 #include "common/phal_F4_F7/gpio/gpio.h"
 #include "common/phal_F4_F7/rtc/rtc.h"
+#include "common/daq/can_parse_base.h"
 
 /* Module Includes */
 #include "buffer.h"
@@ -57,22 +58,30 @@ daq_hub_t dh;
 uint8_t gFTPBUF[_FTP_BUF_SIZE];
 
 // Local protoptypes
+static void can_tx_periodic(void);
+static void can_relay_can2_periodic(void);
+
 static void sd_handle_error(sd_error_t err, FRESULT res);
 static void sd_update_connection_state(void);
 static bool sd_new_log_file(void);
 static void sd_write_periodic(void);
+static bool get_log_enable(void);
+
 static int8_t eth_init(void);
 static int8_t eth_get_link_up(void);
 static void eth_update_connection_state(void);
+static void eth_update_tcp_connection_state(void);
 static bool eth_get_tcp_connected(void);
 static int8_t eth_init_udp_broadcast(void);
 static void eth_send_udp_periodic(void);
+
 static void eth_rx_tcp_periodic(void);
-static bool get_log_enable(void);
-static void conv_tcp_frame_to_can_msg(tcp_can_frame_t *t, CanMsgTypeDef_t *c);
-static void conv_tcp_frame_to_rtc(tcp_can_frame_t *t, RTC_timestamp_t *time);
-static void shutdown(void);
+static void eth_tx_tcp_periodic(void);
+
+static void conv_tcp_frame_to_can_msg(timestamped_frame_t *t, CanMsgTypeDef_t *c);
+static void conv_can_msg_to_tcp_frame(CanMsgTypeDef_t *c, timestamped_frame_t *t);
 static void uds_receive_periodic(void);
+static void shutdown(void);
 
 // TODO: use can parse somehow to check for daq enable signal, etc
 
@@ -87,7 +96,7 @@ void daq_init(void)
     dh.eth_last_err = ETH_ERROR_NONE;
     dh.eth_tcp_state = ETH_TCP_IDLE;
     dh.eth_tcp_last_rx_ms = 0;
-    bActivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX); // start active
+    //bActivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX); // start active
 
     // SD Card
     dh.sd_state = SD_IDLE;
@@ -110,20 +119,12 @@ void daq_init(void)
 
 void daq_loop(void)
 {
-    timestamped_frame_t rx_msg;
-    tcp_can_frame_t *rx_msg_a;
-    CanMsgTypeDef_t tx_msg;
     uint32_t tic;
-    uint32_t cont;
     uint32_t last_hb_toggle_ms = 0;
-    RTC_timestamp_t time;
-    bool msg_valid;
-    uint32_t tx_t = 0;
 
     while (PER == GREAT)
     {
         tic = tick_ms;
-        uds_receive_periodic();
         sd_update_connection_state();
         eth_update_connection_state();
 
@@ -136,62 +137,15 @@ void daq_loop(void)
         //--------------------------------
         // Message Tx
         //--------------------------------
-
-        // Messages that pass through from CAN2 to CAN1
-        if (PHAL_txMailboxFree(CAN1, 0))
-        {
-            if (qReceive(&q_tx_can2_to_can1, &tx_msg) == SUCCESS_G)
-            {
-                // File Write
-                // CAN Send
-                // TODO: monitor if send failed, possibly re-try after waiting
-                PHAL_txCANMessage(&tx_msg, 0);
-            }
-        }
         eth_rx_tcp_periodic();
+        uds_receive_periodic(); // src-> CAN interrupt or TCP RX
+        can_relay_can2_periodic();
+
+        // TX
+        can_tx_periodic(); // send accumulated can at the end
+        eth_tx_tcp_periodic();
+
         // TODO: flow control, multiple at once?
-
-        // Pull frame and send from tcp rx buffer
-        {
-            if (bGetTailForRead(&b_rx_tcp, TCP_RX_TAIL_CAN_TX, (void**) &rx_msg_a, &cont) == 0)
-            {
-                if ((cont / sizeof(*rx_msg_a)) > 0)
-                {
-                    // NOTE: if the buffer size is not multiple of frame size, or the tail gets shifted
-                    // by a frame, reception of frames will not work on the wrap-around.
-                    cont = MIN(cont / sizeof(*rx_msg_a), TCP_MAX_CAN_TX_COUNT); // flow control
-                    for (uint32_t i = 0; i < cont; ++i)
-                    {
-                        switch(rx_msg_a->cmd)
-                        {
-                            case TCP_CMD_CAN_FRAME:
-                                conv_tcp_frame_to_can_msg(rx_msg_a, &tx_msg);
-                                tx_t = tick_ms;
-                                while (PHAL_txMailboxFree(CAN1, 1) == false && (tick_ms - tx_t) < 50); // 50 ms tx timeout
-                                if (tick_ms - tx_t >= 50) PHAL_txCANAbort(CAN1, 1);
-                                PHAL_txCANMessage(&tx_msg, 1);
-                                break;
-                            case TCP_CMD_START_LOG:
-                                dh.log_enable_tcp = true;
-                                break;
-                            case TCP_CMD_STOP_LOG:
-                                dh.log_enable_tcp = false;
-                                break;
-                            case TCP_CMD_SYNC_TIME:
-                                // Extract time from message and configure RTC
-                                conv_tcp_frame_to_rtc(rx_msg_a, &time);
-                                PHAL_configureRTC(&time, true);
-                                break;
-                            default:
-                                break;
-                        }
-                        ++rx_msg_a;
-                    }
-                    bCommitRead(&b_rx_tcp, TCP_RX_TAIL_CAN_TX, cont*sizeof(*rx_msg_a));
-                }
-            }
-        }
-
         // Update timing info
         tic = tick_ms - tic;
         dh.loop_time_max_ms = MAX(tic, dh.loop_time_max_ms);
@@ -202,41 +156,39 @@ void daq_loop(void)
             last_hb_toggle_ms = tick_ms;
         }
     }
-
 }
 
-static void conv_tcp_frame_to_rtc(tcp_can_frame_t *t, RTC_timestamp_t *time)
+// drain CAN1 TX queue
+static void can_tx_periodic(void)
 {
-    tcp_time_frame_t *tcp_time = (tcp_time_frame_t *) t->data;
-    time->time.hours_bcd   = RTC_CONV_TO_BCD(tcp_time->hours);
-    time->time.minutes_bcd = RTC_CONV_TO_BCD(tcp_time->minutes);
-    time->time.seconds_bcd = RTC_CONV_TO_BCD(tcp_time->seconds);
-    time->date.day_bcd     = RTC_CONV_TO_BCD(tcp_time->day);
-    time->date.weekday     = 0; // not used
-    time->date.month_bcd   = RTC_CONV_TO_BCD(tcp_time->month);
-    time->date.year_bcd    = RTC_CONV_TO_BCD(tcp_time->year);
-    // assumes 24H time format
-    time->time.time_format = RTC_FORMAT_24_HOUR;
+    CanMsgTypeDef_t tx_msg;
+    // TODO: we only check if CAN1 mailbox is free -> create separate queue for
+    // CAN2 is you are using it!!!!
+    for (uint8_t i = 0; i < CAN_TX_MAILBOX_CNT; ++i)
+    {
+        if (PHAL_txMailboxFree(CAN1, i))
+        {
+            if (qReceive(&q_tx_can1_s[i], &tx_msg) == SUCCESS_G)    // Check queue for items and take if there is one
+            {
+                PHAL_txCANMessage(&tx_msg, i);
+                mbx_last_send_time[i] = tick_ms;
+            }
+        }
+        else if (tick_ms - mbx_last_send_time[i] > CAN_TX_TIMEOUT_MS)
+        {
+            PHAL_txCANAbort(CAN1, i); // aborts tx and empties the mailbox
+            can_stats.tx_fail++;
+        }
+    }
 }
 
-static void conv_tcp_frame_to_can_msg(tcp_can_frame_t *t, CanMsgTypeDef_t *c)
+static void can_relay_can2_periodic(void)
 {
-    // returns if message valid for can bus sending
-    c->Bus = CAN1;
-
-    if (t->msg_id & CAN_EFF_FLAG)
+    CanMsgTypeDef_t msg;
+    while (qReceive(&q_tx_can2_to_can1, &msg) == SUCCESS_G)
     {
-        c->IDE = 1;
-        c->ExtId = t->msg_id & CAN_EFF_MASK;
+        canTxSendToBack(&msg);
     }
-    else
-    {
-        c->IDE = 0;
-        c->StdId = t->msg_id & CAN_SFF_MASK;
-    }
-
-    c->DLC = t->dlc;
-    for (uint8_t i = 0; i < 8; ++i) c->Data[i] = t->data[i];
 }
 
 bool daq_request_sd_mount(void)
@@ -509,7 +461,7 @@ static void eth_update_connection_state(void)
             }
             break;
         case ETH_LINK_UP:
-            if (tick_ms - last_link_check_time > 1000)
+            if (!last_link_check_time || tick_ms - last_link_check_time > 1000)
             {
                 if (!eth_get_link_up())
                 {
@@ -534,6 +486,8 @@ static void eth_update_connection_state(void)
             bDeactivateTail(&b_rx_can, RX_TAIL_UDP);
             break;
     }
+
+    eth_update_tcp_connection_state();
 
     // Update connection LED
     if (dh.eth_state == ETH_LINK_UP)
@@ -691,13 +645,110 @@ static bool eth_get_tcp_connected(void)
     {
         dh.eth_tcp_state = ETH_TCP_LISTEN;
     }
+    else if (stat == SOCK_CLOSED)
+        dh.eth_tcp_state = ETH_IDLE;
     return false;
 }
+
+static void eth_update_tcp_connection_state(void)
+{
+    static uint32_t last_link_check_time = 0;
+
+    int32_t ret;
+    // When to definitely restart
+    if (dh.eth_state != ETH_LINK_UP)
+        dh.eth_tcp_state = ETH_TCP_IDLE;
+
+    switch(dh.eth_tcp_state)
+    {
+        case ETH_TCP_IDLE:
+            if (dh.eth_state == ETH_LINK_UP && dh.eth_enable_tcp_reception)
+            {
+                if (eth_init_tcp() != ETH_ERROR_NONE)
+                {
+                    dh.eth_tcp_state = ETH_TCP_FAIL;
+                }
+                else
+                {
+                    dh.eth_tcp_state = ETH_TCP_LISTEN;
+                }
+            }
+            break;
+        case ETH_TCP_LISTEN:
+            if (!last_link_check_time || tick_ms - last_link_check_time > 500)
+            {
+                if (eth_get_tcp_connected())
+                {
+                    // Reset buffer state
+                    // b_rx_tcp._head = 0;
+                    bActivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX);
+                    dh.eth_tcp_state = ETH_TCP_ESTABLISHED;
+                }
+                last_link_check_time = tick_ms;
+            }
+            break;
+        case ETH_TCP_ESTABLISHED:
+            if (!last_link_check_time || tick_ms - last_link_check_time > 500)
+            {
+                if (!eth_get_tcp_connected())
+                {
+                    bDeactivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX);
+                    dh.eth_tcp_state = ETH_TCP_LISTEN;
+                }
+                last_link_check_time = tick_ms;
+            }
+            break;
+        case ETH_TCP_FAIL:
+            // fall-through
+        default:
+            // staying here for now
+            break;
+    }
+}
+
+static void eth_read_tcp_periodic(void);
+
+#if 0
+static void eth_send_tcp_periodic(void)
+{
+    int32_t ret;
+    timestamped_frame_t *buf;
+    uint32_t consecutive_items;
+    static uint32_t last_send_ms;
+
+    // Should be sending?
+    if (!dh.eth_enable_udp_broadcast ||
+        dh.eth_state != ETH_LINK_UP) return;
+
+    if (bGetItemCount(&b_rx_can, TCP_RX_TAIL_CAN_TX) >= TCP_MAX_WRITE_COUNT ||
+        (tick_ms - last_send_ms) >= UDP_MAX_WRITE_PERIOD_MS)
+    {
+        if (bGetTailForRead(&b_rx_can, TCP_RX_TAIL_CAN_TX, (void**) &buf, &consecutive_items) == 0)
+        {
+            if (consecutive_items > TCP_MAX_WRITE_COUNT) consecutive_items = TCP_MAX_WRITE_COUNT; // limit
+            // Write time :D
+            ret = sendto(eth_config.udp_bc_sock, (uint8_t *)buf,
+                         consecutive_items * sizeof(*buf),
+                         eth_config.udp_bc_addr,
+                         eth_config.udp_bc_port);
+            if (ret != consecutive_items * sizeof(*buf))
+            {
+                eth_handle_error(ETH_ERROR_UDP_SEND);
+            }
+            else
+            {
+                bCommitRead(&b_rx_can, TCP_RX_TAIL_CAN_TX, consecutive_items);
+                last_send_ms = tick_ms;
+            }
+        }
+    }
+}
+#endif
 
 static void eth_rx_tcp_periodic(void)
 {
     int32_t ret;
-    tcp_can_frame_t *frame;
+    timestamped_frame_t *frame;
     uint32_t cont;
     // When to definitely restart
     if (dh.eth_state != ETH_LINK_UP)
@@ -706,8 +757,7 @@ static void eth_rx_tcp_periodic(void)
     switch(dh.eth_tcp_state)
     {
         case ETH_TCP_IDLE:
-            if (dh.eth_state == ETH_LINK_UP &&
-                dh.eth_enable_tcp_reception)
+            if (dh.eth_state == ETH_LINK_UP && dh.eth_enable_tcp_reception)
             {
                 if (eth_init_tcp() != ETH_ERROR_NONE)
                 {
@@ -730,11 +780,12 @@ static void eth_rx_tcp_periodic(void)
             break;
         case ETH_TCP_ESTABLISHED:
             // Control rate of reception
-            if (tick_ms - dh.eth_tcp_last_rx_ms >= TCP_MIN_RX_PERIOD_MS)
+            #if 1
+            if (!dh.eth_tcp_last_rx_ms || tick_ms - dh.eth_tcp_last_rx_ms >= TCP_MIN_RX_PERIOD_MS)
             {
                 dh.eth_tcp_last_rx_ms = tick_ms;
                 bGetHeadForWrite(&b_rx_tcp, (void**) &frame, &cont);
-                if (cont > 0)
+                if ((cont / sizeof(*frame)) > 0)
                 {
                     cont /= sizeof(*frame); // convert bytes -> frame count
                     if (cont > TCP_MAX_WRITE_COUNT) cont = TCP_MAX_WRITE_COUNT;
@@ -751,16 +802,130 @@ static void eth_rx_tcp_periodic(void)
                     else
                     {
                         // oof, assuming connection was killed
+                        bDeactivateTail(&b_rx_tcp, TCP_RX_TAIL_CAN_TX);
                         dh.eth_tcp_state = ETH_TCP_IDLE;
                     }
                 }
             }
+            #endif
             break;
         case ETH_TCP_FAIL:
             // fall-through
         default:
             // staying here for now
             break;
+    }
+
+    eth_read_tcp_periodic();
+}
+
+static void conv_tcp_frame_to_can_msg(timestamped_frame_t *t, CanMsgTypeDef_t *c)
+{
+    c->Bus = t->bus_id == BUS_ID_CAN1 ? CAN1 : CAN2;
+
+    if (t->msg_id & CAN_EFF_FLAG)
+    {
+        c->IDE = 1;
+        c->ExtId = t->msg_id & CAN_EFF_MASK;
+    }
+    else
+    {
+        c->IDE = 0;
+        c->StdId = t->msg_id & CAN_SFF_MASK;
+    }
+
+    c->DLC = t->dlc;
+    for (uint8_t i = 0; i < 8; ++i) c->Data[i] = t->data[i];
+}
+
+static void conv_can_msg_to_tcp_frame(CanMsgTypeDef_t *c, timestamped_frame_t *t)
+{
+    t->cmd = MSG_TCP_TX_FRAME;
+    t->tick_ms = tick_ms;
+    t->bus_id = c->Bus == CAN1 ? BUS_ID_CAN1 : BUS_ID_CAN2;
+    if (c->IDE)
+    {
+        t->msg_id = c->ExtId & ~CAN_EFF_MASK; // TODO is this right?
+    }
+    else
+    {
+        t->msg_id = c->StdId & ~CAN_SFF_MASK; // TODO
+    }
+    t->dlc = c->DLC;
+    for (uint8_t i = 0; i < 8; ++i) t->data[i] = c->Data[i];
+}
+
+static void eth_tcp_send(uint8_t *buf, uint16_t size)
+{
+    int32_t ret;
+    if (eth_get_tcp_connected())
+    {
+        ret = send(eth_config.tcp_sock, buf, size);
+    }
+}
+
+// send CAN frame over TCP
+static void eth_tcp_send_can_frame(CanMsgTypeDef_t *c)
+{
+    timestamped_frame_t frame;
+    conv_can_msg_to_tcp_frame(c, &frame);
+    eth_tcp_send((uint8_t *)&frame, sizeof(frame));
+}
+
+// Pull out of TCP queue and add it to CAN TX queue
+static void eth_tcp_relay_can_frame(timestamped_frame_t *t)
+{
+    CanMsgTypeDef_t msg;
+    conv_tcp_frame_to_can_msg(t, &msg);
+    canTxSendToBack(&msg);
+}
+
+// Pull out of TCP queue and add it to UDS queue
+static void eth_tcp_relay_uds_frame(timestamped_frame_t *t)
+{
+    t->cmd |= MSG_TCP_RX_FRAME; // Mask to store source of message
+    qSendToBack(&q_rx_can_uds, t);
+}
+
+/**
+ * Pull frames out of TCP RX queue (from PC) and process them by the prefixed command ID
+ * If TCP_CMD_CAN_FRAME, put it on CAN for other nodes
+ * If TCP_CMD_UDS_FRAME, it's a CAN message intended for DAQ (i.e. UDS) so add it to UDS queue
+ */
+static void eth_read_tcp_periodic(void)
+{
+    timestamped_frame_t *rx_msg_a;
+    uint32_t cont;
+
+    // Pull frame and send from tcp rx buffer
+    if (bGetTailForRead(&b_rx_tcp, TCP_RX_TAIL_CAN_TX, (void**) &rx_msg_a, &cont) == 0)
+    {
+        if ((cont / sizeof(*rx_msg_a)) > 0)
+        {
+            // NOTE: if the buffer size is not multiple of frame size, or the tail gets shifted
+            // by a frame, reception of frames will not work on the wrap-around.
+            cont = MIN(cont / sizeof(*rx_msg_a), TCP_MAX_CAN_TX_COUNT); // flow control
+            //cont = MIN(cont, TCP_MAX_CAN_TX_COUNT);
+            for (uint32_t i = 0; i < cont; ++i)
+            {
+                switch(rx_msg_a->cmd)
+                {
+                    case TCP_CMD_HANDSHAKE:
+                        PHAL_toggleGPIO(ERROR_LED_PORT, ERROR_LED_PIN); // TODO send something back?
+                        break;
+                    case TCP_CMD_CAN_FRAME:
+                        eth_tcp_relay_can_frame(rx_msg_a);
+                        break;
+                    case TCP_CMD_UDS_FRAME:
+                        eth_tcp_relay_uds_frame(rx_msg_a);
+                        break;
+                    default:
+                        break;
+                }
+                ++rx_msg_a;
+            }
+            bCommitRead(&b_rx_tcp, TCP_RX_TAIL_CAN_TX, cont*sizeof(*rx_msg_a));
+        }
     }
 }
 
@@ -782,6 +947,7 @@ static bool get_log_enable(void)
     return dh.log_enable_uds;
 }
 
+#define DAQ_BL_CMD_HANDSHAKE  0x00
 #define DAQ_BL_CMD_RST        0x05
 
 #define DAQ_BL_CMD_NTP_DATE   0x10
@@ -790,6 +956,8 @@ static bool get_log_enable(void)
 
 #define DAQ_BL_CMD_LOG_ENABLE 0x20
 #define DAQ_BL_CMD_LOG_STATUS 0x21
+
+#define DAQ_BL_CMD_LED_DISCO  0x30
 
 static RTC_timestamp_t start_time =
 {
@@ -813,28 +981,54 @@ static void uds_process_cmd_ntp_get(void)
             time.time.minutes_bcd, time.time.seconds_bcd);
 }
 
+#if 0
+// send UDS response
+// TODO grab source from rx_msg and determine TCP vs CAN
+static void daq_uds_send_frame(uint8_t cmd, uint32_t data)
+{
+    CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_DAQ_RESPONSE_MAIN_MODULE, .DLC=DLC_DAQ_RESPONSE_MAIN_MODULE, .IDE=1};
+    CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;
+    data_a->daq_response_MAIN_MODULE.daq_response = daq_response_;
+    canTxSendToBack(&msg);
+    eth_tcp_send_can_frame(&msg);
+}
+#endif
+
+static void eth_tx_tcp_periodic(void)
+{
+    ; // TODO pull out of TCP TX queue
+}
+
+/**
+ * Process DAQ-specific UDS commands
+ */
 static void daq_uds_handle_cmd(uint8_t cmd, uint32_t data)
 {
     switch (cmd)
     {
+        case DAQ_BL_CMD_HANDSHAKE:
+            PHAL_toggleGPIO(ERROR_LED_PORT, ERROR_LED_PIN);
+            break;
         case DAQ_BL_CMD_RST:
             shutdown(); // NVIC reset / bootloader if loaded
             break;
+
         case DAQ_BL_CMD_NTP_DATE: // send date first
             start_time.date.day_bcd = data & 0xff;
             start_time.date.weekday = (data >> 8) & 0xf;
             start_time.date.month_bcd = (data >> 12) & 0xff;
             start_time.date.year_bcd = (data >> 20) & 0xff;
             break;
-        case DAQ_BL_CMD_NTP_TIME:
+        case DAQ_BL_CMD_NTP_TIME: // then time
             start_time.time.seconds_bcd = data & 0xff;
             start_time.time.minutes_bcd = (data >> 8) & 0xff;
             start_time.time.hours_bcd = (data >> 16) & 0xff;
-            PHAL_configureRTC(&start_time, true);
+            PHAL_configureRTC(&start_time, true); // now sync
             break;
         case DAQ_BL_CMD_NTP_GET:
             uds_process_cmd_ntp_get();
             break;
+
         case DAQ_BL_CMD_LOG_ENABLE:
             dh.log_enable_uds = !!data;
             break;
@@ -844,19 +1038,31 @@ static void daq_uds_handle_cmd(uint8_t cmd, uint32_t data)
             else
                 debug_printf("Logging disabled\n");
             break;
+
+        case DAQ_BL_CMD_LED_DISCO:
+            //PHAL_writeGPIO(GPIO1_PORT, GPIO1_PIN, (frame.data >> 0) & 1);
+            //PHAL_writeGPIO(GPIO2_PORT, GPIO2_PIN, (frame.data >> 1) & 1);
+            PHAL_writeGPIO(ERROR_LED_PORT, ERROR_LED_PIN, (data >> 2) & 1);
+            PHAL_writeGPIO(SD_ERROR_LED_PORT, SD_ERROR_LED_PIN, (data >> 3) & 1);
+            PHAL_writeGPIO(SD_ACTIVITY_LED_PORT, SD_ACTIVITY_LED_PIN, (data >> 4) & 1);
+            PHAL_writeGPIO(SD_DETECT_LED_PORT, SD_DETECT_LED_PIN, (data >> 5) & 1);
+            break;
     }
 }
 
+/**
+ * Pull UDS CAN frames out of UDS queue added during CAN1/CAN2 ISR
+ * and process them in non-interrupt context
+ */
 static void uds_receive_periodic(void)
 {
     timestamped_frame_t rx_msg;
-    while (qReceive(&q_rx_can_uds, &rx_msg) == SUCCESS_G)
+    if (qReceive(&q_rx_can_uds, &rx_msg) == SUCCESS_G)
     {
         uint32_t data = rx_msg.data[4] << 24 | rx_msg.data[3] << 16 | rx_msg.data[2] << 8 | rx_msg.data[1];
         daq_uds_handle_cmd(rx_msg.data[0], data);
     }
 }
-
 
 /**
  * @brief Disables high power consumption devices

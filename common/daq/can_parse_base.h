@@ -34,6 +34,7 @@ typedef struct {
 extern can_stats_t can_stats;
 extern q_handle_t q_tx_can1_s[CAN_TX_MAILBOX_CNT ];
 extern q_handle_t q_rx_can;
+extern uint32_t mbx_last_send_time[CAN_TX_MAILBOX_CNT];
 
 void initCANParseBase();
 void canTxUpdate(void);

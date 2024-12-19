@@ -7,14 +7,15 @@
  *          - USB (maybe)
  * @version 0.1
  * @date 2024-02-08
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 #ifndef _DAQ_HUB_H_
 #define _DAQ_HUB_H_
 
 #include <stdint.h>
+#include <assert.h>
 #include "ff.h"
 #include "common/phal_F4_F7/rtc/rtc.h"
 
@@ -43,7 +44,7 @@ typedef uint32_t canid_t;
 
 /* End CAN Definitions from <linux/can.h> */
 
-// 0 = CAN1, 1 = CAN2, 
+// 0 = CAN1, 1 = CAN2,
 #define BUS_ID_CAN1 0
 #define BUS_ID_CAN2 1
 // TODO: add like UDP, USB, etc. ?
@@ -51,6 +52,7 @@ typedef uint8_t busid_t;
 
 typedef struct __attribute__((packed))
 {
+    uint8_t  cmd;          //!< command
     uint32_t tick_ms;      //!< ms timestamp of reception
     canid_t  msg_id;       //!< message id
     busid_t  bus_id;       //!< bus the message was rx'd on
@@ -58,34 +60,16 @@ typedef struct __attribute__((packed))
     uint8_t  data[8];      //!< message data
 } timestamped_frame_t;
 
+#define MSG_CAN_FRAME    (1 << 0)  // authentic CAN frame, i.e. daq can't TX CAN to itself
+#define MSG_TCP_RX_FRAME (1 << 1)  // authentic CAN frame, i.e. daq can't TX CAN to itself
+#define MSG_TCP_TX_FRAME (1 << 2)  // TXing CAN frame over TCP
+
 typedef enum
 {
-    TCP_CMD_CAN_FRAME = 0,
-    TCP_CMD_START_LOG = 1,
-    TCP_CMD_STOP_LOG  = 3,
-    TCP_CMD_SYNC_TIME = 4,
+    TCP_CMD_HANDSHAKE = 0,
+    TCP_CMD_CAN_FRAME = 1, // authentic CAN frame, i.e. daq can't TX CAN to itself
+    TCP_CMD_UDS_FRAME = 2,
 } tcp_cmd_t;
-
-// TODO: add on bus_id
-typedef struct __attribute__((packed))
-{
-    tcp_cmd_t cmd;   //!< command
-    canid_t msg_id;  //!< message id
-    uint8_t dlc;     //!< data length code
-    uint8_t data[8]; //!< message data
-} tcp_can_frame_t;
-
-typedef struct __attribute__((packed))
-{
-    uint8_t seconds;
-    uint8_t minutes;
-    uint8_t hours;
-    uint8_t day;
-    RTC_MONTH_t month;
-    uint8_t year;
-    uint8_t _padding1;
-    uint8_t _padding2;
-} tcp_time_frame_t;
 
 typedef enum
 {
@@ -137,18 +121,18 @@ typedef enum
 #define ETH_PHY_LINK_TIMEOUT_MS 5000
 
 // CAN Receive Buffer Configuration
-#define RX_BUFF_ITEM_COUNT 2000 
+#define RX_BUFF_ITEM_COUNT 2000
 
 #define SD_NEW_FILE_PERIOD_MS   (2*60*1000) // 2 minutes
 #define SD_MAX_WRITE_PERIOD_MS  500
 #define SD_MAX_WRITE_COUNT      (500) // Assuming approx 1kHz  rx rate
 
-#define UDP_MAX_WRITE_PERIOD_MS 50 
+#define UDP_MAX_WRITE_PERIOD_MS 50
 #define UDP_MAX_WRITE_COUNT     (20)  // Assuming approx 1kHz  rx rate
 
 // TCP Receive Buffer Configuration
 #define TCP_RX_BUFF_ITEM_COUNT 200 // Shouldn't need to be much larger than max write count
-#define TCP_MIN_RX_PERIOD_MS   50
+#define TCP_MIN_RX_PERIOD_MS   10
 #define TCP_MAX_WRITE_COUNT    (100)
 #define TCP_MAX_CAN_TX_COUNT   (3)
 
