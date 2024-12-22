@@ -53,6 +53,7 @@ include(cmake/FindFreeRTOS.cmake)
 add_subdirectory(common/phal_F4_F7) #L4, F4/F7 directories are never linked together
 add_subdirectory(common/phal_L4)
 add_subdirectory(common/psched)
+add_subdirectory(common/freertos)
 add_subdirectory(common/bootloader)
 add_subdirectory(common/queue)
 add_subdirectory(common/common_defs)

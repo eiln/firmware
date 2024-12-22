@@ -12,7 +12,7 @@
 #include "common/plettenberg/plettenberg.h"
 #include "common/phal_F4_F7/usart/usart.h"
 #include "common/plettenberg/plettenberg.h"
-#include "common/psched/psched.h"
+#include "common/freertos/freertos.h"
 #include "common/queue/queue.h"
 
 /* Module Includes */
@@ -231,7 +231,8 @@ q_handle_t q_tx_usart_r;
 uint16_t num_failed_msgs_r;
 uint16_t num_failed_msgs_l;
 
-int main(void){
+int main(void) {
+    osKernelInitialize();
     /* Data Struct Initialization */
     qConstruct(&q_tx_usart_l, MC_MAX_TX_LENGTH);
     qConstruct(&q_tx_usart_r, MC_MAX_TX_LENGTH);
@@ -248,26 +249,63 @@ int main(void){
     }
     PHAL_writeGPIO(SDC_CTRL_GPIO_Port, SDC_CTRL_Pin, 1);
 
+    huart_l.rx_dma_cfg->circular = true;
+    if(!PHAL_initUSART(&huart_l, APB2ClockRateHz))
+    {
+        HardFault_Handler();
+    }
+    huart_r.rx_dma_cfg->circular = true;
+    if(!PHAL_initUSART(&huart_r, APB1ClockRateHz))
+    {
+        HardFault_Handler();
+    }
+
+    if(!PHAL_initCAN(CAN1, false, VCAN_BPS))
+    {
+        HardFault_Handler();
+    }
+    NVIC_EnableIRQ(CAN1_RX0_IRQn);
+
+    if(!PHAL_initADC(ADC1, &adc_config, adc_channel_config, sizeof(adc_channel_config)/sizeof(ADCChannelConfig_t)))
+    {
+        HardFault_Handler();
+    }
+    if(!PHAL_initDMA(&adc_dma_config))
+    {
+        HardFault_Handler();
+    }
+    PHAL_startTxfer(&adc_dma_config);
+    PHAL_startADC(ADC1);
+
+    // initial rx request
+    PHAL_usartRxDma(&huart_r, (uint16_t *) huart_r_rx_buf.rx_buf, huart_r_rx_buf.rx_buf_size, 1);
+    PHAL_usartRxDma(&huart_l, (uint16_t *) huart_l_rx_buf.rx_buf, huart_l_rx_buf.rx_buf_size, 1);
+    
+    // Module Initialization
+    carInit();
+    coolingInit();
+
+    initCANParse();
+    if(daqInit(&q_tx_can1_s[2]))
+        HardFault_Handler();
+    initFaultLibrary(FAULT_NODE_NAME, &q_tx_can1_s[0], ID_FAULT_SYNC_MAIN_MODULE);
 
     /* Task Creation */
-    schedInit(APB1ClockRateHz);
-    configureAnim(preflightAnimation, preflightChecks, 60, 750);
-
-    taskCreate(coolingPeriodic, 50);
-    taskCreate(heartBeatLED, 500);
-    taskCreate(monitorSDCPeriodic, 20);
-    taskCreate(carHeartbeat, 500);
-    taskCreate(carPeriodic, 15);
-    taskCreate(interpretLoadSensor, 15);
-    taskCreate(updateSDCFaults, 300);
-    taskCreate(heartBeatTask, 100);
-    taskCreate(send_shockpots, 15);
-    taskCreate(parseMCDataPeriodic, MC_LOOP_DT);
-    taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
+    createThread(coolingPeriodic, 50, osPriorityNormal, "Cooling Periodic");
+    createThread(heartBeatLED, 500, osPriorityNormal, "Heartbeat LED");
+    createThread(monitorSDCPeriodic, 20, osPriorityNormal, "Monitor SDC");
+    createThread(carHeartbeat, 500, osPriorityNormal, "Car Heartbeat");
+    createThread(carPeriodic, 15, osPriorityAboveNormal, "Car Periodic");
+    createThread(interpretLoadSensor, 15, osPriorityNormal, "Interpret Load Sensor");
+    createThread(updateSDCFaults, 300, osPriorityNormal, "Update SDC Faults");
+    createThread(heartBeatTask, 100, osPriorityNormal, "Heartbeat Task");
+    createThread(send_shockpots, 15, osPriorityNormal, "Send Shockpots");
+    createThread(parseMCDataPeriodic, MC_LOOP_DT, osPriorityNormal, "Parse MC Data Periodic");
+    createThread(daqPeriodic, DAQ_UPDATE_PERIOD, osPriorityNormal, "DAQ Periodic");
     // taskCreate(memFg, MEM_FG_TIME);
-    taskCreateBackground(canTxUpdate);
-    taskCreateBackground(canRxUpdate);
-    taskCreateBackground(usartTxUpdate);
+    createThread(canTxUpdate, 100, osPriorityBelowNormal, "CAN Tx Update");
+    createThread(canRxUpdate, 100, osPriorityBelowNormal, "CAN Rx Update");
+    createThread(usartTxUpdate, 100, osPriorityBelowNormal, "USART Tx Update");
     // taskCreateBackground(memBg);
     // uint8_t i = 0;
     // calibrateSteeringAngle(&i);
@@ -275,7 +313,7 @@ int main(void){
     //     SEND_LWS_CONFIG(0x05, 0, 0); // reset cal
     // SEND_LWS_CONFIG(0x03, 0, 0); // start new
 
-    schedStart();
+    osKernelStart();
 
     return 0;
 }
