@@ -231,8 +231,22 @@ q_handle_t q_tx_usart_r;
 uint16_t num_failed_msgs_r;
 uint16_t num_failed_msgs_l;
 
+defineThread(coolingPeriodic, 50, osPriorityNormal);
+defineThread(heartBeatLED, 500, osPriorityBelowNormal);
+defineThread(monitorSDCPeriodic, 20, osPriorityNormal);
+defineThread(carHeartbeat, 500, osPriorityNormal);
+defineThread(carPeriodic, 15, osPriorityAboveNormal);
+defineThread(interpretLoadSensor, 15, osPriorityNormal);
+defineThread(updateSDCFaults, 300, osPriorityNormal);
+defineThread(heartBeatTask, 100, osPriorityNormal);
+defineThread(send_shockpots, 15, osPriorityNormal);
+defineThread(parseMCDataPeriodic, MC_LOOP_DT, osPriorityNormal);
+defineThread(daqPeriodic, DAQ_UPDATE_PERIOD, osPriorityNormal);
+defineThread(canTxUpdate, 100, osPriorityAboveNormal);
+defineThread(canRxUpdate, 100, osPriorityAboveNormal);
+defineThread(usartTxUpdate, 100, osPriorityAboveNormal);
+
 int main(void) {
-    osKernelInitialize();
     /* Data Struct Initialization */
     qConstruct(&q_tx_usart_l, MC_MAX_TX_LENGTH);
     qConstruct(&q_tx_usart_r, MC_MAX_TX_LENGTH);
@@ -280,7 +294,7 @@ int main(void) {
     // initial rx request
     PHAL_usartRxDma(&huart_r, (uint16_t *) huart_r_rx_buf.rx_buf, huart_r_rx_buf.rx_buf_size, 1);
     PHAL_usartRxDma(&huart_l, (uint16_t *) huart_l_rx_buf.rx_buf, huart_l_rx_buf.rx_buf_size, 1);
-    
+
     // Module Initialization
     carInit();
     coolingInit();
@@ -290,22 +304,23 @@ int main(void) {
         HardFault_Handler();
     initFaultLibrary(FAULT_NODE_NAME, &q_tx_can1_s[0], ID_FAULT_SYNC_MAIN_MODULE);
 
-    /* Task Creation */
-    createThread(coolingPeriodic, 50, osPriorityNormal, "Cooling Periodic");
-    createThread(heartBeatLED, 500, osPriorityNormal, "Heartbeat LED");
-    createThread(monitorSDCPeriodic, 20, osPriorityNormal, "Monitor SDC");
-    createThread(carHeartbeat, 500, osPriorityNormal, "Car Heartbeat");
-    createThread(carPeriodic, 15, osPriorityAboveNormal, "Car Periodic");
-    createThread(interpretLoadSensor, 15, osPriorityNormal, "Interpret Load Sensor");
-    createThread(updateSDCFaults, 300, osPriorityNormal, "Update SDC Faults");
-    createThread(heartBeatTask, 100, osPriorityNormal, "Heartbeat Task");
-    createThread(send_shockpots, 15, osPriorityNormal, "Send Shockpots");
-    createThread(parseMCDataPeriodic, MC_LOOP_DT, osPriorityNormal, "Parse MC Data Periodic");
-    createThread(daqPeriodic, DAQ_UPDATE_PERIOD, osPriorityNormal, "DAQ Periodic");
+    osKernelInitialize();
+
+    createThread(coolingPeriodic, 50, osPriorityNormal);
+    createThread(heartBeatLED, 500, osPriorityBelowNormal);
+    createThread(monitorSDCPeriodic, 20, osPriorityNormal);
+    createThread(carHeartbeat, 500, osPriorityNormal);
+    createThread(carPeriodic, 15, osPriorityAboveNormal);
+    createThread(interpretLoadSensor, 15, osPriorityNormal);
+    createThread(updateSDCFaults, 300, osPriorityNormal);
+    createThread(heartBeatTask, 100, osPriorityNormal);
+    createThread(send_shockpots, 15, osPriorityNormal);
+    createThread(parseMCDataPeriodic, MC_LOOP_DT, osPriorityNormal);
+    createThread(daqPeriodic, DAQ_UPDATE_PERIOD, osPriorityNormal);
     // taskCreate(memFg, MEM_FG_TIME);
-    createThread(canTxUpdate, 100, osPriorityBelowNormal, "CAN Tx Update");
-    createThread(canRxUpdate, 100, osPriorityBelowNormal, "CAN Rx Update");
-    createThread(usartTxUpdate, 100, osPriorityBelowNormal, "USART Tx Update");
+    createThread(canTxUpdate, 100, osPriorityAboveNormal);
+    createThread(canRxUpdate, 100, osPriorityAboveNormal);
+    createThread(usartTxUpdate, 100, osPriorityAboveNormal);
     // taskCreateBackground(memBg);
     // uint8_t i = 0;
     // calibrateSteeringAngle(&i);

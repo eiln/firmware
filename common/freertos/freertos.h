@@ -4,7 +4,23 @@
 typedef struct {
     void (*taskFunction)();
     uint32_t delay;
+    osThreadAttr_t attrs;
 } ThreadWrapper;
 
 void rtosWrapper(void *);
-osThreadId_t createThread(void (*)(), uint32_t, osPriority_t, char*);
+
+// cursed macro
+// TODO calculate stack size
+#define defineThread(TASK, DELAY, PRIORITY)\
+    ThreadWrapper wrapper_##TASK = { \
+        .taskFunction = &(TASK),     \
+        .delay = (DELAY),            \
+        .attrs = {                   \
+            .priority = (PRIORITY),  \
+            .stack_size = 1024,      \
+            .name = "\""#TASK"\"",   \
+        }                            \
+    };
+
+#define createThread(NAME, DELAY, PRIORITY)\
+    osThreadId_t handle_##NAME = osThreadNew(rtosWrapper, &(wrapper_##NAME), &(wrapper_##NAME).attrs);
