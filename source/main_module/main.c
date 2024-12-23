@@ -241,9 +241,8 @@ defineThread(updateSDCFaults, 300, osPriorityNormal);
 defineThread(heartBeatTask, 100, osPriorityNormal);
 defineThread(send_shockpots, 15, osPriorityNormal);
 defineThread(parseMCDataPeriodic, MC_LOOP_DT, osPriorityNormal);
-defineThread(daqPeriodic, DAQ_UPDATE_PERIOD, osPriorityNormal);
-defineThread(canTxUpdate, 100, osPriorityAboveNormal);
-defineThread(canRxUpdate, 100, osPriorityAboveNormal);
+defineThread(canTxUpdate, 15, osPriorityAboveNormal);
+defineThread(canRxUpdate, 15, osPriorityAboveNormal);
 defineThread(usartTxUpdate, 100, osPriorityAboveNormal);
 
 int main(void) {
@@ -300,8 +299,6 @@ int main(void) {
     coolingInit();
 
     initCANParse();
-    if(daqInit(&q_tx_can1_s[2]))
-        HardFault_Handler();
     initFaultLibrary(FAULT_NODE_NAME, &q_tx_can1_s[0], ID_FAULT_SYNC_MAIN_MODULE);
 
     osKernelInitialize();
@@ -316,7 +313,6 @@ int main(void) {
     createThread(heartBeatTask, 100, osPriorityNormal);
     createThread(send_shockpots, 15, osPriorityNormal);
     createThread(parseMCDataPeriodic, MC_LOOP_DT, osPriorityNormal);
-    createThread(daqPeriodic, DAQ_UPDATE_PERIOD, osPriorityNormal);
     // taskCreate(memFg, MEM_FG_TIME);
     createThread(canTxUpdate, 100, osPriorityAboveNormal);
     createThread(canRxUpdate, 100, osPriorityAboveNormal);
