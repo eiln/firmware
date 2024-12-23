@@ -1,7 +1,6 @@
 /* System Includes */
 #include "stm32f407xx.h"
 #include "can_parse.h"
-#include "common/bootloader/bootloader_common.h"
 #include "common/common_defs/common_defs.h"
 #include "common/psched/psched.h"
 #include "common/phal_F4_F7/can/can.h"
@@ -12,7 +11,7 @@
 
 /* Module Includes */
 #include "main.h"
-#include "daq.h"
+#include "uds.h"
 #include "orion.h"
 #include "tmu.h"
 
@@ -176,10 +175,7 @@ int main (void)
 
     bms_daq_override = false;
     bms_daq_stat = false;
-
-    if (daqInit(&q_tx_can1_s[2]))
-        HardFault_Handler();
-
+    uds_init();
    /* Module init */
    schedInit(APB1ClockRateHz * 2); // See Datasheet DS11451 Figure. 4 for clock tree
 
@@ -192,7 +188,6 @@ int main (void)
    taskCreate(orionChargePeriodic, 50);
    taskCreate(heartBeatTask, 100);
    taskCreate(sendhbmsg, 500);
-   taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
    taskCreate(readCurrents, 50);
 
    taskCreateBackground(canTxUpdate);
@@ -331,12 +326,6 @@ void CAN1_RX0_IRQHandler()
 void CAN2_RX0_IRQHandler()
 {
     canParseIRQHandler(CAN2);
-}
-
-void a_box_bl_cmd_CALLBACK(CanParsedData_t *msg_data_a)
-{
-   if (can_data.a_box_bl_cmd.cmd == BLCMD_RST)
-       Bootloader_ResetForFirmwareDownload();
 }
 
 void PHAL_FaultHandler()

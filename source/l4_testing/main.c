@@ -1,6 +1,5 @@
 /* System Includes */
 #include "stm32l432xx.h"
-#include "common/bootloader/bootloader_common.h"
 #include "common/psched/psched.h"
 #include "common/phal_L4/can/can.h"
 #include "common/phal_L4/rcc/rcc.h"
@@ -162,7 +161,7 @@ uint64_t faults = 0;
 int main (void)
 {
     // Main stack pointer is saved as the first entry in the .isr_entry
-    Bootloader_ConfirmApplicationLaunch();
+    //Bootloader_ConfirmApplicationLaunch();
     /* Data Struct init */
     qConstruct(&q_tx_can_0, sizeof(CanMsgTypeDef_t));
     qConstruct(&q_tx_can_1, sizeof(CanMsgTypeDef_t));
@@ -479,12 +478,6 @@ void CAN1_RX0_IRQHandler()
 
         qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)
     }
-}
-
-void l4_testing_bl_cmd_CALLBACK(CanParsedData_t *msg_data_a)
-{
-    if (can_data.l4_testing_bl_cmd.cmd == BLCMD_RST)
-        Bootloader_ResetForFirmwareDownload();
 }
 
 void HardFault_Handler()

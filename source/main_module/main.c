@@ -1,5 +1,4 @@
 /* System Includes */
-#include "common/bootloader/bootloader_common.h"
 #include "common/common_defs/common_defs.h"
 #include "common/faults/faults.h"
 // #include "common/modules/wheel_speeds/wheel_speeds.h"
@@ -14,13 +13,14 @@
 #include "common/plettenberg/plettenberg.h"
 #include "common/freertos/freertos.h"
 #include "common/queue/queue.h"
+#include "common/uds/uds.h"
 
 /* Module Includes */
 #include "car.h"
 #include "can_parse.h"
 #include "cooling.h"
-#include "daq.h"
 #include "main.h"
+#include "uds.h"
 
 GPIOInitConfig_t gpio_config[] = {
     // Internal Status Indicators
@@ -390,10 +390,9 @@ void preflightChecks(void) {
            coolingInit();
            break;
        case 5:
-           initCANParse();
-           if(daqInit(&q_tx_can1_s[2]))
-               HardFault_Handler();
+            initCANParse();
             initFaultLibrary(FAULT_NODE_NAME, &q_tx_can1_s[0], ID_FAULT_SYNC_MAIN_MODULE);
+            uds_init();
            break;
         default:
             registerPreflightComplete(1);
@@ -545,10 +544,16 @@ void CAN1_RX0_IRQHandler()
     canParseIRQHandler(CAN1);
 }
 
-void main_module_bl_cmd_CALLBACK(CanParsedData_t *msg_data_a)
+#define UDS_CMD_MAIN_MODULE_HELLO 0x30
+
+void uds_handle_sub_command_callback(uint8_t cmd, uint64_t data)
 {
-    if (can_data.main_module_bl_cmd.cmd == BLCMD_RST)
-        Bootloader_ResetForFirmwareDownload();
+    switch (cmd)
+    {
+        case UDS_CMD_MAIN_MODULE_HELLO:
+            PHAL_toggleGPIO(ERR_LED_GPIO_Port, ERR_LED_Pin);
+        break;
+    }
 }
 
 void HardFault_Handler()

@@ -1,7 +1,7 @@
 #include "common/daq/can_parse_base.h"
 /**
  * q_tx_can_0 -> hlp [0,1] -> mailbox 1
- * q_tx_can_1 -> hlp [2,3] -> mailbox 2 
+ * q_tx_can_1 -> hlp [2,3] -> mailbox 2
  * q_tx_can_2 -> hlp [4,5] -> mailbox 3
 */
 
