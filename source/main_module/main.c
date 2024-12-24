@@ -300,6 +300,7 @@ int main(void) {
 
     initCANParse();
     initFaultLibrary(FAULT_NODE_NAME, &q_tx_can1_s[0], ID_FAULT_SYNC_MAIN_MODULE);
+    uds_init();
 
     osKernelInitialize();
 

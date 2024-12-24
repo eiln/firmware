@@ -19,47 +19,19 @@ typedef enum {
     TCP_RX_TAIL_COUNT,
 } tcp_rx_tail_t;
 
-#include "common/queue/queue.h"
-#include "buffer.h"
+#include "common/freertos/freertos.h"
 #include "common/log/log.h"
+#include "daq_hub.h"
+#include "buffer.h"
 
-// #define DISCO_BOARD
+// LEDs
 // #define BUILD_BACKUP_FIRMWARE
-#ifdef DISCO_BOARD
-
-#define RED    14
-#define BLUE   15
-#define GREEN  12
-#define ORANGE 13
-
-#define RED_LED_PORT    GPIOD
-#define RED_LED_PIN     RED
-#define BLUE_LED_PORT   GPIOD
-#define BLUE_LED_PIN    BLUE
-#define GREEN_LED_PORT  GPIOD
-#define GREEN_LED_PIN   GREEN
-#define ORANGE_LED_PORT GPIOD
-#define ORANGE_LED_PIN  ORANGE
-#define USER_BTN_PORT   GPIOA
-#define USER_BTN_PIN    0
-
-#define HEARTBEAT_LED_PORT   BLUE_LED_PORT
-#define HEARTBEAT_LED_PIN    BLUE_LED_PIN
-#define CONNECTION_LED_PORT  ORANGE_LED_PORT
-#define CONNECTION_LED_PIN   ORANGE_LED_PIN
-#define ERROR_LED_PORT       RED_LED_PORT
-#define ERROR_LED_PIN        RED_LED_PIN
-#define SD_ACTIVITY_LED_PORT GREEN_LED_PORT
-#define SD_ACTIVITY_LED_PIN  GREEN_LED_PIN
-#define SD_ERROR_LED_PORT    RED_LED_PORT
-#define SD_ERROR_LED_PIN     RED_LED_PIN
-#else
 #ifndef BUILD_BACKUP_FIRMWARE
 #define HEARTBEAT_LED_PORT   GPIOD
 #define HEARTBEAT_LED_PIN    13
 #define CONNECTION_LED_PORT  GPIOD
 #define CONNECTION_LED_PIN   14
-#else // BUILD_BACKUP_FIRMWARE
+#else // BUILD_BACKUP_FIRMWARE (swap LED colors for backup firmware)
 #define HEARTBEAT_LED_PORT   GPIOD
 #define HEARTBEAT_LED_PIN    14
 #define CONNECTION_LED_PORT  GPIOD
@@ -67,12 +39,12 @@ typedef enum {
 #endif // BUILD_BACKUP_FIRMWARE
 #define ERROR_LED_PORT       GPIOD
 #define ERROR_LED_PIN        15
+
+// SD
 #define SD_ACTIVITY_LED_PORT GPIOA
 #define SD_ACTIVITY_LED_PIN  9
 #define SD_ERROR_LED_PORT    GPIOA
 #define SD_ERROR_LED_PIN     8
-#endif
-
 #define SD_DETECT_LED_PORT GPIOA
 #define SD_DETECT_LED_PIN  10
 #define SD_CD_PORT         GPIOD
@@ -98,7 +70,6 @@ typedef enum {
 
 #define PWR_LOSS_PORT GPIOE
 #define PWR_LOSS_PIN  15
-
 #define LOG_ENABLE_PORT GPIOC
 #define LOG_ENABLE_PIN  15
 
@@ -106,12 +77,23 @@ typedef enum {
 #define GREAT PER
 
 extern volatile uint32_t tick_ms; // Systick 1ms counter
-extern q_handle_t q_tx_can2_to_can1;
-extern q_handle_t q_rx_can_uds;
-extern q_handle_t q_tx_tcp;
 extern b_handle_t b_rx_can;
-extern b_handle_t b_rx_tcp;
 
 extern void HardFault_Handler();
+
+#define TCP_TX_ITEM_COUNT  32   // This is enough
+#define DCAN_RX_ITEM_COUNT 4000 // TODO bump this up for bootloader
+#define CAN2_TX_ITEM_COUNT 32
+#define TCP_RX_ITEM_COUNT  100 // TODO bump
+
+extern QueueHandle_t tcp_tx_queue;
+extern QueueHandle_t dcan_rx_queue;
+extern QueueHandle_t can2_tx_queue;
+extern timestamped_frame_t tcp_rx_buf[TCP_RX_ITEM_COUNT];
+
+extern SemaphoreHandle_t spi1_handle;
+extern SemaphoreHandle_t tcp_rx_handle;
+extern SemaphoreHandle_t ff_handle;
+extern volatile uint64_t can_hit_count;
 
 #endif

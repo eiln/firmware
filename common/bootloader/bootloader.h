@@ -33,37 +33,40 @@
 /* F4:
  * 0x08000000 ]  16K [Bootloader code]
  * 0x08004000 ]  16K [Metadata region/boot manager]
+ * 0x08008000 ]  16K [Metadata for backup firmware]
  * 0x08008000 ] 256K [Bank A: Application]
  * 0x08040000 ] 256K [Bank B: Buffer]
  * 0x08080000 ] 256K [Bank C: Backup firmware]
  */
-
 #define MAX_FIRMWARE_SIZE        0x40000
 
 #define BL_ADDRESS_BOOTLOADER 0x08000000 // 0: Bootloader (16K, sector 0)
-#define BL_ADDRESS_METADATA   0x08004000 // 1: Metadata (16K, sector 1)
-#define BL_ADDRESS_META_C     0x08008000 // 1: Metadata (16K, sector 2)
-#define BL_ADDRESS_BANK_A     0x08040000 // 2: Bank A: Application (256K, sector 6..7)
-#define BL_ADDRESS_BANK_B     0x08080000 // 3: Bank B: Temporary buffer (256K, sector 8..9)
-#define BL_ADDRESS_BANK_C     0x080c0000 // 4: Bank C: Backup firmware (256K, sector 10..11)
+#define BL_ADDRESS_META_1     0x08004000 // 1: Metadata (16K, sector 1)
+#define BL_ADDRESS_META_C     0x08008000 // 2: Metadata (16K, sector 2)
+#define BL_ADDRESS_BANK_A     0x08040000 // 3: Bank A: Application (256K, sector 6..7)
+#define BL_ADDRESS_BANK_B     0x08080000 // 4: Bank B: Temporary buffer (256K, sector 8..9)
+#define BL_ADDRESS_BANK_C     0x080c0000 // 5: Bank C: Backup firmware (256K, sector 10..11)
 
-#define BL_METADATA_MAGIC  0xFEE1DEAD
+#define BL_METADATA_MAGIC     0xFEE1DEAD
 
-// NOR Flash so bits flip from 0b1111 -> 0b0000
-#define BL_FIRMWARE_VERIFIED     (0x00000000)
+// NOR Flash so we can only flip from 0b1111 -> 0b0000
 #define BL_FIRMWARE_NOT_VERIFIED (0xffffffff)
+#define BL_FIRMWARE_VERIFIED     (0x00000000)
 
-/* CAN Message structure for UDS VAR */
+#define BL_FLAG_BANK_A  0xAAAA
+#define BL_FLAG_BANK_B  0xBBBB
+#define BL_FLAG_BANK_C  0xCCCC
+
 typedef struct {
-    uint32_t magic; // magic number to verify bootloader exists
-    uint32_t addr;  // address of the bank (A/B/Backup)
-    uint32_t words; // words (u32) in firmware
-    uint32_t crc;   // crc of the firmware
-    uint32_t flags; // unused, potentially checksum of meta itself
-    uint32_t verified; // bitflip to 1 if verified during application
+    uint32_t magic;    // Magic number to verify bootloader exists
+    uint32_t addr;     // Address of the bank (A/B/Backup)
+    uint32_t words;    // Words (u32) in firmware
+    uint32_t crc;      // CRC of the firmware
+    uint32_t flags;    // Unused, potentially checksum of meta itself
+    uint32_t verified; // App flips flash to 0b00 if verified during application
 } __attribute__((__packed__, aligned(sizeof(uint32_t)))) bl_metadata_t;
 #define BL_METADATA_WC ((sizeof(bl_metadata_t)) / (sizeof(uint32_t)))
-#define BL_METADATA_VERIFIED_ADDR ((BL_ADDRESS_METADATA) + (((BL_METADATA_WC) - 1) * sizeof(uint32_t))) // last member
+#define BL_METADATA_VERIFIED_ADDR ((BL_ADDRESS_META_1) + (((BL_METADATA_WC) - 1) * sizeof(uint32_t))) // Last member
 static_assert(sizeof(bl_metadata_t) == sizeof(uint32_t) * BL_METADATA_WC);
 static_assert((BL_METADATA_VERIFIED_ADDR) == 0x08004014);
 
@@ -73,26 +76,29 @@ void BL_markFirmwareVerified(void);
 bool BL_processCommand(uint8_t cmd, uint64_t data);
 bool BL_setMetadata(uint32_t addr, uint32_t words, uint32_t crc);
 bool BL_memcpyFlashBuffer(uint32_t addr_dst, uint32_t addr_src, uint32_t words, uint32_t crc);
-void BL_sendStatusMessage(uint8_t cmd, uint32_t data);
+void BL_sendStatusMessage(uint8_t cmd, uint8_t err, uint64_t data);
 
-// TODO update these
-typedef enum
-{
-    BLSTAT_VALID        = 0,
-    BLSTAT_INVALID      = 1,
-    BLSTAT_INVALID_CRC  = 2,
-    BLSTAT_UNKNOWN_CMD  = 3,
-    BLSTAT_BOOT         = 4,
-} BLStatus_t;
+#define BL_sendError(cmd, err) BL_sendStatusMessage(cmd, err, 0)
+#define BL_sendErrorVal(cmd, err, val) BL_sendStatusMessage(cmd, err, val)
+#define BL_sendSuccess(cmd, val) BL_sendStatusMessage(cmd, BLERROR_NONE, val)
 
 typedef enum
 {
-    BLERROR_CRC_FAIL = 0,
-    BLERROR_LOCKED = 1,
-    BLERROR_LOW_ADDR = 2,
-    BLERROR_ADDR_BOUND = 3,
-    BLERROR_FLASH = 4,
-    BLERROR_SIZE = 5,
+    BLERROR_NONE = 0,
+    BLERROR_CRC = 1,
+    BLERROR_FLASH = 2,
+    BLERROR_SIZE = 3,
+    BLERROR_META = 4,
+    BLERROR_UNKNOWN = 5,
 } BLError_t;
+
+/* Bootloader range: 0x10 - 0x1f */
+#define UDS_CMD_BL_QUERY      0x10
+#define UDS_CMD_BL_START      0x11
+#define UDS_CMD_BL_DATA       0x12
+#define UDS_CMD_BL_CRC        0x13
+#define UDS_CMD_BL_CONFIGURE  0x14
+#define UDS_CMD_BL_DOWNLOAD   0x15
+#define UDS_CMD_BL_MAX        0x1f
 
 #endif // __BOOTLOADER_COMMON_H__

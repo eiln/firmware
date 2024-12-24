@@ -200,8 +200,8 @@ void uds_frame_send(uint64_t data)
 }
 """ % (node_config['node_name'].upper())
     if (node_config['node_name'] == "daq"):
-        s = """
-        """
+        s = "// Override send method for daq\n#if 0" + s
+        s += "#endif"
 
     fn_lines = """
 void uds_init(void)

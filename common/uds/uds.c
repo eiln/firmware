@@ -26,7 +26,7 @@ bool uds_init_base(uds_variable_t *uds_tracked_vars_, uint32_t uds_num_vars_)
      * (by bit flipping a metadata field in flash once) so the bootloader doesn't
      * enter backdoor mode for 3 seconds (i.e. stall) starting from the next boot and onwards.
      */
-    //BL_markFirmwareVerified();
+    BL_markFirmwareVerified();
 
     return true;
 }
@@ -203,6 +203,9 @@ __WEAK void uds_handle_sub_command_callback(uint8_t cmd, uint64_t data)
  */
 void uds_handle_command(uint8_t cmd, uint64_t data)
 {
+    /* Once system calls are processed, call the callback for module-specific commands */
+    uds_handle_sub_command_callback(cmd, data);
+
     switch (cmd)
     {
         /* Handle SYS commands */
@@ -210,6 +213,8 @@ void uds_handle_command(uint8_t cmd, uint64_t data)
             uds_sys_test(data);
             break;
         case UDS_CMD_SYS_RST:
+            uint32_t t = 0;
+            while (t++ < 15); // Small delay for bootloader
             NVIC_SystemReset();
             break;
 
@@ -226,7 +231,4 @@ void uds_handle_command(uint8_t cmd, uint64_t data)
     }
 
     BL_processCommand(cmd, data);
-
-    /* Once system calls are processed, call the callback for module-specific commands */
-    uds_handle_sub_command_callback(cmd, data);
 }

@@ -33,7 +33,13 @@ void uds_init(void)
     uds_init_base(uds_tracked_vars, UDS_NUM_VARS);
 }
 
-
+// Override send method for daq
+#if 0
+void uds_frame_send(uint64_t data)
+{
+    SEND_UDS_RESPONSE_DAQ(data);
+}
+#endif
 
 void uds_command_daq_CALLBACK(uint64_t payload)
 {

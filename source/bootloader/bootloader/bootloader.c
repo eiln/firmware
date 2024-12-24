@@ -32,13 +32,14 @@ extern char _estack; // start of stack
 static void BL_JumptoApplication(uint32_t start_addr)
 {
     __IO uint32_t *vtor = (__IO uint32_t*)start_addr;
-    uint32_t app_address = *(vtor + 1);
-    uint32_t msp = *vtor;
-    uint32_t estack = (uint32_t)((void *) &_estack);
+    uint32_t msp = *vtor; // First firmware word
+    uint32_t app_address = *(vtor + 1); // Second firmware word
+    uint32_t estack = (uint32_t)((void *) &_estack); // Linker variable
 
     // Sanity checks to confirm app exists
     if (start_addr != BL_ADDRESS_BANK_A && start_addr != BL_ADDRESS_BANK_B && start_addr != BL_ADDRESS_BANK_C)
         return;
+    // We only compile for bank A so check if first word of firmware (msp) == start of stack
     if (app_address < BL_ADDRESS_BANK_A || app_address == 0xffffffff || msp != estack)
         return;
 
@@ -60,24 +61,25 @@ static void BL_JumptoApplication(uint32_t start_addr)
     SysTick->VAL  = 0;
 
     // Actually jump to application
-    SCB->VTOR = (uint32_t)vtor; // vtor
-    __set_MSP(msp); // *vtor
+    SCB->VTOR = (uint32_t)vtor; // VTOR
+    __set_MSP(msp); // *VTOR
     __enable_irq();
-   ((void(*)(void)) app_address)(); // Jump!, *(vtor + 4)()
+   ((void(*)(void)) app_address)(); // Jump!, *(VTOR + 4)()
 }
 
 static bool BL_swapFirmwareBank(bl_metadata_t *meta)
 {
-    // F4 1MB doesn't support dual bank switch so we copy it over manually
-    // if B, copy from B to A and mark as A
+    // F4 1MB doesn't support dual flash bank switch, and we only compile for bank A,
+    // so if the firmware is not currently in A we have to copy it over manually
     // TODO actual hardware bank switch for F7
     if (meta->addr == BL_ADDRESS_BANK_A)
     {
-        // no need to copy
+        // No need to copy if it's already in A
         return true;
     }
     else if (meta->addr == BL_ADDRESS_BANK_B || meta->addr == BL_ADDRESS_BANK_C)
     {
+        // If in B, copy from B to A and mark as A so we don't have to copy it again
         if (BL_memcpyFlashBuffer(BL_ADDRESS_BANK_A, meta->addr, meta->words, meta->crc) &&
             BL_setMetadata(BL_ADDRESS_BANK_A, meta->words, meta->crc)) // TODO CRC of meta itself
         {
@@ -88,23 +90,30 @@ static bool BL_swapFirmwareBank(bl_metadata_t *meta)
     return false;
 }
 
-void BL_checkAndBoot(bool initial)
+static void _BL_checkAndBoot(bool initial, uint32_t meta_addr)
 {
     // Check 16K metadata region to decide what to boot
     bl_metadata_t meta;
-    PHAL_flashReadU32_Buffered(BL_ADDRESS_METADATA, (uint32_t)&meta, BL_METADATA_WC);
-
-    // if initial (bootloader first check) && verified flag (only written after booting into app)
-    if ((!initial || (initial && (meta.verified == BL_FIRMWARE_VERIFIED))) && BL_metaSanityCheck(&meta))
+    PHAL_flashReadU32_Buffered(meta_addr, (uint32_t)&meta, BL_METADATA_WC);
+    // If initial check (once on bootloader first boot), see if we want to bypass the 3 second backdoor mode
+    // Check if the verified flag is set (bit flipped by app code once the app is successfully run)
+    if (BL_metaSanityCheck(&meta) && (!initial || (initial && (meta.verified == BL_FIRMWARE_VERIFIED))))
     {
         if (PHAL_CRC32_Calculate((uint32_t *)meta.addr, meta.words) == meta.crc)
         {
             if (BL_swapFirmwareBank(&meta))
             {
-                BL_JumptoApplication(BL_ADDRESS_BANK_A); // No double bank for F4, and we only compile for bank A
+                // Always Bank A: F4 has no double flash bank, and we only compile for bank A
+                BL_JumptoApplication(BL_ADDRESS_BANK_A);
             }
         }
     }
+}
+
+void BL_checkAndBoot(bool initial)
+{
+    _BL_checkAndBoot(initial, BL_ADDRESS_META_1);
+    _BL_checkAndBoot(initial, BL_ADDRESS_META_C); // Try to boot backup firmware
 }
 
 void bitstream_data_CALLBACK(CanParsedData_t* msg_data_a)
@@ -143,7 +152,7 @@ void uds_frame_send(uint64_t data)
     SEND_UDS_RESPONSE_TORQUE_VECTOR(data);
 }
 #else
-#error "unknown node"
+#error "Unknown bootloader node!"
 #endif
 
 // Quickly setup the CAN callbacks based on Node ID

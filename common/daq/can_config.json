@@ -206,7 +206,7 @@
                         {"msg_name": "orion_currents_volts"},
                         {"msg_name": "throttle_vcu"},
                         {"msg_name": "throttle_vcu_equal"},
-                        {"msg_name": "daq_hb"}
+                        {"msg_name": "daq_can_stats"}
                     ]
                 },
                 {
@@ -881,22 +881,37 @@
                     "node_name": "daq",
                     "can_peripheral": "CAN1",
                     "node_ssa": 49,
-                    "tx": [{
-                            "msg_name": "daq_hb",
-                            "msg_desc": "Heart beat message for main module",
+                    "tx": [
+                        {
+                            "msg_name": "daq_can_stats",
+                            "msg_desc": "CAN diagnostics",
                             "signals": [
                                 {
-                                    "sig_name": "heartbeat",
-                                    "sig_desc": "daq loop time",
-                                    "type": "uint32_t",
-                                    "unit": "ms",
-                                    "length": 32
+                                    "sig_name": "can_tx_overflow",
+                                    "type": "uint8_t",
+                                    "sig_desc": "CAN Tx queue overflow count"
+                                },
+                                {
+                                    "sig_name": "can_tx_fail",
+                                    "type": "uint8_t",
+                                    "sig_desc": "CAN Tx fail count (due to timeout in mailbox)"
+                                },
+                                {
+                                    "sig_name": "can_rx_overflow",
+                                    "type": "uint8_t",
+                                    "sig_desc": "CAN Rx queue overflow count"
+                                },
+                                {
+                                    "sig_name": "can_rx_overrun",
+                                    "type": "uint8_t",
+                                    "sig_desc": "CAN Rx FIFO overrun count"
                                 }
                             ],
-                            "msg_period": 500,
+                            "msg_period": 1000,
                             "msg_hlp": 4,
                             "msg_pgn": 1420
-                        }],
+                        }
+                    ],
                     "rx": []
                 },
                 {

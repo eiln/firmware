@@ -435,8 +435,11 @@ BO_ 2148059935 fault_sync_pdu: 3 PDU
 BO_ 2483034620 uds_response_pdu: 8 bootloader
  SG_ payload : 0|64@1+ (1,0) [0|0] "" Vector__XXX
 
-BO_ 2416010033 daq_hb: 4 daq
- SG_ heartbeat : 0|32@1+ (1,0) [0|0] "ms" Vector__XXX
+BO_ 2416010033 daq_can_stats: 4 daq
+ SG_ can_rx_overrun : 24|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ can_rx_overflow : 16|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ can_tx_fail : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ can_tx_overflow : 0|8@1+ (1,0) [0|0] "" Vector__XXX
 
 BO_ 2483040817 uds_command_main_module: 8 daq
  SG_ payload : 0|64@1+ (1,0) [0|0] "" Vector__XXX
@@ -899,8 +902,11 @@ CM_ SG_ 2148059935 latched "";
 CM_ SG_ 2148059935 idx "";
 CM_ BO_ 2483034620 "UDS response from node PDU";
 CM_ SG_ 2483034620 payload "";
-CM_ BO_ 2416010033 "Heart beat message for main module";
-CM_ SG_ 2416010033 heartbeat "daq loop time";
+CM_ BO_ 2416010033 "CAN diagnostics";
+CM_ SG_ 2416010033 can_rx_overrun "CAN Rx FIFO overrun count";
+CM_ SG_ 2416010033 can_rx_overflow "CAN Rx queue overflow count";
+CM_ SG_ 2416010033 can_tx_fail "CAN Tx fail count (due to timeout in mailbox)";
+CM_ SG_ 2416010033 can_tx_overflow "CAN Tx queue overflow count";
 CM_ BO_ 2483040817 "UDS command for node Main_Module";
 CM_ SG_ 2483040817 payload "";
 CM_ BO_ 2483040881 "UDS command for node Dashboard";

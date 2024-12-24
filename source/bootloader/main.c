@@ -51,15 +51,15 @@ ClockRateConfig_t clock_config = {
 
 void HardFault_Handler();
 void canTxSendToBack(CanMsgTypeDef_t *msg);
-static void send_pending_can(void);
+static bool BL_InProgress(void);
 static void BL_CANPoll(void);
 
 q_handle_t q_tx_can;
 q_handle_t q_rx_can;
 
-#define BOOTLOADER_INITIAL_TIMEOUT 3000   // wait 3s at start
-#define CAN_TX_BLOCK_TIMEOUT (30 * 16000) // clock rate 16MHz, 15ms * 16000 cyc / ms
-static volatile uint32_t bootloader_ms;   // systick
+#define BL_BACKDOOR_PERIOD 3000   // Allow 3s of bootloader mode at the start
+#define CAN_TX_BLOCK_TIMEOUT (30 * 16000) // Clock rate 16MHz, 15ms * 16000 cyc / ms
+static volatile uint32_t bootloader_ms;   // Systick
 
 int main(void)
 {
@@ -87,13 +87,13 @@ int main(void)
     NVIC_EnableIRQ(CAN1_RX0_IRQn);
 
     // Boot immediately if verified firmware is found
-    BL_checkAndBoot(true);
+    //BL_checkAndBoot(false); // Just kidding, disabling backdoor bypass for now
 
-    BL_sendStatusMessage(BLSTAT_BOOT, BL_METADATA_PING_MAGIC);
-
-    // else enter backdoor period (CAN loop) for 3s
+    // If verified firmware not found, signal that we're in bootloader mode
+    BL_sendSuccess(0, BL_MAGIC_BOOTLOADER);
+    // Then enter backdoor period (CAN loop) for 3s
     uint32_t start_ms = bootloader_ms;
-    while (bootloader_ms - start_ms < BOOTLOADER_INITIAL_TIMEOUT || BL_flashStarted())
+    while (bootloader_ms - start_ms < BL_BACKDOOR_PERIOD || BL_InProgress())
     {
         BL_CANPoll();
     }
@@ -101,36 +101,31 @@ int main(void)
     // Now try booting unverified firmware
     BL_checkAndBoot(false);
 
-    while (1) // Infinite bootloader CAN loop
+    while (1) // Infinite bootloader poll loop
     {
         BL_CANPoll();
     }
 }
 
+static bool BL_InProgress(void)
+{
+    return BL_flashStarted() || !qIsEmpty(&q_rx_can) || !qIsEmpty(&q_tx_can);
+}
+
 static void BL_CANPoll(void)
 {
-    send_pending_can();
     while (!qIsEmpty(&q_rx_can))
         canRxUpdate();
-    send_pending_can();
 }
 
-// Sends all pending messages in the tx queue, doesn't require systick to be active
-static void send_pending_can(void)
-{
-    CanMsgTypeDef_t tx_msg;
-    while (qReceive(&q_tx_can, &tx_msg) == SUCCESS_G)
-    {
-        uint32_t t = 0;
-        while (!PHAL_txMailboxFree(CAN1, 0) && (t++ < CAN_TX_BLOCK_TIMEOUT));
-        if (t < CAN_TX_BLOCK_TIMEOUT) PHAL_txCANMessage(&tx_msg, 0);
-        // TODO: count errors?
-    }
-}
-
+// Override CAN TX method to block (instead of queueing and distributing across multiple mailboxes) to guarantee on-time and in-order transmission of frames
+// Bootloader messages have highest priority so this should not fail
 void canTxSendToBack(CanMsgTypeDef_t *msg)
 {
-    qSendToBack(&q_tx_can, msg);
+    uint32_t t = 0;
+    while (!PHAL_txMailboxFree(CAN1, 0) && (t++ < CAN_TX_BLOCK_TIMEOUT));
+    if (t < CAN_TX_BLOCK_TIMEOUT) PHAL_txCANMessage(msg, 0);
+    // TODO: count errors?
 }
 
 void CAN1_RX0_IRQHandler()

@@ -77,23 +77,15 @@ extern void uds_handle_sub_command_callback(uint8_t cmd, uint64_t data);
 #define UDS_VAR_WRITE_FLAG  (1 << 1)
 
 /* UDS CMD defines */
-/* 0x00 - 0x0f - Sys/Bootloader (RESERVED) */
-/* 0x10 - 0x1f - Daqapp var read/write (RESERVED) */
+/* 0x00 - 0x0f - Sys (RESERVED) */
+/* 0x10 - 0x1f - Bootloader (RESERVED) */
+/* 0x20 - 0x2f - Daqapp var read/write (RESERVED) */
 
-#define UDS_CMD_BL_PING       0x00
-#define UDS_CMD_BL_START      0x01
-#define UDS_CMD_BL_CRC        0x02
-#define UDS_CMD_BL_DATA       0x03
-#define UDS_CMD_BL_STAT       0x08
-#define UDS_CMD_BL_BACKUP     0x09
+#define UDS_CMD_SYS_RST    0x05
+#define UDS_CMD_SYS_TEST   0x06
 
-#define UDS_CMD_SYS_RST       0x05
-#define UDS_CMD_SYS_TEST      0x06
-
-#define UDS_CMD_VAR_READ  0x10
-#define UDS_CMD_VAR_WRITE 0x11
-#define UDS_CMD_PIN_READ  0x12
-
-#define UDS_CMD_SYS_MAX   0x1f
+#define UDS_CMD_VAR_READ   0x20
+#define UDS_CMD_VAR_WRITE  0x21
+#define UDS_CMD_PIN_READ   0x22
 
 #endif // __COMMON_UDS_H__

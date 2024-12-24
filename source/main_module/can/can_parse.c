@@ -86,10 +86,13 @@ void canRxUpdate(void)
                 can_data.throttle_vcu_equal.stale = 0;
                 can_data.throttle_vcu_equal.last_rx = sched.os_ticks;
                 break;
-            case ID_DAQ_HB:
-                can_data.daq_hb.heartbeat = msg_data_a->daq_hb.heartbeat;
-                can_data.daq_hb.stale = 0;
-                can_data.daq_hb.last_rx = sched.os_ticks;
+            case ID_DAQ_CAN_STATS:
+                can_data.daq_can_stats.can_tx_overflow = msg_data_a->daq_can_stats.can_tx_overflow;
+                can_data.daq_can_stats.can_tx_fail = msg_data_a->daq_can_stats.can_tx_fail;
+                can_data.daq_can_stats.can_rx_overflow = msg_data_a->daq_can_stats.can_rx_overflow;
+                can_data.daq_can_stats.can_rx_overrun = msg_data_a->daq_can_stats.can_rx_overrun;
+                can_data.daq_can_stats.stale = 0;
+                can_data.daq_can_stats.last_rx = sched.os_ticks;
                 break;
             case ID_FAULT_SYNC_PDU:
                 can_data.fault_sync_pdu.idx = msg_data_a->fault_sync_pdu.idx;
@@ -157,9 +160,9 @@ void canRxUpdate(void)
     CHECK_STALE(can_data.throttle_vcu_equal.stale,
                 sched.os_ticks, can_data.throttle_vcu_equal.last_rx,
                 UP_THROTTLE_VCU_EQUAL);
-    CHECK_STALE(can_data.daq_hb.stale,
-                sched.os_ticks, can_data.daq_hb.last_rx,
-                UP_DAQ_HB);
+    CHECK_STALE(can_data.daq_can_stats.stale,
+                sched.os_ticks, can_data.daq_can_stats.last_rx,
+                UP_DAQ_CAN_STATS);
     /* END AUTO STALE CHECKS */
 }
 
@@ -190,7 +193,7 @@ bool initCANFilter()
     CAN1->sFilterRegister[3].FR1 = (ID_THROTTLE_VCU << 3) | 4;
     CAN1->sFilterRegister[3].FR2 = (ID_THROTTLE_VCU_EQUAL << 3) | 4;
     CAN1->FA1R |= (1 << 4);    // configure bank 4
-    CAN1->sFilterRegister[4].FR1 = (ID_DAQ_HB << 3) | 4;
+    CAN1->sFilterRegister[4].FR1 = (ID_DAQ_CAN_STATS << 3) | 4;
     CAN1->sFilterRegister[4].FR2 = (ID_FAULT_SYNC_PDU << 3) | 4;
     CAN1->FA1R |= (1 << 5);    // configure bank 5
     CAN1->sFilterRegister[5].FR1 = (ID_FAULT_SYNC_DASHBOARD << 3) | 4;

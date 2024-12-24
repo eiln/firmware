@@ -14,14 +14,13 @@
 #include "common/queue/queue.h"
 #include "common/psched/psched.h"
 #include "common/phal_F4_F7/can/can.h"
-#include "common/daq/can_parse_base.h"
 
 // Make this match the node name within the can_config.json
 #define NODE_NAME "daq"
 
 // Message ID definitions
 /* BEGIN AUTO ID DEFS */
-#define ID_DAQ_HB 0x10016331
+#define ID_DAQ_CAN_STATS 0x10016331
 #define ID_UDS_COMMAND_MAIN_MODULE 0x14003231
 #define ID_UDS_COMMAND_DASHBOARD 0x14003271
 #define ID_UDS_COMMAND_A_BOX 0x140032b1
@@ -38,7 +37,7 @@
 
 // Message DLC definitions
 /* BEGIN AUTO DLC DEFS */
-#define DLC_DAQ_HB 4
+#define DLC_DAQ_CAN_STATS 4
 #define DLC_UDS_COMMAND_MAIN_MODULE 8
 #define DLC_UDS_COMMAND_DASHBOARD 8
 #define DLC_UDS_COMMAND_A_BOX 8
@@ -55,10 +54,13 @@
 
 // Message sending macros
 /* BEGIN AUTO SEND MACROS */
-#define SEND_DAQ_HB(heartbeat_) do {\
-        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_DAQ_HB, .DLC=DLC_DAQ_HB, .IDE=1};\
+#define SEND_DAQ_CAN_STATS(can_tx_overflow_, can_tx_fail_, can_rx_overflow_, can_rx_overrun_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_DAQ_CAN_STATS, .DLC=DLC_DAQ_CAN_STATS, .IDE=1};\
         CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
-        data_a->daq_hb.heartbeat = heartbeat_;\
+        data_a->daq_can_stats.can_tx_overflow = can_tx_overflow_;\
+        data_a->daq_can_stats.can_tx_fail = can_tx_fail_;\
+        data_a->daq_can_stats.can_rx_overflow = can_rx_overflow_;\
+        data_a->daq_can_stats.can_rx_overrun = can_rx_overrun_;\
         canTxSendToBack(&msg);\
     } while(0)
 #define SEND_UDS_COMMAND_MAIN_MODULE(payload_) do {\
@@ -114,8 +116,11 @@
 /* BEGIN AUTO MESSAGE STRUCTURE */
 typedef union { 
     struct {
-        uint64_t heartbeat: 32;
-    } daq_hb;
+        uint64_t can_tx_overflow: 8;
+        uint64_t can_tx_fail: 8;
+        uint64_t can_rx_overflow: 8;
+        uint64_t can_rx_overrun: 8;
+    } daq_can_stats;
     struct {
         uint64_t payload: 64;
     } uds_command_main_module;
@@ -195,25 +200,6 @@ extern void send_fault(uint16_t id, bool latched);
 /* BEGIN AUTO EXTERN RX IRQ */
 /* END AUTO EXTERN RX IRQ */
 
-/**
- * @brief Setup queue and message filtering
- *
- * @param q_rx_can RX buffer of CAN messages
- */
-void initCANParse(void);
-
-/**
- * @brief Pull message off of rx buffer,
- *        update can_data struct,
- *        check for stale messages
- */
-void canRxUpdate(void);
-
-/**
- * @brief Process any rx message callbacks from the CAN Rx IRQ
- *
- * @param rx rx data from message just recieved
- */
-void canProcessRxIRQs(CanMsgTypeDef_t* rx);
+bool initCANFilter(void);
 
 #endif

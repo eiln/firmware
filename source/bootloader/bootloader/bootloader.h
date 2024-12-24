@@ -22,7 +22,8 @@
 #include "node_defs.h"
 #include "common/bootloader/bootloader.h"
 
-#define BL_METADATA_PING_MAGIC 0xFEE2DEAD
+/* Magic sent IFF bootloader bootloader code is running */
+#define BL_MAGIC_BOOTLOADER   0xFEE2DEAD
 
 void BL_checkAndBoot(bool initial);
 bool BL_flashStarted(void);

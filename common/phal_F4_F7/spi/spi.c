@@ -164,6 +164,7 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uin
     return true;
 }
 
+#if 0
 // DAQ W5500 uses a custom framed multi-byte SPI format + software CS that makes this necessary
 // Do not touch and do not use
 bool PHAL_SPI_transfer_noDMA_DAQW5500Only(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data)
@@ -234,6 +235,7 @@ bool PHAL_SPI_transfer_noDMA_DAQW5500Only(SPI_InitConfig_t *spi, const uint8_t *
 
     return true;
 }
+#endif
 
 bool PHAL_SPI_transfer(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t data_len, const uint8_t *in_data)
 {
