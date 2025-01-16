@@ -25,7 +25,8 @@ bool get_log_enable(void)
     // TODO: combine with CAN message from dash
     // return dh.log_enable_sw || dh.log_enable_tcp;
     // TODO: switch doesnt work fix resistor value just return true for now
-    return dh.log_enable_uds;
+    //return dh.log_enable_uds;
+    return dh.log_enable_sw;
 }
 
 static void sd_handle_error(sd_error_t err, FRESULT res)
@@ -116,6 +117,18 @@ void sd_update_connection_state(void)
     FRESULT res;
 
     // TODO switch enable
+    dh.log_enable_sw = PHAL_readGPIO(LOG_ENABLE_PORT, LOG_ENABLE_PIN);
+    if (!dh.log_enable_sw)
+    {
+        PHAL_writeGPIO(SD_DETECT_LED_PORT, SD_DETECT_LED_PIN, 1);
+        return;
+    }
+    else
+    {
+        PHAL_writeGPIO(SD_DETECT_LED_PORT, SD_DETECT_LED_PIN, 0);
+    }
+    return;
+
     switch (dh.sd_state)
     {
         case SD_STATE_IDLE:
