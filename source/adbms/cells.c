@@ -1,0 +1,86 @@
+
+#include "main.h"
+#include "adbms_mcu.h"
+#include "adbms6830.h"
+#include "adbms_cmdlist.h"
+
+static void bms_read_cells(void);
+static void bms_check_cells(void);
+static void bms_send_cells(void);
+
+void bms_monitor_cells(void)
+{
+    bms_read_cells();
+}
+
+static void bms_read_cells(void)
+{
+    #if 0
+    The direct method involves setting the redundancy bit (RD) in an
+    ADCV command. In this case, the C-ADCs and S-ADCs are both
+    triggered to provide redundancy. After 8 ms, the average results
+    of the C-ADCs are compared to the results of the S-ADCs
+
+    If the results do not match within the threshold set by the CTH[2:0] in
+    Configuration Register A, the CSxFLT flag is set in the Status
+    Register Group C.
+
+    ADSV with DCP = 0, CONT = 1, OW = 0 (redundant check)
+    ► ADSV with DCP = 0, CONT = 0, OW = 1 (even open wire
+    check)
+    ► ADSV with DCP = 0, CONT = 0, OW = 2 (odd open wire
+    check)
+
+    C-ADC conversions are usually started once during initialization:
+    C-ADCs run in continuous mode, deliver measurement re-
+    sults, and feed the IIR filter. No comparison between C-ADC
+    and S-ADC results is performed. PWM discharge is ongoing
+    and is not affected
+
+    Thus, the whole redundant and open wire diagnostic takes 24
+    ms to 32 ms and limits the maximum discharge duty cycle. In
+    average, the discharge is inhibited for 0.5 × (32 ms + 24 ms) =
+    28 ms. Assuming an FTTI of 100 ms, the maximum discharge duty
+    cycle of the ADBMS6830B is limited to 72% (even if the PWM
+    was configured to 100%, it is limited to 72% by the diagnostic
+    measurements).
+    #endif
+
+    // driving mode
+    // direct C/S redunancy check
+    //adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
+    //bms_transmitPoll(PLCADC);
+    adBms6830_Adcv(ADCV_RD_ON, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
+    bms_transmitPoll(PLCADC);
+    //bms_delayMsActive(8); // ADCs are updated at their conversion rate is 1ms
+    bms_checkCellVoltagesStatC();
+    bms_readCellVoltages();
+
+    // TODO set S/C delta threshold
+    // TODO check CSxFLT
+    // ---------------------------------
+    #if 1
+    // redundant check
+    // ADCV_CONT_CONTINUOUS
+    // ADCV_CONT_SINGLE
+    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_OFF_ALL_CH);
+    //bms_delayMsActive(1); // 8-16ms
+    bms_transmitPoll(PLSADC); // TODO?
+    bms_readSVoltages();
+    // check delta
+    // TODO if pcb connection is broken
+    #endif
+
+    // even open wire check
+    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_EVEN_CH);
+    bms_transmitPoll(PLSADC);
+
+    // odd open wire check
+    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_ODD_CH);
+    bms_transmitPoll(PLSADC);
+    // Note: discharge is enabled again automatically after the last single shot S-ADC conversion.
+
+    // TODO figure out what happens if OW is detected
+    // Note: discharge is enabled again automatically after the
+    // last single shot S-ADC conversion.
+}

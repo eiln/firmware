@@ -209,6 +209,31 @@
                 "samplesPerSecond":5
             }
         },
+        {
+            "name": "adbms",
+            "cwd": "${workspaceRoot}",
+            "executable": "./output/adbms/adbms.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "device:": "STM32F407VG",
+            "svdFile": "${workspaceRoot}/common/svd/STM32F407.svd",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg",
+                "${workspaceRoot}/common/openocd/openocd-gdb.cfg"
+            ],
+            "debuggerArgs": [
+                "-d",
+                "${workspaceFolder}/source/adbms"
+            ],
+            "preLaunchTask": "build",
+            "runToEntryPoint": "main",
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 5
+            }
+        },
         {   "name": "A_Box",
             "cwd": "${workspaceRoot}",
             "executable": "./output/a_box/a_box.elf",

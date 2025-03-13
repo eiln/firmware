@@ -1,8 +1,9 @@
 
 #include "common/common_defs/common_defs.h"
 #include "log.h"
-#include "vsprintf.h"
+#include "common/log/vsprintf.h"
 
+#if 0
 int snprintf(char *buffer, size_t size, const char *fmt, ...)
 {
     va_list args;
@@ -25,6 +26,7 @@ int sprintf(char *buffer, const char *fmt, ...)
 
     return i;
 }
+#endif
 
 #if 0
 static inline int _iodev_write(usart_init_t* handle, char *buffer, int size)
