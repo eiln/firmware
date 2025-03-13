@@ -63,7 +63,6 @@ add_subdirectory(common/faults)
 add_subdirectory(common/daq)
 add_subdirectory(common/plettenberg)
 add_subdirectory(common/modules/wheel_speeds)
-add_subdirectory(common/modules/Wiznet)
 
 # Properties that are set for each firmware component
 # Used to generate the .elf and other files for each project
@@ -96,7 +95,7 @@ add_subdirectory(source/a_box)
 add_subdirectory(source/torque_vector)
 add_subdirectory(source/dashboard)
 add_subdirectory(source/pdu)
-add_subdirectory(source/daq)
+#add_subdirectory(source/daq)
 
 
 # Deprecated Components

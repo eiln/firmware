@@ -40,6 +40,7 @@ bool PHAL_SPI_init(SPI_InitConfig_t *cfg)
     // Setup for Master, positive polarity
     cfg->periph->CR1 |= SPI_CR1_MSTR | SPI_CR1_SPE | SPI_CR1_SSM | SPI_CR1_SSI;
     cfg->periph->CR1 &= ~(SPI_CR1_CPOL);
+    cfg->periph->CR1 &= ~(SPI_CR1_CPHA);
     cfg->periph->CR2 &= ~(SPI_CR2_SSOE);
 
 
@@ -164,10 +165,9 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uin
     return true;
 }
 
-#if 0
 // DAQ W5500 uses a custom framed multi-byte SPI format + software CS that makes this necessary
 // Do not touch and do not use
-bool PHAL_SPI_transfer_noDMA_DAQW5500Only(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data)
+bool PHAL_SPI_transfer_noDMA_DAQW5500Only2(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data)
 {
     if (PHAL_SPI_busy(spi))
         return false;
@@ -176,6 +176,8 @@ bool PHAL_SPI_transfer_noDMA_DAQW5500Only(SPI_InitConfig_t *spi, const uint8_t *
 
     active_transfer = spi;
     spi->_busy = true;
+
+
 
     // DO NOT Enable SPI
     // The CS must come after enabling SPI, and since W5500 driver selects CS, we manually add SPE to the CS sel hook
@@ -221,6 +223,7 @@ bool PHAL_SPI_transfer_noDMA_DAQW5500Only(SPI_InitConfig_t *spi, const uint8_t *
 
     // DO NOT disable SPI here
     //spi->periph->CR1 &= ~SPI_CR1_SPE;
+
     #ifdef STM32F732xx
         while ((spi->periph->SR & SPI_SR_FRLVL))
         {
@@ -235,7 +238,6 @@ bool PHAL_SPI_transfer_noDMA_DAQW5500Only(SPI_InitConfig_t *spi, const uint8_t *
 
     return true;
 }
-#endif
 
 bool PHAL_SPI_transfer(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t data_len, const uint8_t *in_data)
 {

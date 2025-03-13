@@ -81,6 +81,7 @@ bool PHAL_SPI_transfer(SPI_InitConfig_t *spi, const uint8_t *out_data, const uin
  * @return false Unable to complete non-DMA SPI transaction
  */
 bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data);
+bool PHAL_SPI_transfer_noDMA_DAQW5500Only2(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data);
 
 /**
  * @brief Check for current SPI transaction to complete
