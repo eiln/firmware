@@ -150,7 +150,7 @@ uint16_t bms_calcPec15(uint8_t *data, uint8_t len)
 
 void bms_spiTransmitCmd(uint8_t cmd[CMD_LEN])
 {
-    uint8_t txBuff_cmd[CMDPKT_LEN];                  // 2 CMD  + 2 PEC
+    uint8_t txBuff_cmd[CMDPKT_LEN]; // 2 CMD + 2 PEC
 
     // Copy cmd bytes to buffer
     txBuff_cmd[0] = cmd[0];
@@ -161,22 +161,21 @@ void bms_spiTransmitCmd(uint8_t cmd[CMD_LEN])
     txBuff_cmd[2] = (uint8_t)(cmd_pec >> 8);
     txBuff_cmd[3] = (uint8_t)(cmd_pec);
 
-    // Transmit the buffer to SPI
-    //HAL_SPI_Transmit(hspi, txBuff_cmd, CMDPKT_LEN, HAL_MAX_DELAY);
     PHAL_SPI_transfer_noDMA(&bms_spi_config, txBuff_cmd, CMDPKT_LEN, 0, NULL);
 }
 
 void bms_spiTransmitData(uint8_t data[TOTAL_AD68][DATA_LEN])
 {
-    uint8_t txBuff_data[TOTAL_AD68][DATAPKT_LEN];    // 6 Data + 2 DPEC per IC
+    uint8_t txBuff_data[TOTAL_AD68][DATAPKT_LEN]; // 6 Data + 2 DPEC per IC
 
-    for (int ic = 0; ic < TOTAL_AD68; ic++)   /* The first configuration written is received by the last IC in the daisy chain */
+    /* The first written is received by the last IC in the daisy chain */
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         int iv = (TOTAL_AD68 - 1) - ic;    // Inverted index to get data from the back
 
         // Copy data to the txbuffer
         // First data is for the last IC
-        memcpy(txBuff_data[ic], data[iv], DATA_LEN); // dest, src, count
+        memcpy(txBuff_data[ic], data[iv], DATA_LEN);
 
         // Caclulate and add DPEC to buffer
         uint16_t data_pec = bms_calcPec10(txBuff_data[ic], DATA_LEN, NULL);
@@ -185,76 +184,56 @@ void bms_spiTransmitData(uint8_t data[TOTAL_AD68][DATA_LEN])
     }
 
     // Send the whole buffer to SPI
-    //HAL_SPI_Transmit(hspi, (uint8_t *)txBuff_data, DATAPKT_LEN * TOTAL_AD68, HAL_MAX_DELAY);
-    PHAL_SPI_transfer_noDMA(&bms_spi_config,  (uint8_t *)txBuff_data, DATAPKT_LEN * TOTAL_AD68, 0, NULL);
+    PHAL_SPI_transfer_noDMA(&bms_spi_config, (uint8_t *)txBuff_data, DATAPKT_LEN * TOTAL_AD68, 0, NULL);
 }
 
 void bms_spiReceiveData(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
     uint8_t rawRxData[TOTAL_AD68][DATAPKT_LEN] = {0};
 
-    //HAL_SPI_Receive(hspi, (uint8_t *)rawRxData, DATAPKT_LEN * TOTAL_AD68, HAL_MAX_DELAY);
     PHAL_SPI_transfer_noDMA(&bms_spi_config, NULL, 0, DATAPKT_LEN * TOTAL_AD68, (uint8_t *)rawRxData);
 
-    for (int ic = 0; ic < TOTAL_AD68; ic++)     /* executes for each ic in the daisy chain and packs the data */
+    // LOCK
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         // Store recieved data bytes to rxData
         memcpy(rxData[ic], rawRxData[ic], DATA_LEN);
 
         // Get command counter value and store to the array
-        rxCc[ic] = rawRxData[ic][DATA_LEN] >> 2;                // Get the 7th byte and shift right by 2 bits
+        rxCc[ic] = rawRxData[ic][DATA_LEN] >> 2; // Get the 7th byte and shift right by 2 bits
 
         // Get received pec value from ic
         // Mask the first 3 bits from 1st byte and combine with 2nd byte
         rxPec[ic] = (uint16_t)(((rawRxData[ic][DATA_LEN] & 0x03) << 8) | rawRxData[ic][DATA_LEN + 1]);
     }
+    // UNLOCK
 }
 
 void bms_printRawData(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68])
 {
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        printf("IC%d: ", ic+1);
-        for (int j = 0; j < 6; j++)             // For every byte recieved (6 bytes)
+        printf("IC%d: ", ic);
+        for (int j = 0; j < 6; j++) // For every byte recieved (6 bytes)
         {
-            printf("0x%02X, ", data[ic][j]);    // Print each of the bytes
+            printf("0x%02X, ", data[ic][j]); // Print each of the bytes
         }
         printf("CC: %d |   ", cc[ic]);
     }
     printf("\n\n");
 }
 
-static uint8_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
+uint8_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
-    uint8_t errorMask = 0;
+    uint8_t error_mask = 0; // bitfield, 1 if fault
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         uint16_t calculated_pec = bms_calcPec10(rxData[ic], DATA_LEN, rxCc + ic);
-        errorMask |= (calculated_pec != rxPec[ic]) << ic;
+        error_mask |= (calculated_pec != rxPec[ic]) << ic;
     }
 
-    return errorMask;
-}
-
-bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68])
-{
-    uint8_t errorMask = bms_checkRxPec(data, pec, cc);
-    if (errorMask)
-    {
-        printf("PEC ERROR - IC:");
-        for(int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            if (errorMask & (1 << ic))
-            {
-                printf(" %d,", ic);
-            }
-        }
-        printf("\n");
-        // TODO send errormask over CAN
-    }
-
-    return !!errorMask;
+    return error_mask;
 }
 
 void bms_transmitCmd(uint8_t cmd[CMD_LEN])

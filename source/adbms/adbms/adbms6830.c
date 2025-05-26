@@ -9,14 +9,54 @@
 #define printfDma debug_printf
 
 ic_ad68_t ic_ad68[TOTAL_AD68];
-
+struct bms_data bms;
 
 uint8_t  txData[TOTAL_AD68][DATA_LEN];
 uint8_t  rxData[TOTAL_AD68][DATA_LEN];
 uint16_t rxPec[TOTAL_AD68];
 uint8_t  rxCc[TOTAL_AD68];
 
-struct bms_data bms;
+#define ADBMS_RXPEC_NOERROR ((uint8_t)0)
+
+static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68])
+{
+    uint8_t errorMask = bms_checkRxPec(data, pec, cc);
+    if (errorMask) // DEBUG
+    {
+        printf("PEC ERROR - IC:");
+        for(int ic = 0; ic < TOTAL_AD68; ic++)
+        {
+            if (errorMask & (1 << ic))
+            {
+                printf(" %d,", ic);
+            }
+        }
+        printf("\n");
+        // TODO send errormask over CAN
+    } // END OF DEBUG
+
+    return !!errorMask; // true if fault
+}
+
+#if 0
+bool adbms_receive(uint8_t cmd[CMD_LEN])
+{
+    // LOCK uses global
+    bms_receiveData(cmd, rxData, rxPec, rxCc);
+    bool fault = bms_checkRxFault(rxData, rxPec, rxCc);
+    if (fault)
+    {
+        bmsmaster.error &= ~BMS_ERROR_RXPEC; // TODO what about before
+    }
+    else
+    {
+        bmsmaster.error |= BMS_ERROR_RXPEC;
+        // TODO throw away data?
+    }
+    // UNLOCK
+    return !!fault;
+}
+#endif
 
 static inline uint8_t get_u8(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
@@ -27,27 +67,32 @@ static inline uint8_t get_u8(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int i
 
 uint32_t adbms_checkalive(void)
 {
-    uint32_t ret = 0;
+    uint32_t conn = 0; // bitmask
 
     bms_receiveData(RDSID, rxData, rxPec, rxCc);
-    if (bms_checkRxFault(rxData, rxPec, rxCc) == true)
+    if (bms_checkRxFault(rxData, rxPec, rxCc))
     {
-        debug_printf("SID: Fault!\n");
-        return ret;
+        return conn;
     }
+    // bms_printRawData(rxData, rxCc);
+    #if 0
+    if (!adbms_receive(RDSID) == false)
+    {
+        return conn;
+    }
+    #endif
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         uint8_t sid = get_u8(rxData, ic, 1); // SID1 [1:6]
         sid = (sid >> 1) & 0x3f;
-        //debug_printf("SID: 0x%08x\n", sid);
         if (sid == ADBMS_6830B_SID)
         {
-            ret |= (1 << ic);
+            conn |= (1 << ic);
         }
     }
 
-    return ret;
+    return conn;
 }
 
 static inline uint16_t get_threshold_voltage(float voltage)

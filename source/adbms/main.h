@@ -52,6 +52,7 @@ typedef enum
 {
     BMS_ERROR_NONE = 0,
     BMS_ERROR_CONN,
+    BMS_ERROR_RXPEC,
     BMS_ERROR_COUNT,
 } bms_error_t;
 
@@ -61,6 +62,8 @@ typedef struct
     uint32_t error; // bitfield of bms_error_t
     uint32_t conn;
 } bms_t;
+
+extern bms_t bmsmaster;
 
 void bms_monitor_cells(void);
 void bms_monitor_temps(void);
