@@ -9,9 +9,7 @@
 #include "common/log/log.h"
 
 #include "main.h"
-#include "adbms_mcu.h"
-#include "adbms6830.h"
-#include "adbms_cmd.h"
+#include "adbms/adbms.h"
 
 dma_init_t spi_rx_dma_config = SPI2_RXDMA_CONT_CONFIG(NULL, 2);
 dma_init_t spi_tx_dma_config = SPI2_TXDMA_CONT_CONFIG(NULL, 1);

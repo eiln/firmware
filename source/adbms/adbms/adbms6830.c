@@ -1,7 +1,7 @@
 
 #include "main.h"
 #include "adbms_mcu.h"
-#include "adbms_cmd.h"
+#include "adbms_regs.h"
 #include "adbms6830.h"
 #include "adbms_common.h"
 
