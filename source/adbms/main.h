@@ -54,16 +54,23 @@ static inline uint32_t bms_gettick(void)
 
 typedef enum
 {
-    BMS_STATE_ERROR = 0,
-    BMS_STATE_IDLE,
+    BMS_STATE_IDLE = 0,
     BMS_STATE_CONNECTED,
     BMS_STATE_ACTIVE,
     BMS_STATE_CHARGING,
 } bms_state_t;
 
+typedef enum
+{
+    BMS_ERROR_NONE = 0,
+    BMS_ERROR_CONN,
+    BMS_ERROR_COUNT,
+} bms_error_t;
+
 typedef struct
 {
     bms_state_t state;
+    uint32_t error; // bitfield of bms_error_t
     uint32_t conn;
 } bms_t;
 

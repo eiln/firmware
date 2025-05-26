@@ -80,9 +80,11 @@ void SysTick_Handler(void);
 static void bms_create_threads(void);
 static void bms_heartbeat(void);
 static void bms_periodic(void);
+static void bms_error_handler(void);
 
 bms_t bmsmaster = {
     .state = BMS_STATE_IDLE,
+    .error = BMS_ERROR_NONE,
     .conn = 0,
 };
 
@@ -120,14 +122,16 @@ int main()
     return 0;
 }
 
-defineThreadStack(bms_heartbeat, 500, osPriorityNormal, 128); // HB
-defineThreadStack(bms_periodic, 2500, osPriorityNormal, 1024); // HB
 // ADBMS shuts off after ~2200ms
+defineThreadStack(bms_heartbeat, 500, osPriorityNormal, 128);
+defineThreadStack(bms_periodic, 2500, osPriorityNormal, 1024);
+defineThreadStack(bms_error_handler, 250, osPriorityNormal, 128);
 
 static void bms_create_threads(void)
 {
     createThread(bms_heartbeat);
     createThread(bms_periodic);
+    createThread(bms_error_handler);
 }
 
 static void bms_heartbeat(void)
@@ -147,27 +151,23 @@ static void bms_periodic(void)
             bmsmaster.state = BMS_STATE_CONNECTED;
             printf("Connected to %d AFEs!\n", TOTAL_AD68);
         }
+        PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 1);
+        bmsmaster.error &= ~BMS_ERROR_CONN;
     }
     else
     {
-        if (bmsmaster.state > BMS_STATE_IDLE)
+        PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 0);
+        printf("Lost connection to %d AFEs! Index: ", TOTAL_AD68);
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            printf("Lost connection to AFEs!: ");
-            // TODO report error
-            // bms.state_error = 1;
-            // PHAL_writeGPIO(LED_PORT_RED, LED_PIN_RED, 1);
-            for (int ic = 0; ic < TOTAL_AD68; ic++)
-            {
-                if (!(bmsmaster.conn & (1 << ic)))
-                printf("%d ", ic);
-            }
-            printf("\n");
-            bmsmaster.state = BMS_STATE_ERROR;
-            printf("Retrying!...\n");
+            if (!(bmsmaster.conn & (1 << ic)))
+            printf("%d ", ic);
         }
+        printf("\n");
+        printf("Retrying!...\n");
+        bmsmaster.state = BMS_STATE_IDLE;
+        bmsmaster.error |= BMS_ERROR_CONN;
     }
-
-    PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, !!(bmsmaster.state > BMS_STATE_IDLE));
 
     switch (bmsmaster.state)
     {
@@ -185,21 +185,36 @@ static void bms_periodic(void)
             printf("--------------------------------------------------\n");
         }
         break;
-        case BMS_STATE_ERROR:
-        {
-            bmsmaster.state = BMS_STATE_IDLE; // debounce
-            PHAL_writeGPIO(LED_PORT_RED, LED_PIN_RED, 1);
-        }
-        break;
-        case BMS_STATE_IDLE:
-        {
-            PHAL_writeGPIO(LED_PORT_RED, LED_PIN_RED, 0);
-            PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 0);
-        }
-        break;
-
         default:
         break;
+    }
+}
+
+static void bms_error_handler(void)
+{
+    if (bmsmaster.error)
+    {
+        PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
+        printf("BMS Error: 0x%08x\n", bmsmaster.error);
+        for (int i = 0; i < BMS_ERROR_COUNT; i++)
+        {
+            if (bmsmaster.error & (1 << i))
+            {
+                switch (i)
+                {
+                    case BMS_ERROR_CONN:
+                    printf("\t BMS_ERROR_CONN\n");
+                    break;
+                    default:
+                    break;
+                }
+            }
+        }
+        // TODO report error over CAN
+    }
+    else
+    {
+        PHAL_writeGPIO(LED_PORT_RED, LED_PIN_RED, 0);
     }
 }
 
