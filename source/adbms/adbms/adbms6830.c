@@ -38,11 +38,11 @@ static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TO
     return !!errorMask; // true if fault
 }
 
-bool adbms_receive(uint8_t cmd[CMD_LEN])
+bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN])
 {
     // LOCK uses global
-    bms_receiveData(cmd, rxData, rxPec, rxCc);
-    if (bms_checkRxFault(rxData, rxPec, rxCc))
+    bms_receiveData(cmd, data, rxPec, rxCc);
+    if (bms_checkRxFault(data, rxPec, rxCc))
     {
         bmsmaster.error |= BMS_ERROR_RXPEC;
         return false;
@@ -54,39 +54,26 @@ bool adbms_receive(uint8_t cmd[CMD_LEN])
     return true;
 }
 
-static inline uint8_t get_u8(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int index)
+static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
-    return (uint8_t)(rxData[ic][index] & 0xff);
+    return (uint8_t)(data[ic][index] & 0xff);
 }
 
 #define ADBMS_6830B_SID (0b000011)
 
 uint32_t adbms_checkalive(void)
 {
+    uint8_t rxdata[TOTAL_AD68][DATA_LEN];
     uint32_t conn = 0; // bitmask
 
-    #if 0
-    bms_receiveData(RDSID, rxData, rxPec, rxCc);
-    if (bms_checkRxFault(rxData, rxPec, rxCc))
-    {
-        return conn;
-    }
-    // bms_printRawData(rxData, rxCc);
-    #if 0
-    if (!adbms_receive(RDSID) == false)
-    {
-        return conn;
-    }
-    #endif
-    #endif
-    if (!adbms_receive(RDSID))
+    if (!adbms_receive(RDSID, rxdata))
     {
         return conn;
     }
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        uint8_t sid = get_u8(rxData, ic, 1); // SID1 [1:6]
+        uint8_t sid = get_u8(rxdata, ic, 1); // SID1 [1:6]
         sid = (sid >> 1) & 0x3f;
         if (sid == ADBMS_6830B_SID)
         {
