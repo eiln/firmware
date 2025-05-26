@@ -38,25 +38,21 @@ static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TO
     return !!errorMask; // true if fault
 }
 
-#if 0
 bool adbms_receive(uint8_t cmd[CMD_LEN])
 {
     // LOCK uses global
     bms_receiveData(cmd, rxData, rxPec, rxCc);
-    bool fault = bms_checkRxFault(rxData, rxPec, rxCc);
-    if (fault)
+    if (bms_checkRxFault(rxData, rxPec, rxCc))
     {
-        bmsmaster.error &= ~BMS_ERROR_RXPEC; // TODO what about before
+        bmsmaster.error |= BMS_ERROR_RXPEC;
+        return false;
     }
     else
     {
-        bmsmaster.error |= BMS_ERROR_RXPEC;
-        // TODO throw away data?
+        bmsmaster.error &= ~BMS_ERROR_RXPEC; // TODO what about before
     }
-    // UNLOCK
-    return !!fault;
+    return true;
 }
-#endif
 
 static inline uint8_t get_u8(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
@@ -69,6 +65,7 @@ uint32_t adbms_checkalive(void)
 {
     uint32_t conn = 0; // bitmask
 
+    #if 0
     bms_receiveData(RDSID, rxData, rxPec, rxCc);
     if (bms_checkRxFault(rxData, rxPec, rxCc))
     {
@@ -81,6 +78,11 @@ uint32_t adbms_checkalive(void)
         return conn;
     }
     #endif
+    #endif
+    if (!adbms_receive(RDSID))
+    {
+        return conn;
+    }
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
