@@ -40,18 +40,6 @@ static inline void catch_error(void)
     }
 }
 
-static inline void mdelay2(uint32_t delay)
-{
-    //uint32_t start = tick_ms;
-    //while (tick_ms - start < delay);
-    mDelay(delay);
-}
-
-static inline uint32_t bms_gettick(void)
-{
-    return xTaskGetTickCount();
-}
-
 typedef enum
 {
     BMS_STATE_IDLE = 0,
