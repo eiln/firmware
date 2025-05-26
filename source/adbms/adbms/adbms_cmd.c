@@ -1,7 +1,6 @@
 
-#include "adbms_cmdlist.h"
+#include "adbms/adbms_cmd.h"
 #include "stdint.h"
-#include "assert.h"
 
 /// ----------------------- BOTH 2950 AND 6830 ------------------------------- ///
 
