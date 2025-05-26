@@ -10,11 +10,6 @@
 
 #define BMS_WAKEUP_DELAY 5       /// 1ms for 2950   /* BMS ic wakeup delay  */
 
-extern uint8_t  txData[TOTAL_IC][DATA_LEN];
-extern uint8_t  rxData[TOTAL_IC][DATA_LEN];
-extern uint16_t rxPec[TOTAL_IC];
-extern uint8_t  rxCc[TOTAL_IC];
-
 struct bms_data
 {
     int16_t cell_voltages_raw[TOTAL_AD68][TOTAL_CELL]; // cell voltage (raw)
@@ -39,11 +34,11 @@ extern struct bms_data bms;
 
 void bms_wakeupChain(void);
 void bms_transmitCmd(uint8_t cmd[CMD_LEN]);
-void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_IC][DATA_LEN]);
+void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][DATA_LEN]);
 void bms_transmitPoll(uint8_t cmd[CMD_LEN]);
 
-void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_IC][DATA_LEN], uint16_t rxPec[TOTAL_IC], uint8_t rxCc[TOTAL_IC]);
-bool bms_checkRxFault(uint8_t data[TOTAL_IC][DATA_LEN], uint16_t pec[TOTAL_IC], uint8_t cc[TOTAL_IC]);
-void bms_printRawData(uint8_t data[TOTAL_IC][DATA_LEN], uint8_t cc[TOTAL_IC]);
+void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68]);
+bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68]);
+void bms_printRawData(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68]);
 
 #endif // __ADBMS_MCU_H__

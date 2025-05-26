@@ -1,26 +1,12 @@
 
-#include "main.h"
 #include "adbms_mcu.h"
+
+#include "main.h"
 #include "string.h"
 
-#include "common/phal_F4_F7/spi/spi.h"
+#include "common/freertos/freertos.h"
 #include "common/phal_F4_F7/gpio/gpio.h"
-
-uint8_t  txData[TOTAL_IC][DATA_LEN];
-uint8_t  rxData[TOTAL_IC][DATA_LEN];
-uint16_t rxPec[TOTAL_IC];
-uint8_t  rxCc[TOTAL_IC];
-
-struct bms_data bms;
-
-#if 0
-static inline void bms_mDelay(uint32_t delay)
-{
-    //uint32_t start = tick_ms;
-    //while (tick_ms - start < delay);
-    mDelay(delay);
-}
-#endif
+#include "common/phal_F4_F7/spi/spi.h"
 
 static inline uint32_t bms_getTick(void)
 {
@@ -44,7 +30,7 @@ static inline void bms_csHigh(void)
 
 static void bms_wake(void)
 {
-  for (uint8_t ic = 0; ic < TOTAL_IC; ic++)
+  for (uint8_t ic = 0; ic < TOTAL_AD68; ic++)
   {
     bms_csLow();
     bms_mDelay(BMS_WAKEUP_DELAY);
@@ -56,7 +42,7 @@ static void bms_wake(void)
 // Wake up all the IC in the daisy chain
 void bms_wakeupChain(void)
 {
-    for (uint8_t ic = 0; ic < TOTAL_IC; ic++)
+    for (uint8_t ic = 0; ic < TOTAL_AD68; ic++)
     {
         bms_csLow();
         bms_mDelay(BMS_WAKEUP_DELAY);
@@ -180,13 +166,13 @@ void bms_spiTransmitCmd(uint8_t cmd[CMD_LEN])
     PHAL_SPI_transfer_noDMA(&bms_spi_config, txBuff_cmd, CMDPKT_LEN, 0, NULL);
 }
 
-void bms_spiTransmitData(uint8_t data[TOTAL_IC][DATA_LEN])
+void bms_spiTransmitData(uint8_t data[TOTAL_AD68][DATA_LEN])
 {
-    uint8_t txBuff_data[TOTAL_IC][DATAPKT_LEN];    // 6 Data + 2 DPEC per IC
+    uint8_t txBuff_data[TOTAL_AD68][DATAPKT_LEN];    // 6 Data + 2 DPEC per IC
 
-    for (int ic = 0; ic < TOTAL_IC; ic++)   /* The first configuration written is received by the last IC in the daisy chain */
+    for (int ic = 0; ic < TOTAL_AD68; ic++)   /* The first configuration written is received by the last IC in the daisy chain */
     {
-        int iv = (TOTAL_IC - 1) - ic;    // Inverted index to get data from the back
+        int iv = (TOTAL_AD68 - 1) - ic;    // Inverted index to get data from the back
 
         // Copy data to the txbuffer
         // First data is for the last IC
@@ -199,18 +185,18 @@ void bms_spiTransmitData(uint8_t data[TOTAL_IC][DATA_LEN])
     }
 
     // Send the whole buffer to SPI
-    //HAL_SPI_Transmit(hspi, (uint8_t *)txBuff_data, DATAPKT_LEN * TOTAL_IC, HAL_MAX_DELAY);
-    PHAL_SPI_transfer_noDMA(&bms_spi_config,  (uint8_t *)txBuff_data, DATAPKT_LEN * TOTAL_IC, 0, NULL);
+    //HAL_SPI_Transmit(hspi, (uint8_t *)txBuff_data, DATAPKT_LEN * TOTAL_AD68, HAL_MAX_DELAY);
+    PHAL_SPI_transfer_noDMA(&bms_spi_config,  (uint8_t *)txBuff_data, DATAPKT_LEN * TOTAL_AD68, 0, NULL);
 }
 
-void bms_spiReceiveData(uint8_t rxData[TOTAL_IC][DATA_LEN], uint16_t rxPec[TOTAL_IC], uint8_t rxCc[TOTAL_IC])
+void bms_spiReceiveData(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
-    uint8_t rawRxData[TOTAL_IC][DATAPKT_LEN] = {0};
+    uint8_t rawRxData[TOTAL_AD68][DATAPKT_LEN] = {0};
 
-    //HAL_SPI_Receive(hspi, (uint8_t *)rawRxData, DATAPKT_LEN * TOTAL_IC, HAL_MAX_DELAY);
-    PHAL_SPI_transfer_noDMA(&bms_spi_config, NULL, 0, DATAPKT_LEN * TOTAL_IC, (uint8_t *)rawRxData);
+    //HAL_SPI_Receive(hspi, (uint8_t *)rawRxData, DATAPKT_LEN * TOTAL_AD68, HAL_MAX_DELAY);
+    PHAL_SPI_transfer_noDMA(&bms_spi_config, NULL, 0, DATAPKT_LEN * TOTAL_AD68, (uint8_t *)rawRxData);
 
-    for (int ic = 0; ic < TOTAL_IC; ic++)     /* executes for each ic in the daisy chain and packs the data */
+    for (int ic = 0; ic < TOTAL_AD68; ic++)     /* executes for each ic in the daisy chain and packs the data */
     {
         // Store recieved data bytes to rxData
         memcpy(rxData[ic], rawRxData[ic], DATA_LEN);
@@ -224,9 +210,9 @@ void bms_spiReceiveData(uint8_t rxData[TOTAL_IC][DATA_LEN], uint16_t rxPec[TOTAL
     }
 }
 
-void bms_printRawData(uint8_t data[TOTAL_IC][DATA_LEN], uint8_t cc[TOTAL_IC])
+void bms_printRawData(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68])
 {
-    for (int ic = 0; ic < TOTAL_IC; ic++)
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         printf("IC%d: ", ic+1);
         for (int j = 0; j < 6; j++)             // For every byte recieved (6 bytes)
@@ -238,11 +224,11 @@ void bms_printRawData(uint8_t data[TOTAL_IC][DATA_LEN], uint8_t cc[TOTAL_IC])
     printf("\n\n");
 }
 
-static uint8_t bms_checkRxPec(uint8_t rxData[TOTAL_IC][DATA_LEN], uint16_t rxPec[TOTAL_IC], uint8_t rxCc[TOTAL_IC])
+static uint8_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
     uint8_t errorMask = 0;
 
-    for (int ic = 0; ic < TOTAL_IC; ic++)
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         uint16_t calculated_pec = bms_calcPec10(rxData[ic], DATA_LEN, rxCc + ic);
         errorMask |= (calculated_pec != rxPec[ic]) << ic;
@@ -251,13 +237,13 @@ static uint8_t bms_checkRxPec(uint8_t rxData[TOTAL_IC][DATA_LEN], uint16_t rxPec
     return errorMask;
 }
 
-bool bms_checkRxFault(uint8_t data[TOTAL_IC][DATA_LEN], uint16_t pec[TOTAL_IC], uint8_t cc[TOTAL_IC])
+bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68])
 {
     uint8_t errorMask = bms_checkRxPec(data, pec, cc);
     if (errorMask)
     {
         printf("PEC ERROR - IC:");
-        for(int ic = 0; ic < TOTAL_IC; ic++)
+        for(int ic = 0; ic < TOTAL_AD68; ic++)
         {
             if (errorMask & (1 << ic))
             {
@@ -279,7 +265,7 @@ void bms_transmitCmd(uint8_t cmd[CMD_LEN])
     bms_csHigh();
 }
 
-void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_IC][DATA_LEN])
+void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][DATA_LEN])
 {
     bms_wakeupChain();
     bms_csLow();
@@ -288,7 +274,7 @@ void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_IC][DATA_LEN]
     bms_csHigh();
 }
 
-void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_IC][DATA_LEN], uint16_t rxPec[TOTAL_IC], uint8_t rxCc[TOTAL_IC])
+void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
     bms_wakeupChain();
     bms_csLow();

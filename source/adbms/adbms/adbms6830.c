@@ -10,7 +10,15 @@
 
 ic_ad68_t ic_ad68[TOTAL_AD68];
 
-static inline uint8_t get_u8(uint8_t rxData[TOTAL_IC][DATA_LEN], int ic, int index)
+
+uint8_t  txData[TOTAL_AD68][DATA_LEN];
+uint8_t  rxData[TOTAL_AD68][DATA_LEN];
+uint16_t rxPec[TOTAL_AD68];
+uint8_t  rxCc[TOTAL_AD68];
+
+struct bms_data bms;
+
+static inline uint8_t get_u8(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
     return (uint8_t)(rxData[ic][index] & 0xff);
 }
@@ -28,7 +36,7 @@ uint32_t adbms_checkalive(void)
         return ret;
     }
 
-    for (int ic = 0; ic < TOTAL_IC; ic++)
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         uint8_t sid = get_u8(rxData, ic, 1); // SID1 [1:6]
         sid = (sid >> 1) & 0x3f;
@@ -200,7 +208,7 @@ each group: 8 * 6 = 48 bits
 
 #endif
 
-static inline int16_t get_i16(uint8_t rxData[TOTAL_IC][DATA_LEN], int ic, int index)
+static inline int16_t get_i16(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
     return (int16_t)(rxData[ic][index * 2 + 0] & 0xff) | ((int16_t)(rxData[ic][index * 2 + 1] & 0xff) << 8);
 }
