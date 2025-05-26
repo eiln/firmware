@@ -3,6 +3,9 @@
 #include "adbms_mcu.h"
 #include "string.h"
 
+#include "common/phal_F4_F7/spi/spi.h"
+#include "common/phal_F4_F7/gpio/gpio.h"
+
 uint8_t  txData[TOTAL_IC][DATA_LEN];
 uint8_t  rxData[TOTAL_IC][DATA_LEN];
 uint16_t rxPec[TOTAL_IC];
@@ -10,24 +13,43 @@ uint8_t  rxCc[TOTAL_IC];
 
 struct bms_data bms;
 
-void bms_csLow(void)
+#if 0
+static inline void bms_mDelay(uint32_t delay)
+{
+    //uint32_t start = tick_ms;
+    //while (tick_ms - start < delay);
+    mDelay(delay);
+}
+#endif
+
+static inline uint32_t bms_getTick(void)
+{
+    return xTaskGetTickCount();
+}
+
+static inline void bms_mDelay(uint32_t delay)
+{
+    mDelay(delay);
+}
+
+static inline void bms_csLow(void)
 {
     PHAL_writeGPIO(SPI_CS_PORT, SPI_CS_PIN, 0);
 }
 
-void bms_csHigh(void)
+static inline void bms_csHigh(void)
 {
     PHAL_writeGPIO(SPI_CS_PORT, SPI_CS_PIN, 1);
 }
 
-void bms_wake(void)
+static void bms_wake(void)
 {
   for (uint8_t ic = 0; ic < TOTAL_IC; ic++)
   {
     bms_csLow();
-    mdelay2(BMS_WAKEUP_DELAY);
+    bms_mDelay(BMS_WAKEUP_DELAY);
     bms_csHigh();
-    mdelay2(BMS_WAKEUP_DELAY);
+    bms_mDelay(BMS_WAKEUP_DELAY);
   }
 }
 
@@ -37,22 +59,9 @@ void bms_wakeupChain(void)
     for (uint8_t ic = 0; ic < TOTAL_IC; ic++)
     {
         bms_csLow();
-        mdelay2(BMS_WAKEUP_DELAY);
+        bms_mDelay(BMS_WAKEUP_DELAY);
         bms_csHigh();
-        mdelay2(BMS_WAKEUP_DELAY);
-    }
-}
-
-void bms_delayMsActive(uint32_t ms)
-{
-    for (uint32_t i = 0; i < ms; i++)
-    {
-        bms_csLow();
-        //bms_delayUs(500);
-        mdelay2(1);
-        bms_csHigh();
-        //bms_delayUs(500);
-        mdelay2(1);
+        bms_mDelay(BMS_WAKEUP_DELAY);
     }
 }
 
@@ -295,13 +304,13 @@ void bms_transmitPoll(uint8_t cmd[CMD_LEN])
     bms_spiTransmitCmd(cmd);
 
     // Wait until receive 0xFF
-    uint32_t start = bms_gettick();
+    uint32_t start = bms_getTick();
     uint8_t buff = 0;
     while (buff == 0x00)
     {
         PHAL_SPI_transfer_noDMA(&bms_spi_config, NULL, 0, 1, &buff);
     }
-    uint32_t end = bms_gettick();
+    uint32_t end = bms_getTick();
     bms_csHigh();
     debug_printf("poll: delta: %d\n", end - start);
 }

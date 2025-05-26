@@ -37,10 +37,7 @@ struct bms_data
 
 extern struct bms_data bms;
 
-void bms_wake(void);
 void bms_wakeupChain(void);
-void bms_delayMsActive(uint32_t ms);
-
 void bms_transmitCmd(uint8_t cmd[CMD_LEN]);
 void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_IC][DATA_LEN]);
 void bms_transmitPoll(uint8_t cmd[CMD_LEN]);
