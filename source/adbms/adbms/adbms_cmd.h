@@ -1,5 +1,5 @@
-#ifndef __BMS_CMDLIST_H__
-#define __BMS_CMDLIST_H__
+#ifndef __ADBMS_CMD_H__
+#define __ADBMS_CMD_H__
 
 #include "stdint.h"
 
@@ -232,4 +232,4 @@ extern uint8_t DIAGN[2];
 extern uint8_t MUTE[2];
 extern uint8_t UNMUTE[2];
 
-#endif // __BMS_CMDLIST_H__
+#endif // __ADBMS_CMD_H__

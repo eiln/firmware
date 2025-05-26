@@ -57,7 +57,7 @@ void bms_delayMsActive(uint32_t ms)
 }
 
 /* Precomputed CRC15 Table */
-static const uint16_t Crc15Table[256] =
+static const uint16_t crc15_table[256] =
 {
     0x0000,0xc599, 0xceab, 0xb32, 0xd8cf, 0x1d56, 0x1664, 0xd3fd, 0xf407, 0x319e, 0x3aac,
     0xff35, 0x2cc8, 0xe951, 0xe263, 0x27fa, 0xad97, 0x680e, 0x633c, 0xa6a5, 0x7558, 0xb0c1,
@@ -85,7 +85,7 @@ static const uint16_t Crc15Table[256] =
 };
 
 /* Pre-computed CRC10 Table */
-static const uint16_t crc10Table[256] =
+static const uint16_t crc10_table[256] =
 {
     0x000, 0x08f, 0x11e, 0x191, 0x23c, 0x2b3, 0x322, 0x3ad, 0x0f7, 0x078, 0x1e9, 0x166, 0x2cb, 0x244, 0x3d5, 0x35a,
     0x1ee, 0x161, 0x0f0, 0x07f, 0x3d2, 0x35d, 0x2cc, 0x243, 0x119, 0x196, 0x007, 0x088, 0x325, 0x3aa, 0x23b, 0x2b4,
@@ -117,7 +117,7 @@ uint16_t bms_calcPec10(uint8_t *pDataBuf, int nLength, uint8_t *commandCounter)
     {
         /* calculate PEC table address */
         nTableAddr = (uint16_t)(((uint16_t)(nRemainder >> 2) ^ (uint8_t)pDataBuf[nByteIndex]) & (uint8_t)0xff);
-        nRemainder = (uint16_t)(((uint16_t)(nRemainder << 8)) ^ crc10Table[nTableAddr]);
+        nRemainder = (uint16_t)(((uint16_t)(nRemainder << 8)) ^ crc10_table[nTableAddr]);
     }
     /* If array is from received buffer add command counter to crc calculation */
     if (commandCounter != NULL)
@@ -141,17 +141,16 @@ uint16_t bms_calcPec10(uint8_t *pDataBuf, int nLength, uint8_t *commandCounter)
     return ((uint16_t)(nRemainder & 0x3FFu));
 }
 
-
 uint16_t bms_calcPec15(uint8_t *data, uint8_t len)
 {
     uint16_t remainder, addr;
     remainder = 16; /* initialize the PEC */
     for (uint8_t i = 0; i<len; i++) /* loops for each byte in data array */
     {
-        addr = (((remainder>>7)^data[i])&0xff);/* calculate PEC table address */
-        remainder = ((remainder<<8)^Crc15Table[addr]);
+        addr = (((remainder>>7)^data[i])&0xff); /* calculate PEC table address */
+        remainder = ((remainder << 8) ^ crc15_table[addr]);
     }
-    return(remainder*2);/* The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2 */
+    return(remainder*2); /* The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2 */
 }
 
 void bms_spiTransmitCmd(uint8_t cmd[CMD_LEN])
