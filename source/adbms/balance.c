@@ -1,8 +1,6 @@
 
 #include "main.h"
-#include "adbms_mcu.h"
-#include "adbms6830.h"
-#include "adbms_cmd.h"
+#include "adbms/adbms.h"
 
 #define MAX_DELTA       0.10 // V
 #define BALANCING_MIN_V 3.99 // V

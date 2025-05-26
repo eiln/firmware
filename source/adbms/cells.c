@@ -1,8 +1,6 @@
 
 #include "main.h"
-#include "adbms_mcu.h"
-#include "adbms6830.h"
-#include "adbms_cmd.h"
+#include "adbms/adbms.h"
 
 static void bms_read_cells(void);
 static void bms_check_cells(void);

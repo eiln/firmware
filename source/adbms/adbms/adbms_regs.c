@@ -1,5 +1,5 @@
 
-#include "adbms/adbms_cmd.h"
+#include "adbms_regs.h"
 #include "stdint.h"
 
 /// ----------------------- BOTH 2950 AND 6830 ------------------------------- ///
