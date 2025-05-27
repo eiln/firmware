@@ -55,7 +55,20 @@ static inline uint16_t get_threshold_voltage(float voltage)
   return vov_value;
 }
 
-void bms_init(void)
+#if 0
+
+Default
+IC0: 0x01, 0x00, 0x00, 0xFF, 0x03, 0x00, CC: 0 |
+
+IC0: 0x00, 0xF8, 0x7F, 0x00, 0x00, 0x00, CC: 0 |
+
+Init
+IC0: 0x86, 0x00, 0x00, 0xFF, 0x03, 0x08, CC: 2 |
+
+IC0: 0xDC, 0x5E, 0x46, 0x00, 0x00, 0x00, CC: 2 |
+
+#endif
+bool bms_init(void)
 {
 	uint8_t buff_6830_a[DATA_LEN] = {0};
 	uint8_t buff_6830_b[DATA_LEN] = {0};
@@ -95,20 +108,54 @@ void bms_init(void)
 	buff_6830_b[5] = 0x00; // DCC to zero
 	/* ======================= End of config definition =============================== */
 
+    uint8_t txData_a[TOTAL_AD68][DATA_LEN];
+    uint8_t txData_b[TOTAL_AD68][DATA_LEN];
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         if (ic == (TOTAL_AD68 - 1))
         {
-            buff_6830_a[5] = (0x01 << 3); // last iter so it's fine
+            // Set termination bit
+            // Last iter so it's fine to modify
+            buff_6830_a[5] = (0x01 << 3);
         }
-        memcpy(&ic_ad68[ic].cfa_Tx, buff_6830_a, DATA_LEN);
-        memcpy(&ic_ad68[ic].cfb_Tx, buff_6830_b, DATA_LEN);
+        memcpy(txData_a[ic], buff_6830_a, DATA_LEN);
+        memcpy(txData_b[ic], buff_6830_b, DATA_LEN);
     }
 
-    bms_writeConfigA();
-    bms_writeConfigB();
+    bms_transmitData(WRCFGA, txData_a);
+    bms_transmitData(WRCFGB, txData_b);
+
+    // Check if config has been sent
+    if (!adbms_receive(RDCFGA, rxData) ||
+        memcmp(txData_a, rxData, sizeof(txData_a) != 0))
+    {
+        return false;
+    }
+    if (!adbms_receive(RDCFGB, rxData) ||
+        memcmp(txData_b, rxData, sizeof(txData_b) != 0))
+    {
+        return false;
+    }
+
+    return true;
 }
 
+void bms_readConfig(void)
+{
+    // Check if config has been sent
+    if (!adbms_receive(RDCFGA, rxData))
+    {
+        return;
+    }
+    adbms_print_rxdata(rxData);
+    if (!adbms_receive(RDCFGB, rxData))
+    {
+        return;
+    }
+    adbms_print_rxdata(rxData);
+}
+
+#if 0
 void bms_writeConfigA(void)
 {
     for (int ic = 0; ic < TOTAL_AD68; ic++)
@@ -130,6 +177,7 @@ void bms_writeConfigB(void)
     // write config B
     bms_transmitData(WRCFGB, txData);
 }
+#endif
 
 void bms_readStatus(void)
 {
