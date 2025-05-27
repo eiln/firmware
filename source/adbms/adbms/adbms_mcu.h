@@ -32,8 +32,7 @@ extern struct bms_data bms;
 
 void adbms_transmit_cmd(uint8_t cmd[CMD_LEN]);
 void adbms_transmit_data(uint8_t cmd[CMD_LEN], uint8_t txdata[TOTAL_AD68][DATA_LEN]);
-void bms_transmitPoll(uint8_t cmd[CMD_LEN]); // TODO
-
+uint32_t adbms_transmit_poll(uint8_t cmd[CMD_LEN]);
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN]);
 void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN]);
 
