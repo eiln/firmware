@@ -37,7 +37,14 @@ static void bms_print_temps(void)
 static void bms_read_temps(void)
 {
     // AUX_ALL includes 10 GPIOS + various temps (VD, VA, ITEMP, VPV, VMV, VRES)
+    printf("normal wire:\n");
     adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
+    adbms_transmit_poll(PLAUX1);
+    bms_readAuxVoltages();
+    bms_print_temps();
+
+    printf("open wire:\n");
+    adBms6830_Adax(AUX_OW_ON, PUP_DOWN, 0b01);
     adbms_transmit_poll(PLAUX1);
     bms_readAuxVoltages();
     bms_print_temps();
