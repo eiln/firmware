@@ -32,9 +32,9 @@ static void bms_print_aux_voltages(bool ow)
         {
             float voltage;
             if (!ow)
-                voltage = bms.aux_voltages_parsed[ic][aux];
+                voltage = bms.aux_v[ic][aux];
             else
-                voltage = bms.aux_voltages_ow[ic][aux];
+                voltage = bms.aux_ow_v[ic][aux];
             printf("%.2f ", voltage);
         }
         printf("\n");
@@ -59,7 +59,7 @@ static void bms_aux_ow_check(void)
     printf("normal wire:\n");
     adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
     adbms_transmit_poll(PLAUX1);
-    bms_readAuxVoltagesAll(false);
+    bms_readAuxVoltagesAll();
     bms_print_aux_all(false);
 
     // Run internal pull-down vs pull-up to see if there's open wire
@@ -68,7 +68,7 @@ static void bms_aux_ow_check(void)
     adbms_transmit_poll(PLAUX1);
     bms_readAuxVoltages(true);
     bms_print_aux_voltages(true);
-
+#if 0
     // TODO compare values
     #define BMS_AUX_OW_DELTA (1.0f) // TODO calcs
     for (int ic = 0; ic < TOTAL_AD68; ic++)
@@ -79,6 +79,7 @@ static void bms_aux_ow_check(void)
             bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_OW, set);
         }
     }
+#endif
     // TODO NULL values in case of open-wire and exit state
     // if open-wire is okay, use values read from bms_readAuxVoltagesAll()
 
