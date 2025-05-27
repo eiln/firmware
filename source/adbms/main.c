@@ -129,7 +129,7 @@ int main()
 // ADBMS shuts off after ~2200ms
 defineThreadStack(bms_heartbeat, 500, osPriorityNormal, 128);
 defineThreadStack(bms_periodic, 2500, osPriorityNormal, 1024);
-defineThreadStack(bms_error_handler, 500, osPriorityNormal, 1024);
+defineThreadStack(bms_error_handler, 250, osPriorityNormal, 1024);
 
 static void bms_create_threads(void)
 {
@@ -202,6 +202,9 @@ static void bms_error_handler(void)
         PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
         printf("BMS Error: 0x%08x\n", bmsmaster.error);
         // TODO report error over CAN
+
+        if (bmsmaster.state > BMS_STATE_CONNECTED)
+            bmsmaster.state = BMS_STATE_CONNECTED; // demote state
 
         if (bmsmaster.error & BMS_ERROR_CONN)
         printf("\t BMS_ERROR_CONN\n");

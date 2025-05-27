@@ -209,20 +209,6 @@ static void bms_spiReceiveData(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rx
     // UNLOCK
 }
 
-void bms_printRawData(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68])
-{
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        printf("IC%d: ", ic);
-        for (int j = 0; j < 6; j++) // For every byte recieved (6 bytes)
-        {
-            printf("0x%02X, ", data[ic][j]); // Print each of the bytes
-        }
-        printf("CC: %d |   ", cc[ic]);
-    }
-    printf("\n\n");
-}
-
 static uint32_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
     uint32_t error_mask = 0; // bitfield, 1 if fault
@@ -330,4 +316,24 @@ bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN])
     bool ret = bms_checkRxFault(data, bmsmaster.rxPec, bmsmaster.rxCc);
     bms_crit_exit();
     return !ret; // true if successful
+}
+
+// Debug print
+static void bms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68])
+{
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        printf("IC%d: ", ic);
+        for (int j = 0; j < 6; j++) // For every byte recieved (6 bytes)
+        {
+            printf("0x%02X, ", data[ic][j]); // Print each of the bytes
+        }
+        printf("CC: %d |   ", cc[ic]);
+    }
+    printf("\n\n");
+}
+
+void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN])
+{
+    bms_print_rxdata(data, bmsmaster.rxCc);
 }

@@ -13,10 +13,6 @@ struct bms_data bms;
 
 uint8_t  txData[TOTAL_AD68][DATA_LEN];
 uint8_t  rxData[TOTAL_AD68][DATA_LEN];
-uint16_t rxPec[TOTAL_AD68];
-uint8_t  rxCc[TOTAL_AD68];
-
-#define ADBMS_RXPEC_NOERROR ((uint8_t)0)
 
 static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
@@ -146,7 +142,7 @@ void bms_readStatus(void)
         {
             return;
         }
-        bms_printRawData(rxData, rxCc);
+        adbms_print_rxdata(rxData);
     }
 }
 
@@ -227,7 +223,7 @@ void bms_checkCellVoltagesStatC(void)
     {
         return; // TODO exit
     }
-    bms_printRawData(rxData, rxCc);
+    adbms_print_rxdata(rxData);
     // TODO check uv/ov
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
