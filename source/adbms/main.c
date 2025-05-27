@@ -115,6 +115,7 @@ int main()
     log_yellow("PER PER PER\n");
     PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 0);
     PHAL_writeGPIO(LED_PORT_BLUE, LED_PIN_BLUE, 0);
+    PHAL_writeGPIO(LED_PORT_RED, LED_PIN_RED, 0);
 
     spi1_lock = createStaticSemaphore(spi1_lock);
     bms_create_threads();
@@ -176,7 +177,7 @@ static void bms_periodic(void)
         case BMS_STATE_CONNECTED:
         {
             bms_init(); // TODO check init
-            //bmsmaster.state = BMS_STATE_ACTIVE;
+            bmsmaster.state = BMS_STATE_ACTIVE;
         }
         break;
         case BMS_STATE_ACTIVE:
