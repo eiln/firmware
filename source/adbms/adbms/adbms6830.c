@@ -56,18 +56,15 @@ static inline uint16_t get_threshold_voltage(float voltage)
 }
 
 #if 0
-
 Default
 IC0: 0x01, 0x00, 0x00, 0xFF, 0x03, 0x00, CC: 0 |
-
 IC0: 0x00, 0xF8, 0x7F, 0x00, 0x00, 0x00, CC: 0 |
 
 Init
 IC0: 0x86, 0x00, 0x00, 0xFF, 0x03, 0x08, CC: 2 |
-
 IC0: 0xDC, 0x5E, 0x46, 0x00, 0x00, 0x00, CC: 2 |
-
 #endif
+
 bool bms_init(void)
 {
 	uint8_t buff_6830_a[DATA_LEN] = {0};
@@ -139,45 +136,6 @@ bool bms_init(void)
 
     return true;
 }
-
-void bms_readConfig(void)
-{
-    // Check if config has been sent
-    if (!adbms_receive(RDCFGA, rxData))
-    {
-        return;
-    }
-    adbms_print_rxdata(rxData);
-    if (!adbms_receive(RDCFGB, rxData))
-    {
-        return;
-    }
-    adbms_print_rxdata(rxData);
-}
-
-#if 0
-void bms_writeConfigA(void)
-{
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        memcpy(txData[ic], &ic_ad68[ic].cfa_Tx, DATA_LEN);
-    }
-    // write config A
-    bms_transmitData(WRCFGA, txData);
-}
-
-void bms_writeConfigB(void)
-{
-    // Fill buffer with the other ad6830 data
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        memcpy(txData[ic], &ic_ad68[ic].cfb_Tx, DATA_LEN);
-    }
-
-    // write config B
-    bms_transmitData(WRCFGB, txData);
-}
-#endif
 
 void bms_readStatus(void)
 {
