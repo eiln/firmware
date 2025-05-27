@@ -16,7 +16,8 @@ struct bms_data
     // RDAUXA - RDAUXD
     int16_t aux_voltages_raw[TOTAL_AD68][TOTAL_AUX]; // therm/temps (raw)
     float aux_voltages_parsed[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
-    float vmv[TOTAL_AD68]; // V+ to V- (V)
+    float aux_voltages_ow[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
+    float vmv[TOTAL_AD68]; // V- to S1N (V)
     float vpv[TOTAL_AD68]; // V+ to V- (V)
 
     // RDSTATB: internal supply voltages

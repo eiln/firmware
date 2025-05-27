@@ -14,14 +14,7 @@ struct bms_data bms;
 uint8_t  txData[TOTAL_AD68][DATA_LEN];
 uint8_t  rxData[TOTAL_AD68][DATA_LEN];
 
-static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int index)
-{
-    return (uint8_t)(data[ic][index] & 0xff);
-}
-
-#define ADBMS_6830B_SID (0b000011)
-
-static void set_fault(int ic, uint32_t mask, bool set)
+void bms_set_fault(int ic, uint32_t mask, bool set)
 {
     if (set)
     {
@@ -31,6 +24,25 @@ static void set_fault(int ic, uint32_t mask, bool set)
     {
         bmsmaster.fault[ic] &= ~mask;
     }
+}
+
+void bms_set_fault_aux(int ic, int aux, uint32_t mask, bool set)
+{
+    if (set)
+    {
+        bmsmaster.fault_aux[ic][aux] |= mask;
+    }
+    else
+    {
+        bmsmaster.fault_aux[ic][aux] &= ~mask;
+    }
+}
+
+#define ADBMS_6830B_SID (0b000011)
+
+static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int index)
+{
+    return (uint8_t)(data[ic][index] & 0xff);
 }
 
 bool adbms_checkalive(void)
@@ -45,7 +57,7 @@ bool adbms_checkalive(void)
     {
         uint8_t sid = get_u8(rxdata, ic, 1); // SID1 [1:6]
         sid = (sid >> 1) & 0x3f;
-        set_fault(ic, BMS_ERROR_CONN, !(sid == ADBMS_6830B_SID));
+        bms_set_fault(ic, BMS_ERROR_CONN, !(sid == ADBMS_6830B_SID));
     }
 
     return true;
@@ -337,7 +349,7 @@ void bms_readSVoltages(void)
     debug_printf("\n");
 }
 
-void bms_readAuxVoltages(void)
+void bms_readAuxVoltages(bool ow)
 {
     uint8_t *cmdList[4] = {RDAUXA, RDAUXB, RDAUXC, RDAUXD};
     for (int i = 0; i < 4; i++)
@@ -370,18 +382,31 @@ void bms_readAuxVoltages(void)
         }
     }
 
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    if (!ow)
     {
-        for (int i = 0; i < TOTAL_AUX; i++)
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            bms.aux_voltages_parsed[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
+            for (int i = 0; i < TOTAL_AUX; i++)
+            {
+                bms.aux_voltages_parsed[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
+            }
+        }
+    }
+    else
+    {
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
+        {
+            for (int i = 0; i < TOTAL_AUX; i++)
+            {
+                bms.aux_voltages_ow[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
+            }
         }
     }
 }
 
-void bms_readAuxVoltagesAll(void)
+void bms_readAuxVoltagesAll(bool ow)
 {
-    bms_readAuxVoltages();
+    bms_readAuxVoltages(ow);
 
     if (!adbms_receive(RDSTATB, rxData))
     {
@@ -421,14 +446,8 @@ void bms_checkAuxVoltages(void)
     #define BMS_VA_MAX (5.5f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        if (bms.va[ic] < BMS_VA_MIN || bms.va[ic] > BMS_VA_MAX)
-        {
-            bmsmaster.fault[ic] |= BMS_ERROR_VA;
-        }
-        else
-        {
-            bmsmaster.fault[ic] &= ~BMS_ERROR_VA;
-        }
+        bool set = bms.va[ic] < BMS_VA_MIN || bms.va[ic] > BMS_VA_MAX;
+        bms_set_fault(ic, BMS_ERROR_VA, set);
     }
 
     // Vd
@@ -438,14 +457,8 @@ void bms_checkAuxVoltages(void)
     #define BMS_VD_MAX (3.6f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        if (bms.vd[ic] < BMS_VD_MIN || bms.vd[ic] > BMS_VD_MAX)
-        {
-            bmsmaster.fault[ic] |= BMS_ERROR_VD;
-        }
-        else
-        {
-            bmsmaster.fault[ic] &= ~BMS_ERROR_VD;
-        }
+        bool set = bms.vd[ic] < BMS_VD_MIN || bms.vd[ic] > BMS_VD_MAX;
+        bms_set_fault(ic, BMS_ERROR_VD, set);
     }
 
     // VREF2
@@ -455,14 +468,8 @@ void bms_checkAuxVoltages(void)
     #define BMS_VREF2_MAX (3.012f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        if (bms.vref2[ic] < BMS_VREF2_MIN || bms.vref2[ic] > BMS_VREF2_MAX)
-        {
-            bmsmaster.fault[ic] |= BMS_ERROR_VREF2;
-        }
-        else
-        {
-            bmsmaster.fault[ic] &= ~BMS_ERROR_VREF2;
-        }
+        bool set = bms.vref2[ic] < BMS_VREF2_MIN || bms.vref2[ic] > BMS_VREF2_MAX;
+        bms_set_fault(ic, BMS_ERROR_VREF2, set);
     }
 
     // ITMP
@@ -473,14 +480,8 @@ void bms_checkAuxVoltages(void)
     #define BMS_ITMP_MAX (40.0f) // 104F
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        if (bms.va[ic] < BMS_ITMP_MIN || bms.va[ic] > BMS_ITMP_MAX)
-        {
-            bmsmaster.fault[ic] |= BMS_ERROR_ITMP;
-        }
-        else
-        {
-            bmsmaster.fault[ic] &= ~BMS_ERROR_ITMP;
-        }
+        bool set = bms.itmp[ic] < BMS_ITMP_MIN || bms.itmp[ic] > BMS_ITMP_MAX;
+        bms_set_fault(ic, BMS_ERROR_ITMP2, set);
     }
 }
 
