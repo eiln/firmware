@@ -21,27 +21,34 @@ static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int ind
 
 #define ADBMS_6830B_SID (0b000011)
 
-uint32_t adbms_checkalive(void)
+static void set_fault(int ic, uint32_t mask, bool set)
+{
+    if (set)
+    {
+        bmsmaster.fault[ic] |= mask;
+    }
+    else
+    {
+        bmsmaster.fault[ic] &= ~mask;
+    }
+}
+
+bool adbms_checkalive(void)
 {
     uint8_t rxdata[TOTAL_AD68][DATA_LEN];
-    uint32_t conn = 0; // bitmask
-
     if (!adbms_receive(RDSID, rxdata))
     {
-        return conn;
+        return false;
     }
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         uint8_t sid = get_u8(rxdata, ic, 1); // SID1 [1:6]
         sid = (sid >> 1) & 0x3f;
-        if (sid == ADBMS_6830B_SID)
-        {
-            conn |= (1 << ic);
-        }
+        set_fault(ic, BMS_ERROR_CONN, !(sid == ADBMS_6830B_SID));
     }
 
-    return conn;
+    return true;
 }
 
 static inline uint16_t get_threshold_voltage(float voltage)
@@ -125,13 +132,13 @@ bool bms_init(void)
     if (!adbms_receive(RDCFGA, rxData) ||
         memcmp(txData_a, rxData, sizeof(txData_a) != 0))
     {
-        bmsmaster.error |= BMS_ERROR_TX; // TODO figure out which
+        //bmsmaster.error |= BMS_ERROR_TX; // TODO figure out which
         return false;
     }
     if (!adbms_receive(RDCFGB, rxData) ||
         memcmp(txData_b, rxData, sizeof(txData_b) != 0))
     {
-        bmsmaster.error |= BMS_ERROR_TX;
+        //bmsmaster.error |= BMS_ERROR_TX;
         return false;
     }
 
@@ -386,32 +393,66 @@ void bms_checkAuxVoltages(void)
 {
     // check temps under threshold
     // check va, vd, etc
+    // IC[0]: vmv: -0.00 vpv: 11.70 vd: 3.03 va: 5.09 vref2: 3.00 itmp: 26.08
 
     // Va
-    #if 0
     // Analog power supply voltage = voltage at the VREG pin.
     // Analog power supply voltage = VA × 150 μV + 1.5 V.
     // The value of VA is set by external components and must be in the range of 4.5 V to 5.5 V for normal operation.
-    // Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command (CLRAUX).
-    #endif
+    #define BMS_VA_MIN (4.5f)
+    #define BMS_VA_MAX (5.5f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        if (bms.va[ic] < 4.50f || bms.va[ic] > 5.50f)
+        if (bms.va[ic] < BMS_VA_MIN || bms.va[ic] > BMS_VA_MAX)
         {
-            bmsmaster.fault[ic] |= BMS_ERROR_VREG;
+            bmsmaster.fault[ic] |= BMS_ERROR_VA;
         }
         else
         {
-            bmsmaster.fault[ic] &= ~BMS_ERROR_VREG;
+            bmsmaster.fault[ic] &= ~BMS_ERROR_VA;
         }
     }
 
-    #define BMS_ITMP_MIN  (0.0f) // 32F
-    #define BMS_ITMP_MAX (40.0f) // 104F
+    // Vd
+    // digital power supply voltage
+    // must be within 2.7 V to 3.6 V.
+    #define BMS_VD_MIN (2.7f)
+    #define BMS_VD_MAX (3.6f)
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        if (bms.vd[ic] < BMS_VD_MIN || bms.vd[ic] > BMS_VD_MAX)
+        {
+            bmsmaster.fault[ic] |= BMS_ERROR_VD;
+        }
+        else
+        {
+            bmsmaster.fault[ic] &= ~BMS_ERROR_VD;
+        }
+    }
+
+    // VREF2
+    // Normal range is within 2.988 V to 3.012 V considering data sheet limits, thermal hysteresis, and long-term drift
+    // # 2.988 V to 3.012 V
+    #define BMS_VREF2_MIN (2.988f)
+    #define BMS_VREF2_MAX (3.012f)
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        if (bms.vref2[ic] < BMS_VREF2_MIN || bms.vref2[ic] > BMS_VREF2_MAX)
+        {
+            bmsmaster.fault[ic] |= BMS_ERROR_VREF2;
+        }
+        else
+        {
+            bmsmaster.fault[ic] &= ~BMS_ERROR_VREF2;
+        }
+    }
+
     // ITMP
     // 16-bit ADC measurement value of Internal Die temperature.
     // Temperature measurement voltage = (ITMP × 150 μV + 1.5 V)/7.5 mV/°C – 273°C.
     // Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command
+    #define BMS_ITMP_MIN  (0.0f) // 32F
+    #define BMS_ITMP_MAX (40.0f) // 104F
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         if (bms.va[ic] < BMS_ITMP_MIN || bms.va[ic] > BMS_ITMP_MAX)
@@ -423,6 +464,7 @@ void bms_checkAuxVoltages(void)
             bmsmaster.fault[ic] &= ~BMS_ERROR_ITMP;
         }
     }
+
 }
 
 static void bms_writePwmA(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])

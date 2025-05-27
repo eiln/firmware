@@ -73,8 +73,8 @@ ClockRateConfig_t clock_config = {
     .apb2_clock_target_hz       =(TargetCoreClockrateHz / (1)),
 };
 
+int main(void);
 void HardFault_Handler(void);
-void SysTick_Handler(void);
 static void bms_create_threads(void);
 static void bms_heartbeat(void);
 static void bms_periodic(void);
@@ -82,14 +82,12 @@ static void bms_error_handler(void);
 
 bms_t bmsmaster = {
     .state = BMS_STATE_IDLE,
-    .error = BMS_ERROR_NONE,
     .fault = {0},
-    .conn = 0,
 };
 
 defineStaticSemaphore(spi1_lock);
 
-int main()
+int main(void)
 {
     osKernelInitialize();
 
@@ -129,7 +127,7 @@ int main()
 
 // ADBMS shuts off after ~2200ms
 defineThreadStack(bms_heartbeat, 500, osPriorityNormal, 128);
-defineThreadStack(bms_periodic, 2500, osPriorityNormal, 1024);
+defineThreadStack(bms_periodic, 2500, osPriorityNormal, 2056);
 defineThreadStack(bms_error_handler, 250, osPriorityNormal, 1024);
 
 static void bms_create_threads(void)
@@ -146,10 +144,21 @@ static void bms_heartbeat(void)
 
 #define ADBMS_6830B_CONN ((uint32_t)0b1) // n times many TOTAL_AD68
 
+static uint32_t pack_faults(bms_error_t field)
+{
+    uint32_t mask = 0;
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        mask |= !!(bmsmaster.fault[ic] & (1 << field)) << ic;
+    }
+    return mask;
+}
+
 static void bms_periodic(void)
 {
-    bmsmaster.conn = adbms_checkalive();
-    if (bmsmaster.conn == ADBMS_6830B_CONN)
+    bool ret = adbms_checkalive();
+    uint32_t packed = pack_faults(BMS_ERROR_FIELD_CONN);
+    if (ret == true && !packed)
     {
         if (bmsmaster.state == BMS_STATE_IDLE)
         {
@@ -157,7 +166,6 @@ static void bms_periodic(void)
             printf("Connected to %d AFEs!\n", TOTAL_AD68);
         }
         PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 1);
-        bmsmaster.error &= ~BMS_ERROR_CONN;
     }
     else
     {
@@ -165,14 +173,13 @@ static void bms_periodic(void)
         printf("Lost connection to %d AFEs! Index: ", TOTAL_AD68);
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            if (!(bmsmaster.conn & (1 << ic)))
+            if (packed & (1 << ic))
             printf("%d ", ic);
         }
         printf("\n");
         printf("Retrying!...\n");
         // TODO send over CAN
         bmsmaster.state = BMS_STATE_IDLE;
-        bmsmaster.error |= BMS_ERROR_CONN;
     }
 
     switch (bmsmaster.state)
@@ -210,11 +217,6 @@ static bool is_error(void)
     return ret;
 }
 
-#define print_bms_error(x) do {\
-    if (bmsmaster.error & x)\
-        printf("\t " #x "\n");\
-} while (0);
-
 #define print_bms_fault(ic, x) do {\
     if (bmsmaster.fault[ic] & x)\
         printf("\t " #x "\n");\
@@ -222,21 +224,20 @@ static bool is_error(void)
 
 static void bms_error_handler(void)
 {
-    if (bmsmaster.error || is_error())
+    if (is_error())
     {
         PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
-        printf("BMS Error: 0x%08x\n", bmsmaster.error);
+        printf("BMS State: 0x%02x\n", bmsmaster.state);
 
-        print_bms_error(BMS_ERROR_CONN);
-        print_bms_error(BMS_ERROR_TX);
-        // TODO report error over CAN
-        //if (bmsmaster.error & BMS_ERROR_TX)
-        //printf("\t BMS_ERROR_TX\n");
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
             printf("BMS Error IC[%d]: 0x%08x\n", ic, bmsmaster.fault[ic]);
+            print_bms_fault(ic, BMS_ERROR_CONN);
             print_bms_fault(ic, BMS_ERROR_RXPEC);
+            print_bms_fault(ic, BMS_ERROR_VA);
+            print_bms_fault(ic, BMS_ERROR_VD);
             print_bms_fault(ic, BMS_ERROR_VREG);
+            print_bms_fault(ic, BMS_ERROR_VREF2);
             print_bms_fault(ic, BMS_ERROR_ITMP);
         }
         /* Clear Errors */
