@@ -178,13 +178,24 @@ static void bms_periodic(void)
     {
         case BMS_STATE_CONNECTED:
         {
-            bms_init(); // TODO check init
-            bmsmaster.state = BMS_STATE_ACTIVE;
+            bms_readConfig();
+            if (bms_init())
+                bmsmaster.state = BMS_STATE_ACTIVE;
+            bms_readConfig();
         }
         break;
         case BMS_STATE_ACTIVE:
         {
+            bms_readConfig();
+            #if 0
+            if (!bms_init())
+            {
+                bmsmaster.state = BMS_STATE_CONNECTED;
+                return;
+            }
+            #endif
             bms_init(); // TODO check init
+            bms_readConfig();
             bms_monitor_cells();
             bms_monitor_temps();
             printf("--------------------------------------------------\n");
