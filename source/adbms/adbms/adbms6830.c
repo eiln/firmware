@@ -432,59 +432,6 @@ void bms_readAuxVoltagesAll(bool ow)
     }
 }
 
-void bms_checkAuxVoltages(void)
-{
-    // check temps under threshold
-    // check va, vd, etc
-    // IC[0]: vmv: -0.00 vpv: 11.70 vd: 3.03 va: 5.09 vref2: 3.00 itmp: 26.08
-
-    // Va
-    // Analog power supply voltage = voltage at the VREG pin.
-    // Analog power supply voltage = VA × 150 μV + 1.5 V.
-    // The value of VA is set by external components and must be in the range of 4.5 V to 5.5 V for normal operation.
-    #define BMS_VA_MIN (4.5f)
-    #define BMS_VA_MAX (5.5f)
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        bool set = bms.va[ic] < BMS_VA_MIN || bms.va[ic] > BMS_VA_MAX;
-        bms_set_fault(ic, BMS_ERROR_VA, set);
-    }
-
-    // Vd
-    // digital power supply voltage
-    // must be within 2.7 V to 3.6 V.
-    #define BMS_VD_MIN (2.7f)
-    #define BMS_VD_MAX (3.6f)
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        bool set = bms.vd[ic] < BMS_VD_MIN || bms.vd[ic] > BMS_VD_MAX;
-        bms_set_fault(ic, BMS_ERROR_VD, set);
-    }
-
-    // VREF2
-    // Normal range is within 2.988 V to 3.012 V considering data sheet limits, thermal hysteresis, and long-term drift
-    // # 2.988 V to 3.012 V
-    #define BMS_VREF2_MIN (2.988f)
-    #define BMS_VREF2_MAX (3.012f)
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        bool set = bms.vref2[ic] < BMS_VREF2_MIN || bms.vref2[ic] > BMS_VREF2_MAX;
-        bms_set_fault(ic, BMS_ERROR_VREF2, set);
-    }
-
-    // ITMP
-    // 16-bit ADC measurement value of Internal Die temperature.
-    // Temperature measurement voltage = (ITMP × 150 μV + 1.5 V)/7.5 mV/°C – 273°C.
-    // Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command
-    #define BMS_ITMP_MIN  (0.0f) // 32F
-    #define BMS_ITMP_MAX (40.0f) // 104F
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        bool set = bms.itmp[ic] < BMS_ITMP_MIN || bms.itmp[ic] > BMS_ITMP_MAX;
-        bms_set_fault(ic, BMS_ERROR_ITMP2, set);
-    }
-}
-
 static void bms_writePwmA(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
 {
     memset(txData[0], 0x00, DATA_LEN);

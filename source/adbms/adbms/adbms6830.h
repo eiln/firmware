@@ -59,14 +59,11 @@ void adBms6830_Adsv(uint8_t cont, uint8_t dcp, uint8_t owcs);
 void adBms6830_Adax(uint8_t owaux, uint8_t pup, uint8_t ch);
 
 void bms_readCellVoltages(void);
-void bms_readAuxVoltages(void);
-void bms_readAuxVoltagesAll(void);
+void bms_readAuxVoltages(bool ow);
+void bms_readAuxVoltagesAll(bool ow);
 
 void bms_checkCellVoltagesStatC(void);
 void bms_readSVoltages(void);
-
-void bms_openWireCheck(void);
-void bms_getAuxMeasurement(void);
 void bms_printVoltage(float vArr[16]);
 
 extern ic_ad68_t ic_ad68[TOTAL_AD68];
