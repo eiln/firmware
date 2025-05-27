@@ -223,9 +223,9 @@ void bms_printRawData(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68]
     printf("\n\n");
 }
 
-uint8_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
+uint32_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
-    uint8_t error_mask = 0; // bitfield, 1 if fault
+    uint32_t error_mask = 0; // bitfield, 1 if fault
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {

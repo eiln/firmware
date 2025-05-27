@@ -20,9 +20,13 @@ uint8_t  rxCc[TOTAL_AD68];
 
 static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68])
 {
-    uint8_t errorMask = bms_checkRxPec(data, pec, cc);
-    if (errorMask) // DEBUG
+    uint32_t errorMask = bms_checkRxPec(data, pec, cc);
+    if (errorMask)
     {
+        bmsmaster.error |= BMS_ERROR_RXPEC;
+        // TODO send errormask over CAN
+
+        // DEBUG
         printf("PEC ERROR - IC:");
         for(int ic = 0; ic < TOTAL_AD68; ic++)
         {
@@ -32,8 +36,12 @@ static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TO
             }
         }
         printf("\n");
-        // TODO send errormask over CAN
-    } // END OF DEBUG
+        // END OF DEBUG
+    }
+    else
+    {
+        bmsmaster.error &= ~BMS_ERROR_RXPEC;
+    }
 
     return !!errorMask; // true if fault
 }
@@ -51,6 +59,7 @@ static void crit_exit(void)
     xSemaphoreGive(spi1_lock);
 }
 
+#if 0
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN])
 {
     crit_enter();
@@ -72,6 +81,7 @@ bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN])
 
     return ret;
 }
+#endif
 
 static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
