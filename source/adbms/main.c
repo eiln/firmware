@@ -84,6 +84,7 @@ static void bms_error_handler(void);
 bms_t bmsmaster = {
     .state = BMS_STATE_IDLE,
     .fault = {0},
+    .fault_aux = {0},
 };
 
 defineStaticSemaphore(spi1_lock);
