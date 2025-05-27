@@ -171,7 +171,7 @@ static void bms_periodic(void)
         printf("Retrying!...\n");
         bmsmaster.state = BMS_STATE_IDLE;
         bmsmaster.error |= BMS_ERROR_CONN;
-        bmsmaster.error &= ~BMS_ERROR_RXPEC; // no use
+        bmsmaster.error &= ~(BMS_ERROR_RXPEC | BMS_ERROR_TX); // no use
     }
 
     switch (bmsmaster.state)
@@ -214,6 +214,8 @@ static void bms_error_handler(void)
         printf("\t BMS_ERROR_CONN\n");
         if (bmsmaster.error & BMS_ERROR_RXPEC)
         printf("\t BMS_ERROR_RXPEC\n");
+        if (bmsmaster.error & BMS_ERROR_TX)
+        printf("\t BMS_ERROR_TX\n");
     }
     else
     {

@@ -126,11 +126,13 @@ bool bms_init(void)
     if (!adbms_receive(RDCFGA, rxData) ||
         memcmp(txData_a, rxData, sizeof(txData_a) != 0))
     {
+        bmsmaster.error |= BMS_ERROR_TX;
         return false;
     }
     if (!adbms_receive(RDCFGB, rxData) ||
         memcmp(txData_b, rxData, sizeof(txData_b) != 0))
     {
+        bmsmaster.error |= BMS_ERROR_TX;
         return false;
     }
 
