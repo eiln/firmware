@@ -11,7 +11,8 @@
 struct bms_data
 {
     int16_t cell_voltages_raw[TOTAL_AD68][TOTAL_CELL]; // cell voltage (raw)
-    float cell_voltages_parsed[TOTAL_AD68][TOTAL_CELL]; // cell voltage (V)
+    float cell_v_c[TOTAL_AD68][TOTAL_CELL]; // C-ADC cell voltage (V)
+    float cell_v_s[TOTAL_AD68][TOTAL_CELL]; // S-ADC cell voltage (V)
 
     // RDAUXA - RDAUXD
     int16_t aux_voltages_raw[TOTAL_AD68][TOTAL_AUX]; // therm/temps (raw)

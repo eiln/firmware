@@ -255,33 +255,45 @@ void bms_checkCellVoltagesStatC(void)
     // TODO check uv/ov
 }
 
+static inline void bms_read_cell_v(int ic, int group, int idx)
+{
+    int16_t raw = get_i16(rxData, ic, idx);
+    bms.cell_v_c[ic][group * 3 + (idx)] = getVoltage(raw);
+}
+
 void bms_readCellVoltages(void)
 {
     uint8_t *cmdList[6] = {RDCVA, RDCVB, RDCVC, RDCVD, RDCVE, RDCVF};
     //bms_receiveData(RDCVALL, rxData, rxPec, rxCc);
     // TODO look into RDCVALL
     // need to change buffer size
-    for (int i = 0; i < 6; i++)
+
+    #define BMS_GET_C_V(ic, idx) ()
+    for (int group = 0; group < 6; groupi++)
     {
-        if (!adbms_receive(cmdList[i], rxData))
+        if (!adbms_receive(cmdList[group], rxData))
         {
             return;
         }
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            switch (i)
+            switch (group)
             {
                 case 0:
                 case 1:
                 case 2:
                 case 3:
                 case 4:
-                    bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
-                    bms.cell_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
-                    bms.cell_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
+                    bms_read_cell_v(ic, group, 0);
+                    bms_read_cell_v(ic, group, 1);
+                    bms_read_cell_v(ic, group, 2);
+                    // bms.cell_v_c_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
+                    // bms.cell_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
+                    // bms.cell_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
                 break;
                 case 5:
-                    bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 15
+                    bms_read_cell_v(ic, group, 0);
+                    // bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 15
                 break;
             }
         }
@@ -292,8 +304,8 @@ void bms_readCellVoltages(void)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
         {
-            bms.cell_voltages_parsed[ic][i] = getVoltage((int16_t)bms.cell_voltages_raw[ic][i]);
-            debug_printf("Cell %02d: %f ", i, bms.cell_voltages_parsed[ic][i]);
+            // bms.cell_v_c[ic][i] = getVoltage((int16_t)bms.cell_voltages_raw[ic][i]);
+            debug_printf("Cell %02d: %f ", i, bms.cell_v_c[ic][i]);
         }
     }
     debug_printf("\n");
