@@ -213,15 +213,15 @@ static void bms_spiReceiveData(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rx
 
 static uint32_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
-    uint32_t error_mask = 0; // bitfield, 1 if fault
+    uint32_t mask = 0; // bitfield, 1 if fault
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         uint16_t calculated_pec = bms_calcPec10(rxData[ic], DATA_LEN, rxCc + ic);
-        error_mask |= (calculated_pec != rxPec[ic]) << ic;
+        mask |= (calculated_pec != rxPec[ic]) << ic;
     }
 
-    return error_mask;
+    return mask;
 }
 
 /* Debug */
@@ -300,19 +300,22 @@ static void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][D
 
 static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68])
 {
-    uint32_t errorMask = bms_checkRxPec(data, pec, cc);
-    if (errorMask)
+    uint32_t mask = bms_checkRxPec(data, pec, cc);
+    if (mask)
     {
-        bmsmaster.error |= BMS_ERROR_RXPEC;
-        // TODO send errormask over CAN
-
+        // TODO send error mask over CAN
         // DEBUG
         printf("PEC ERROR - IC:");
-        for(int ic = 0; ic < TOTAL_AD68; ic++)
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            if (errorMask & (1 << ic))
+            if (mask & (1 << ic))
             {
+                bmsmaster.fault[ic] |= BMS_ERROR_RXPEC;
                 printf(" %d,", ic);
+            }
+            else
+            {
+                bmsmaster.fault[ic] &= ~BMS_ERROR_RXPEC;
             }
         }
         printf("\n");
@@ -320,10 +323,12 @@ static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TO
     }
     else
     {
-        bmsmaster.error &= ~BMS_ERROR_RXPEC;
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
+        {
+            bmsmaster.fault[ic] &= ~BMS_ERROR_RXPEC;
+        }
     }
-
-    return !!errorMask; // true if fault
+    return !!mask; // true if fault
 }
 
 /* Safe public functions (prefixed adbms_) */

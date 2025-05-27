@@ -125,7 +125,7 @@ bool bms_init(void)
     if (!adbms_receive(RDCFGA, rxData) ||
         memcmp(txData_a, rxData, sizeof(txData_a) != 0))
     {
-        bmsmaster.error |= BMS_ERROR_TX;
+        bmsmaster.error |= BMS_ERROR_TX; // TODO figure out which
         return false;
     }
     if (!adbms_receive(RDCFGB, rxData) ||
@@ -318,14 +318,12 @@ void bms_readSVoltages(void)
 
 void bms_readAuxVoltages(void)
 {
-    debug_printf("6830: Aux Voltages:\n");
     uint8_t *cmdList[4] = {RDAUXA, RDAUXB, RDAUXC, RDAUXD};
-    int cell = 0;
     for (int i = 0; i < 4; i++)
     {
         if (!adbms_receive(cmdList[i], rxData))
         {
-            return ;
+            return;
         }
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
@@ -334,7 +332,7 @@ void bms_readAuxVoltages(void)
                 case 0:
                 case 1:
                 case 2:
-                    // TODO parse aux voltage into C
+                    // TODO parse aux voltage into C for thermistors
                     bms.aux_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
                     bms.aux_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
                     bms.aux_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
@@ -346,7 +344,6 @@ void bms_readAuxVoltages(void)
                     int16_t vpv = get_i16(rxData, ic, 2);
                     bms.vmv[ic] = getVoltage(vmv); // V
                     bms.vpv[ic] = 25 * (vpv * 0.00015 + 1.5); // V
-                    debug_printf("vmv: %.2f vpv: %.2f\n", bms.vmv[ic], bms.vpv[ic]);
                 break;
             }
         }
@@ -357,7 +354,6 @@ void bms_readAuxVoltages(void)
         for (int i = 0; i < TOTAL_AUX; i++)
         {
             bms.aux_voltages_parsed[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
-            debug_printf("Aux %02d: %f ", i, bms.aux_voltages_parsed[ic][i]);
         }
     }
 
@@ -370,18 +366,7 @@ void bms_readAuxVoltages(void)
     {
         bms.vd[ic] = getVoltage(get_i16(rxData, ic, 0));
         bms.va[ic] = getVoltage(get_i16(rxData, ic, 1));
-        debug_printf("vd: %.2f va: %.2f\n", bms.vd[ic], bms.va[ic]);
     }
-
-    #if 0
-    pg 72
-    Analog power supply
-    voltage = voltage at the
-    VREG pin. VD is off in sleep
-    16-bit ADC measurement value of analog power supply voltage. Analog power supply voltage = VA × 150 μV + 1.5
-V. The value of VA is set by external components and must be in the range of 4.5 V to 5.5 V for normal operation.
-Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command (CLRAUX).
-    #endif
 
     if (!adbms_receive(RDSTATA, rxData))
     {
@@ -394,15 +379,50 @@ Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command (CLRAUX
         int16_t itmp = get_i16(rxData, ic, 1);
         // = (ITMP × 150 μV + 1.5 V)/7.5 mV/°C – 273°C.
         bms.itmp[ic] = (itmp * 0.00015 + 1.5) / 0.0075 - 273;
-        debug_printf("itmp: %.2f\n", bms.itmp[ic]);
     }
-    // 16-bit ADC measurement value of Internal Die temperature. Temperature measurement voltage = (ITMP × 150 μV + 1.5 V)/7.5 mV/°C – 273°C. Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command
 }
 
 void bms_checkAuxVoltages(void)
 {
     // check temps under threshold
     // check va, vd, etc
+
+    // Va
+    #if 0
+    // Analog power supply voltage = voltage at the VREG pin.
+    // Analog power supply voltage = VA × 150 μV + 1.5 V.
+    // The value of VA is set by external components and must be in the range of 4.5 V to 5.5 V for normal operation.
+    // Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command (CLRAUX).
+    #endif
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        if (bms.va[ic] < 4.50f || bms.va[ic] > 5.50f)
+        {
+            bmsmaster.fault[ic] |= BMS_ERROR_VREG;
+        }
+        else
+        {
+            bmsmaster.fault[ic] &= ~BMS_ERROR_VREG;
+        }
+    }
+
+    #define BMS_ITMP_MIN  (0.0f) // 32F
+    #define BMS_ITMP_MAX (40.0f) // 104F
+    // ITMP
+    // 16-bit ADC measurement value of Internal Die temperature.
+    // Temperature measurement voltage = (ITMP × 150 μV + 1.5 V)/7.5 mV/°C – 273°C.
+    // Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        if (bms.va[ic] < BMS_ITMP_MIN || bms.va[ic] > BMS_ITMP_MAX)
+        {
+            bmsmaster.fault[ic] |= BMS_ERROR_ITMP;
+        }
+        else
+        {
+            bmsmaster.fault[ic] &= ~BMS_ERROR_ITMP;
+        }
+    }
 }
 
 static void bms_writePwmA(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])

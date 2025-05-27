@@ -245,4 +245,3 @@ uint8_t DIAGN[2]         = {0x07 , 0x15};
 /* Mute and Unmute commands */
 uint8_t MUTE[2] 	     = { 0x00, 0x28 };
 uint8_t UNMUTE[2]        = { 0x00, 0x29 };
-
