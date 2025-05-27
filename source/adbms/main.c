@@ -188,23 +188,21 @@ static void bms_periodic(void)
             if (bms_init())
             {
                 ; // TODO
+                return;
             }
-            else
+
+            // run regular tasks first then enter charge mode
+            bms_monitor_cells();
+            bms_monitor_temps();
+            printf("--------------------------------------------------\n");
+            bool charge = PHAL_readGPIO(CHARGE_ENABLED_PORT, CHARGE_ENABLED_PIN);
+            if (charge)
             {
-                bool charge = PHAL_readGPIO(CHARGE_ENABLED_PORT, CHARGE_ENABLED_PIN);
-                if (charge)
-                {
-                    ; // TODO
-                }
-                else
-                {
-                    bms_monitor_cells();
-                    bms_monitor_temps();
-                    printf("--------------------------------------------------\n");
-                }
+                ; // TODO
             }
         }
         break;
+
         default:
         break;
     }
