@@ -51,14 +51,16 @@ typedef enum
 
 typedef enum
 {
-    BMS_ERROR_FIELD_CONN = 0,
-    BMS_ERROR_FIELD_RXPEC,
+    BMS_ERROR_FIELD_CONN = 0, // No connection
+    BMS_ERROR_FIELD_RXPEC,    // RX PEC mismatch
+    BMS_ERROR_FIELD_TX,       // TX failed
     BMS_ERROR_FIELD_COUNT,
 } bms_error_t;
 
 #define BMS_ERROR_NONE  (0)
 #define BMS_ERROR_CONN  (1 << (BMS_ERROR_FIELD_CONN))
 #define BMS_ERROR_RXPEC (1 << (BMS_ERROR_FIELD_RXPEC))
+#define BMS_ERROR_TX    (1 << (BMS_ERROR_FIELD_TX))
 
 typedef struct
 {
