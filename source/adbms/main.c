@@ -186,7 +186,6 @@ static void bms_periodic(void)
         {
             if (!bms_init())
             {
-                bmsmaster.state = BMS_STATE_CONNECTED;
                 return;
             }
             bms_monitor_cells();
@@ -208,7 +207,7 @@ static void bms_error_handler(void)
         // TODO report error over CAN
 
         if (bmsmaster.state > BMS_STATE_CONNECTED)
-            bmsmaster.state = BMS_STATE_CONNECTED; // demote state
+            bmsmaster.state = BMS_STATE_CONNECTED; // Demote state
 
         if (bmsmaster.error & BMS_ERROR_CONN)
         printf("\t BMS_ERROR_CONN\n");

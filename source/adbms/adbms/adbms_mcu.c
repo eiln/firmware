@@ -28,6 +28,8 @@ static inline void bms_csHigh(void)
     PHAL_writeGPIO(SPI_CS_PORT, SPI_CS_PIN, 1);
 }
 
+#define BMS_WAKEUP_DELAY 5
+
 static void bms_wake(void)
 {
   for (uint8_t ic = 0; ic < TOTAL_AD68; ic++)
@@ -222,7 +224,28 @@ static uint32_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rx
     return error_mask;
 }
 
-void bms_transmitCmd(uint8_t cmd[CMD_LEN])
+/* Debug */
+static void bms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68])
+{
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        printf("IC%d: ", ic);
+        for (int j = 0; j < 6; j++) // For every byte recieved (6 bytes)
+        {
+            printf("0x%02X, ", data[ic][j]); // Print each of the bytes
+        }
+        printf("CC: %d |   ", cc[ic]);
+    }
+    printf("\n\n");
+}
+
+void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN])
+{
+    bms_print_rxdata(data, bmsmaster.rxCc);
+}
+
+/* TX */
+static void bms_transmitCmd(uint8_t cmd[CMD_LEN])
 {
     bms_wakeupChain();
     bms_csLow();
@@ -230,7 +253,7 @@ void bms_transmitCmd(uint8_t cmd[CMD_LEN])
     bms_csHigh();
 }
 
-void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][DATA_LEN])
+static void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][DATA_LEN])
 {
     bms_wakeupChain();
     bms_csLow();
@@ -258,7 +281,7 @@ void bms_transmitPoll(uint8_t cmd[CMD_LEN])
 }
 
 /* RX */
-void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
+static void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
     bms_wakeupChain();
     bms_csLow();
@@ -295,7 +318,8 @@ static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TO
     return !!errorMask; // true if fault
 }
 
-// Safe lock public functions
+/* Safe public functions (prefixed adbms_) */
+/* Do not nest */
 static void bms_crit_enter(void)
 {
     if (xSemaphoreTake(spi1_lock, portMAX_DELAY) != pdTRUE)
@@ -309,31 +333,25 @@ static void bms_crit_exit(void)
     xSemaphoreGive(spi1_lock);
 }
 
-bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN])
+bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t rxdata[TOTAL_AD68][DATA_LEN])
 {
     bms_crit_enter();
-    bms_receiveData(cmd, data, bmsmaster.rxPec, bmsmaster.rxCc);
-    bool ret = bms_checkRxFault(data, bmsmaster.rxPec, bmsmaster.rxCc);
+    bms_receiveData(cmd, rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
+    bool ret = bms_checkRxFault(rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
     bms_crit_exit();
     return !ret; // true if successful
 }
 
-// Debug print
-static void bms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68])
+void adbms_transmit_cmd(uint8_t cmd[CMD_LEN])
 {
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        printf("IC%d: ", ic);
-        for (int j = 0; j < 6; j++) // For every byte recieved (6 bytes)
-        {
-            printf("0x%02X, ", data[ic][j]); // Print each of the bytes
-        }
-        printf("CC: %d |   ", cc[ic]);
-    }
-    printf("\n\n");
+    bms_crit_enter();
+    bms_transmitCmd(cmd);
+    bms_crit_exit();
 }
 
-void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN])
+void adbms_transmit_data(uint8_t cmd[CMD_LEN], uint8_t txdata[TOTAL_AD68][DATA_LEN])
 {
-    bms_print_rxdata(data, bmsmaster.rxCc);
+    bms_crit_enter();
+    bms_transmitData(cmd, txdata);
+    bms_crit_exit();
 }
