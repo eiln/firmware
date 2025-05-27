@@ -91,7 +91,6 @@ bool bms_init(void)
 	// We need to set bit 3 in the last byte for the last one in the daisy chain. We'll do it when we create the final buffer that is sent
 
     /* 6830 CFGB */
-    //uint16_t vuv = get_threshold_voltage(2.5); // for testing
     uint16_t vuv = get_threshold_voltage(0.8);
     uint16_t vov = get_threshold_voltage(4.2);
     // Cell undervoltage threshold = VUV × 16 × 150 μV + 1.5 V.
@@ -119,8 +118,8 @@ bool bms_init(void)
         memcpy(txData_b[ic], buff_6830_b, DATA_LEN);
     }
 
-    bms_transmitData(WRCFGA, txData_a);
-    bms_transmitData(WRCFGB, txData_b);
+    adbms_transmit_data(WRCFGA, txData_a);
+    adbms_transmit_data(WRCFGB, txData_b);
 
     // Check if config has been sent
     if (!adbms_receive(RDCFGA, rxData) ||
@@ -139,27 +138,12 @@ bool bms_init(void)
     return true;
 }
 
-void bms_readStatus(void)
-{
-    printfDma("Status: \n");
-    uint8_t *cmdList[5] = {RDSTATA, RDSTATB, RDSTATC, RDSTATD, RDSTATE};
-    int cell = 0;
-    for (int i = 0; i < 5; i++)
-    {
-        if (!adbms_receive(cmdList[i], rxData))
-        {
-            return;
-        }
-        adbms_print_rxdata(rxData);
-    }
-}
-
 void adBms6830_Adcv(uint8_t rd, uint8_t cont, uint8_t dcp, uint8_t rstf, uint8_t owcs)
 {
     uint8_t cmd[2];
     cmd[0] = 0x02 + rd;
     cmd[1] = (cont<<7)+(dcp<<4)+(rstf<<2)+(owcs & 0x03) + 0x60;
-    bms_transmitCmd(cmd);
+    adbms_transmit_cmd(cmd);
     //bms_transmitPoll(PLADC);
 }
 
@@ -168,7 +152,7 @@ void adBms6830_Adsv(uint8_t cont, uint8_t dcp, uint8_t owcs)
     uint8_t cmd[2];
     cmd[0] = 0x01;
     cmd[1] = (cont<<7)+(dcp<<4)+(owcs &0x03) + 0x68;
-    bms_transmitCmd(cmd);
+    adbms_transmit_cmd(cmd);
 }
 
 void bms_startAdcvCell(void)
@@ -182,7 +166,7 @@ void adBms6830_Adax(uint8_t owaux, uint8_t pup, uint8_t ch)
     uint8_t cmd[2];
     cmd[0] = 0x04 + owaux;
     cmd[1] = (pup << 7) + (((ch >>4)&0x01)<<6) + (ch & 0x0F) + 0x10;
-    bms_transmitCmd(cmd);
+    adbms_transmit_cmd(cmd);
     //bms_transmitPoll(PLAUX1);
 }
 
@@ -447,7 +431,7 @@ static void bms_writePwmA(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
     }
 
     // write config A
-    bms_transmitData(WRPWM1, txData);
+    adbms_transmit_data(WRPWM1, txData);
 }
 
 static void bms_writePwmB(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
@@ -465,8 +449,8 @@ static void bms_writePwmB(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
         memcpy(txData[ic], &ic_ad68[ic].pwmb, DATA_LEN);
     }
 
-    // write config A
-    bms_transmitData(WRPWM2, txData);
+    // Write config A
+    adbms_transmit_data(WRPWM2, txData);
 }
 
 void bms_writePwm(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
@@ -505,7 +489,6 @@ void bms_startDischarge(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
 
 void bms_stopDischarge(void)
 {
-    bms_wakeupChain();
-    bms_transmitCmd(SRST);      // Put all devices to sleep
+    adbms_transmit_cmd(SRST);      // Put all devices to sleep
     printfDma("--- SOFT RESET --- \n");
 }

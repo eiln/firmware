@@ -8,8 +8,6 @@
 #define CMD_LEN        (2)       // Cmd
 #define CMDPKT_LEN     (2 + 2)   // Cmd + PEC
 
-#define BMS_WAKEUP_DELAY 5       /// 1ms for 2950   /* BMS ic wakeup delay  */
-
 struct bms_data
 {
     int16_t cell_voltages_raw[TOTAL_AD68][TOTAL_CELL]; // cell voltage (raw)
@@ -32,11 +30,9 @@ struct bms_data
 
 extern struct bms_data bms;
 
-void bms_wakeupChain(void);
-void bms_transmitCmd(uint8_t cmd[CMD_LEN]);
-void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][DATA_LEN]);
-void bms_transmitPoll(uint8_t cmd[CMD_LEN]);
-void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68]);
+void adbms_transmit_cmd(uint8_t cmd[CMD_LEN]);
+void adbms_transmit_data(uint8_t cmd[CMD_LEN], uint8_t txdata[TOTAL_AD68][DATA_LEN]);
+void bms_transmitPoll(uint8_t cmd[CMD_LEN]); // TODO
 
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN]);
 void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN]);

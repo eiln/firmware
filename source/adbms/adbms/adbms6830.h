@@ -5,9 +5,6 @@
 #include "main.h"
 #include <assert.h>
 
-extern uint8_t  txData[TOTAL_AD68][DATA_LEN];
-extern uint8_t  rxData[TOTAL_AD68][DATA_LEN];
-
 typedef struct
 {
     uint8_t     pwm1    :4;
@@ -42,8 +39,6 @@ typedef struct
 
 typedef struct
 {
-    uint8_t cfa_Tx[DATA_LEN];
-    uint8_t cfb_Tx[DATA_LEN];
     ad68_pwma_t pwma;
     ad68_pwmb_t pwmb;
 } ic_ad68_t;
@@ -68,7 +63,7 @@ void bms_readSVoltages(void);
 void bms_openWireCheck(void);
 void bms_getAuxMeasurement(void);
 void bms_printVoltage(float vArr[16]);
-void bms_readStatus(void);
+
 extern ic_ad68_t ic_ad68[TOTAL_AD68];
 
 typedef enum __attribute__ ((__packed__))

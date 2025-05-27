@@ -31,21 +31,12 @@
 
 extern SPI_InitConfig_t bms_spi_config;
 
-static inline void catch_error(void)
-{
-    while(1)
-    {
-        PHAL_writeGPIO(LED_PORT_ORANGE, LED_PIN_ORANGE, 1);
-        __asm__("bkpt");
-        __asm__("nop");
-    }
-}
-
 typedef enum
 {
     BMS_STATE_IDLE = 0,
     BMS_STATE_CONNECTED,
     BMS_STATE_ACTIVE,
+    BMS_STATE_DISCHARGE,
     BMS_STATE_CHARGING,
 } bms_state_t;
 
@@ -80,6 +71,16 @@ extern SemaphoreHandle_t spi1_lock;
 
 void bms_monitor_cells(void);
 void bms_monitor_temps(void);
+
+static inline void catch_error(void)
+{
+    while(1)
+    {
+        PHAL_writeGPIO(LED_PORT_ORANGE, LED_PIN_ORANGE, 1);
+        __asm__("bkpt");
+        __asm__("nop");
+    }
+}
 
 void HardFault_Handler(void);
 
