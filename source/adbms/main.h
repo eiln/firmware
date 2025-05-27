@@ -43,7 +43,7 @@ typedef enum
 
 typedef enum
 {
-    BMS_ERROR_FIELD_SID = 0, // No connection
+    BMS_ERROR_FIELD_SID = 0,  // Device ID
     BMS_ERROR_FIELD_RXPEC,    // RX PEC mismatch
     BMS_ERROR_FIELD_TX,       // TX failed
     BMS_ERROR_FIELD_VA,       // Analog power
@@ -52,9 +52,14 @@ typedef enum
     BMS_ERROR_FIELD_VREF2,    // Vref2 for thermistors
     BMS_ERROR_FIELD_ITMP,     // Internal die temperature
 
-    BMS_ERROR_FIELD_AUX_OW,   // AUX open-wire
+    BMS_ERROR_FIELD_CELL_OW,    // Cell open-wire
+    BMS_ERROR_FIELD_CELL_UV,    // Cell undervoltage
+    BMS_ERROR_FIELD_CELL_OV,    // Cell overvoltage
+    BMS_ERROR_FIELD_CELL_REDUN, // Cell redundant measurement
+
+    BMS_ERROR_FIELD_AUX_OW,        // AUX open-wire
     BMS_ERROR_FIELD_AUX_UNDERTEMP, // AUX under temperature
-    BMS_ERROR_FIELD_AUX_OVERTEMP, // AUX over temperature
+    BMS_ERROR_FIELD_AUX_OVERTEMP,  // AUX over temperature
 
     BMS_ERROR_FIELD_COUNT,
 } bms_error_t;
@@ -66,7 +71,7 @@ typedef enum
 #define BMS_GET_ERROR_MASK(field) (1 << (field))
 
 #define BMS_ERROR_NONE  (0)
-#define BMS_ERROR_SID  (1 << (BMS_ERROR_FIELD_SID))
+#define BMS_ERROR_SID   (1 << (BMS_ERROR_FIELD_SID))
 #define BMS_ERROR_RXPEC (1 << (BMS_ERROR_FIELD_RXPEC))
 #define BMS_ERROR_TX    (1 << (BMS_ERROR_FIELD_TX))
 #define BMS_ERROR_VA    (1 << (BMS_ERROR_FIELD_VA))
