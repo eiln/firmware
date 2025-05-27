@@ -86,6 +86,8 @@ bms_t bmsmaster = {
     .conn = 0,
 };
 
+defineStaticSemaphore(spi1_lock);
+
 int main()
 {
     osKernelInitialize();
@@ -114,8 +116,10 @@ int main()
     PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 0);
     PHAL_writeGPIO(LED_PORT_BLUE, LED_PIN_BLUE, 0);
 
+    spi1_lock = createStaticSemaphore(spi1_lock);
     bms_create_threads();
-    osKernelStart(); // go!
+
+    osKernelStart(); // Go!
 
     return 0;
 }
@@ -172,7 +176,7 @@ static void bms_periodic(void)
         case BMS_STATE_CONNECTED:
         {
             bms_init(); // TODO check init
-            bmsmaster.state = BMS_STATE_ACTIVE;
+            //bmsmaster.state = BMS_STATE_ACTIVE;
         }
         break;
         case BMS_STATE_ACTIVE:
@@ -194,7 +198,7 @@ static void bms_error_handler(void)
     {
         PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
         printf("BMS Error: 0x%08x\n", bmsmaster.error);
-        for (int i = 0; i < BMS_ERROR_COUNT; i++)
+        for (int i = 0; i < BMS_ERROR_FIELD_COUNT; i++)
         {
             if (bmsmaster.error & (1 << i))
             {

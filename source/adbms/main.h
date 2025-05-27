@@ -1,6 +1,7 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#include "adbms/adbms.h"
 #include "common/freertos/freertos.h"
 #include "common/phal_F4_F7/spi/spi.h"
 #include "common/log/log.h"
@@ -50,22 +51,34 @@ typedef enum
 
 typedef enum
 {
-    BMS_ERROR_NONE = 0,
-    BMS_ERROR_CONN,
-    BMS_ERROR_RXPEC,
-    BMS_ERROR_COUNT,
+    BMS_ERROR_FIELD_CONN = 0,
+    BMS_ERROR_FIELD_RXPEC,
+    BMS_ERROR_FIELD_COUNT,
 } bms_error_t;
+
+#define BMS_ERROR_NONE  (0)
+#define BMS_ERROR_CONN  (1 << (BMS_ERROR_FIELD_CONN))
+#define BMS_ERROR_RXPEC (1 << (BMS_ERROR_FIELD_RXPEC))
 
 typedef struct
 {
     bms_state_t state;
     uint32_t error; // bitfield of bms_error_t
     uint32_t conn;
+
+    uint8_t  txData[TOTAL_AD68][DATA_LEN];
+    uint8_t  rxData[TOTAL_AD68][DATA_LEN];
+    uint16_t rxPec[TOTAL_AD68];
+    uint8_t  rxCc[TOTAL_AD68];
+
 } bms_t;
 
 extern bms_t bmsmaster;
+extern SemaphoreHandle_t spi1_lock;
 
 void bms_monitor_cells(void);
 void bms_monitor_temps(void);
+
+void HardFault_Handler(void);
 
 #endif // _MAIN_H_
