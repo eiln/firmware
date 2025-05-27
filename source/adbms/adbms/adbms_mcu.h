@@ -36,10 +36,9 @@ void bms_wakeupChain(void);
 void bms_transmitCmd(uint8_t cmd[CMD_LEN]);
 void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][DATA_LEN]);
 void bms_transmitPoll(uint8_t cmd[CMD_LEN]);
-
 void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68]);
-void bms_printRawData(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68]);
 
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN]);
+void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN]);
 
 #endif // __ADBMS_MCU_H__

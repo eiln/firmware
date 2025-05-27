@@ -7,8 +7,6 @@
 
 extern uint8_t  txData[TOTAL_AD68][DATA_LEN];
 extern uint8_t  rxData[TOTAL_AD68][DATA_LEN];
-extern uint16_t rxPec[TOTAL_AD68];
-extern uint8_t  rxCc[TOTAL_AD68];
 
 typedef struct
 {
