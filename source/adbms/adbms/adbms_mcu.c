@@ -278,7 +278,7 @@ static uint32_t bms_transmitPoll(uint8_t cmd[CMD_LEN])
         PHAL_SPI_transfer_noDMA(&bms_spi_config, NULL, 0, 1, &buff);
         if (bms_getTick() - start > BMS_TX_POLL_TIMEOUT)
         {
-            bmsmaster.error |= BMS_ERROR_TX;
+            //bmsmaster.error |= BMS_ERROR_TX;
             break;
         }
     }

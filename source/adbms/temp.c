@@ -26,12 +26,21 @@ void bms_monitor_temps(void)
     bms_check_temps();
 }
 
+static void bms_print_temps(void)
+{
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        printf("IC[%d]: vmv: %.2f vpv: %.2f vd: %.2f va: %.2f vref2: %.2f itmp: %.2f\n", ic, bms.vmv[ic], bms.vpv[ic], bms.vd[ic], bms.va[ic], bms.vref2[ic], bms.itmp[ic]);
+    }
+}
+
 static void bms_read_temps(void)
 {
     // AUX_ALL includes 10 GPIOS + various temps (VD, VA, ITEMP, VPV, VMV, VRES)
     adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
     adbms_transmit_poll(PLAUX1);
     bms_readAuxVoltages();
+    bms_print_temps();
     // read temps and status at the same time
     // since it's done by the same GPIO
     //bms_delayMsActive(10);

@@ -43,7 +43,7 @@ typedef struct
     ad68_pwmb_t pwmb;
 } ic_ad68_t;
 
-uint32_t adbms_checkalive(void);
+bool adbms_checkalive(void);
 float getVoltage(int data);
 
 bool bms_init(void);
