@@ -18,56 +18,6 @@ uint8_t  rxCc[TOTAL_AD68];
 
 #define ADBMS_RXPEC_NOERROR ((uint8_t)0)
 
-static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68])
-{
-    uint32_t errorMask = bms_checkRxPec(data, pec, cc);
-    if (errorMask)
-    {
-        bmsmaster.error |= BMS_ERROR_RXPEC;
-        // TODO send errormask over CAN
-
-        // DEBUG
-        printf("PEC ERROR - IC:");
-        for(int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            if (errorMask & (1 << ic))
-            {
-                printf(" %d,", ic);
-            }
-        }
-        printf("\n");
-        // END OF DEBUG
-    }
-    else
-    {
-        bmsmaster.error &= ~BMS_ERROR_RXPEC;
-    }
-
-    return !!errorMask; // true if fault
-}
-
-static void crit_enter(void)
-{
-    if (xSemaphoreTake(spi1_lock, portMAX_DELAY) != pdTRUE)
-    {
-        HardFault_Handler(); // should not reach
-    }
-}
-
-static void crit_exit(void)
-{
-    xSemaphoreGive(spi1_lock);
-}
-
-bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN])
-{
-    crit_enter();
-    bms_receiveData(cmd, data, bmsmaster.rxPec, bmsmaster.rxCc);
-    bool ret = bms_checkRxFault(data, bmsmaster.rxPec, bmsmaster.rxCc);
-    crit_exit();
-    return !ret; // true if successful
-}
-
 static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
     return (uint8_t)(data[ic][index] & 0xff);
@@ -80,13 +30,6 @@ uint32_t adbms_checkalive(void)
     uint8_t rxdata[TOTAL_AD68][DATA_LEN];
     uint32_t conn = 0; // bitmask
 
-    #if 0
-    bms_receiveData(RDSID, rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
-    if (bms_checkRxFault(rxdata, bmsmaster.rxPec, bmsmaster.rxCc))
-    {
-        return conn;
-    }
-    #endif
     if (!adbms_receive(RDSID, rxdata))
     {
         return conn;
@@ -199,11 +142,12 @@ void bms_readStatus(void)
     int cell = 0;
     for (int i = 0; i < 5; i++)
     {
-        bms_receiveData(cmdList[i], rxData, rxPec, rxCc);
-        bms_checkRxFault(rxData, rxPec, rxCc);
+        if (!adbms_receive(cmdList[i], rxData))
+        {
+            return;
+        }
         bms_printRawData(rxData, rxCc);
     }
-    //printStatus(tIC, &ic[0], Status, ALL_GRP);
 }
 
 void adBms6830_Adcv(uint8_t rd, uint8_t cont, uint8_t dcp, uint8_t rstf, uint8_t owcs)
@@ -279,10 +223,9 @@ void bms_checkCellVoltagesStatC(void)
 {
     // statC is useless
     debug_printf("Stat D:\n");
-    bms_receiveData(RDSTATD, rxData, bmsmaster.rxPec, bmsmaster.rxCc);
-    if (bms_checkRxFault(rxData, bmsmaster.rxPec, bmsmaster.rxCc))
+    if (!adbms_receive(RDSTATD, rxData))
     {
-        return;
+        return; // TODO exit
     }
     bms_printRawData(rxData, rxCc);
     // TODO check uv/ov
@@ -309,9 +252,10 @@ void bms_readCellVoltages(void)
     // need to change buffer size
     for (int i = 0; i < 6; i++)
     {
-        bms_receiveData(cmdList[i], rxData, rxPec, rxCc);
-        bms_checkRxFault(rxData, rxPec, rxCc);
-        //bms_printRawData(rxData, rxCc);
+        if (!adbms_receive(cmdList[i], rxData))
+        {
+            return;
+        }
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
             switch (i)
@@ -351,9 +295,10 @@ void bms_readSVoltages(void)
     // need to change buffer size
     for (int i = 0; i < 6; i++)
     {
-        bms_receiveData(cmdList[i], rxData, rxPec, rxCc);
-        bms_checkRxFault(rxData, rxPec, rxCc);
-        //bms_printRawData(rxData, rxCc);
+        if (!adbms_receive(cmdList[i], rxData))
+        {
+            return;
+        }
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
             switch (i)
@@ -392,9 +337,10 @@ void bms_readAuxVoltages(void)
     int cell = 0;
     for (int i = 0; i < 4; i++)
     {
-        bms_receiveData(cmdList[i], rxData, rxPec, rxCc);
-        bms_checkRxFault(rxData, rxPec, rxCc);
-        //bms_printRawData(rxData, rxCc);
+        if (!adbms_receive(cmdList[i], rxData))
+        {
+            return ;
+        }
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
             switch (i)
@@ -429,11 +375,10 @@ void bms_readAuxVoltages(void)
         }
     }
 
-    // The main AUX ADC measures the internal supply voltages (VD and VA),
-    bms_receiveData(RDSTATB, rxData, bmsmaster.rxPec, bmsmaster.rxCc);
-    if (bms_checkRxFault(rxData, bmsmaster.rxPec, bmsmaster.rxCc))
+    // The main AUX ADC measures the internal supply voltages (VD and VA)
+    if (!adbms_receive(RDSTATB, rxData))
     {
-        return;
+        return; // TODO exit
     }
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
@@ -452,10 +397,9 @@ V. The value of VA is set by external components and must be in the range of 4.5
 Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command (CLRAUX).
     #endif
 
-    bms_receiveData(RDSTATA, rxData, bmsmaster.rxPec, bmsmaster.rxCc);
-    if (bms_checkRxFault(rxData, bmsmaster.rxPec, bmsmaster.rxCc))
+    if (!adbms_receive(RDSTATA, rxData))
     {
-        return;
+        return; // TODO exit
     }
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {

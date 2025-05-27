@@ -100,7 +100,7 @@ static const uint16_t crc10_table[256] =
     0x3e4, 0x36b, 0x2fa, 0x275, 0x1d8, 0x157, 0x0c6, 0x049, 0x313, 0x39c, 0x20d, 0x282, 0x12f, 0x1a0, 0x031, 0x0be
 };
 
-uint16_t bms_calcPec10(uint8_t *pDataBuf, int nLength, uint8_t *commandCounter)
+static uint16_t bms_calcPec10(uint8_t *pDataBuf, int nLength, uint8_t *commandCounter)
 {
     uint16_t nRemainder = 16u; /* PEC_SEED */
     /* x10 + x7 + x3 + x2 + x + 1 <- the CRC10 polynomial 100 1000 1111 */
@@ -136,7 +136,7 @@ uint16_t bms_calcPec10(uint8_t *pDataBuf, int nLength, uint8_t *commandCounter)
     return ((uint16_t)(nRemainder & 0x3FFu));
 }
 
-uint16_t bms_calcPec15(uint8_t *data, uint8_t len)
+static uint16_t bms_calcPec15(uint8_t *data, uint8_t len)
 {
     uint16_t remainder, addr;
     remainder = 16; /* initialize the PEC */
@@ -148,7 +148,7 @@ uint16_t bms_calcPec15(uint8_t *data, uint8_t len)
     return(remainder*2); /* The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2 */
 }
 
-void bms_spiTransmitCmd(uint8_t cmd[CMD_LEN])
+static void bms_spiTransmitCmd(uint8_t cmd[CMD_LEN])
 {
     uint8_t txBuff_cmd[CMDPKT_LEN]; // 2 CMD + 2 PEC
 
@@ -164,7 +164,7 @@ void bms_spiTransmitCmd(uint8_t cmd[CMD_LEN])
     PHAL_SPI_transfer_noDMA(&bms_spi_config, txBuff_cmd, CMDPKT_LEN, 0, NULL);
 }
 
-void bms_spiTransmitData(uint8_t data[TOTAL_AD68][DATA_LEN])
+static void bms_spiTransmitData(uint8_t data[TOTAL_AD68][DATA_LEN])
 {
     uint8_t txBuff_data[TOTAL_AD68][DATAPKT_LEN]; // 6 Data + 2 DPEC per IC
 
@@ -187,7 +187,7 @@ void bms_spiTransmitData(uint8_t data[TOTAL_AD68][DATA_LEN])
     PHAL_SPI_transfer_noDMA(&bms_spi_config, (uint8_t *)txBuff_data, DATAPKT_LEN * TOTAL_AD68, 0, NULL);
 }
 
-void bms_spiReceiveData(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
+static void bms_spiReceiveData(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
     uint8_t rawRxData[TOTAL_AD68][DATAPKT_LEN] = {0};
 
@@ -223,7 +223,7 @@ void bms_printRawData(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTAL_AD68]
     printf("\n\n");
 }
 
-uint32_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
+static uint32_t bms_checkRxPec(uint8_t rxData[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
     uint32_t error_mask = 0; // bitfield, 1 if fault
 
@@ -253,15 +253,6 @@ void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][DATA_LE
     bms_csHigh();
 }
 
-void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
-{
-    bms_wakeupChain();
-    bms_csLow();
-    bms_spiTransmitCmd(cmd);
-    bms_spiReceiveData(rxBuffer, rxPec, rxCc);
-    bms_csHigh();
-}
-
 void bms_transmitPoll(uint8_t cmd[CMD_LEN])
 {
     bms_wakeupChain();
@@ -278,4 +269,65 @@ void bms_transmitPoll(uint8_t cmd[CMD_LEN])
     uint32_t end = bms_getTick();
     bms_csHigh();
     debug_printf("poll: delta: %d\n", end - start);
+}
+
+/* RX */
+void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
+{
+    bms_wakeupChain();
+    bms_csLow();
+    bms_spiTransmitCmd(cmd);
+    bms_spiReceiveData(rxBuffer, rxPec, rxCc);
+    bms_csHigh();
+}
+
+static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68])
+{
+    uint32_t errorMask = bms_checkRxPec(data, pec, cc);
+    if (errorMask)
+    {
+        bmsmaster.error |= BMS_ERROR_RXPEC;
+        // TODO send errormask over CAN
+
+        // DEBUG
+        printf("PEC ERROR - IC:");
+        for(int ic = 0; ic < TOTAL_AD68; ic++)
+        {
+            if (errorMask & (1 << ic))
+            {
+                printf(" %d,", ic);
+            }
+        }
+        printf("\n");
+        // END OF DEBUG
+    }
+    else
+    {
+        bmsmaster.error &= ~BMS_ERROR_RXPEC;
+    }
+
+    return !!errorMask; // true if fault
+}
+
+// Safe lock public functions
+static void bms_crit_enter(void)
+{
+    if (xSemaphoreTake(spi1_lock, portMAX_DELAY) != pdTRUE)
+    {
+        HardFault_Handler(); // should not reach
+    }
+}
+
+static void bms_crit_exit(void)
+{
+    xSemaphoreGive(spi1_lock);
+}
+
+bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN])
+{
+    bms_crit_enter();
+    bms_receiveData(cmd, data, bmsmaster.rxPec, bmsmaster.rxCc);
+    bool ret = bms_checkRxFault(data, bmsmaster.rxPec, bmsmaster.rxCc);
+    bms_crit_exit();
+    return !ret; // true if successful
 }
