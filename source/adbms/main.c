@@ -198,20 +198,10 @@ static void bms_error_handler(void)
     {
         PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
         printf("BMS Error: 0x%08x\n", bmsmaster.error);
-        for (int i = 0; i < BMS_ERROR_FIELD_COUNT; i++)
-        {
-            if (bmsmaster.error & (1 << i))
-            {
-                switch (i)
-                {
-                    case BMS_ERROR_CONN:
-                    printf("\t BMS_ERROR_CONN\n");
-                    break;
-                    default:
-                    break;
-                }
-            }
-        }
+        if (bmsmaster.error & BMS_ERROR_CONN)
+        printf("\t BMS_ERROR_CONN\n");
+        if (bmsmaster.error & BMS_ERROR_RXPEC)
+        printf("\t BMS_ERROR_RXPEC\n");
         // TODO report error over CAN
     }
     else
