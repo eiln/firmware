@@ -52,7 +52,7 @@ uint32_t adbms_checkalive(void);
 float getVoltage(int data);
 
 bool bms_init(void);
-void bms_readConfig(void);
+
 void bms_writePwm(uint8_t pwm[TOTAL_AD68][TOTAL_CELL]);
 void bms_startDischarge(uint8_t pwm[TOTAL_AD68][TOTAL_CELL]);
 
