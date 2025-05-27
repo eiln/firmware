@@ -26,12 +26,45 @@ void bms_monitor_temps(void)
     bms_check_temps();
 }
 
-static void bms_print_temps(void)
+static void bms_print_aux_voltages(void)
 {
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        printf("IC[%d]: ", ic);
+        for (int aux = 0; aux < TOTAL_AUX; aux++)
+        {
+            printf("%.2f ", bms.aux_voltages_parsed[ic][aux]);
+        }
+        printf("\n");
+    }
+}
+
+static void bms_print_aux_all(void)
+{
+    bms_print_aux_voltages();
+
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         printf("IC[%d]: vmv: %.2f vpv: %.2f vd: %.2f va: %.2f vref2: %.2f itmp: %.2f\n", ic, bms.vmv[ic], bms.vpv[ic], bms.vd[ic], bms.va[ic], bms.vref2[ic], bms.itmp[ic]);
     }
+}
+
+static void bms_aux_ow_check(void)
+{
+    // open-wire check on 10 GPIOs
+    // GPIOs assumed pull-up, so should be no difference between pull-up and pull-down
+    // AUX_ALL includes 10 GPIOS + various temps (VD, VA, ITEMP, VPV, VMV, VRES)
+    printf("normal wire:\n");
+    adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
+    adbms_transmit_poll(PLAUX1);
+    bms_readAuxVoltagesAll();
+    bms_print_aux_all();
+
+    printf("open wire: up: \n");
+    adBms6830_Adax(AUX_OW_ON, PUP_UP, AUX_ALL);
+    adbms_transmit_poll(PLAUX1);
+    bms_readAuxVoltages();
+    bms_print_aux_voltages();
 }
 
 static void bms_read_temps(void)
@@ -40,14 +73,21 @@ static void bms_read_temps(void)
     printf("normal wire:\n");
     adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
     adbms_transmit_poll(PLAUX1);
-    bms_readAuxVoltages();
-    bms_print_temps();
+    bms_readAuxVoltagesAll();
+    bms_print_aux_all();
 
-    printf("open wire:\n");
-    adBms6830_Adax(AUX_OW_ON, PUP_DOWN, 0b01);
+    // Run internal pull-down vs pull-up to see if there's open wire
+    printf("open wire: down: \n");
+    adBms6830_Adax(AUX_OW_ON, PUP_DOWN, AUX_ALL);
     adbms_transmit_poll(PLAUX1);
     bms_readAuxVoltages();
-    bms_print_temps();
+    bms_print_aux_voltages();
+
+    printf("open wire: up: \n");
+    adBms6830_Adax(AUX_OW_ON, PUP_UP, AUX_ALL);
+    adbms_transmit_poll(PLAUX1);
+    bms_readAuxVoltages();
+    bms_print_aux_voltages();
     // read temps and status at the same time
     // since it's done by the same GPIO
     //bms_delayMsActive(10);
