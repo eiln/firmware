@@ -191,11 +191,6 @@ void adBms6830_Adax(uint8_t owaux, uint8_t pup, uint8_t ch)
     adbms_transmit_cmd(cmd);
 }
 
-void bms_startAdcvAux(void)
-{
-  adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
-}
-
 /* CELL */
 
 #if 0
@@ -244,7 +239,7 @@ void bms_readCellVoltages(void)
     // need to change buffer size
 
     #define BMS_GET_C_V(ic, idx) ()
-    for (int group = 0; group < 6; groupi++)
+    for (int group = 0; group < 6; group++)
     {
         if (!adbms_receive(cmdList[group], rxData))
         {
