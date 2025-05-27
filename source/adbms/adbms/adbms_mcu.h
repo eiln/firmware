@@ -10,14 +10,15 @@
 
 struct bms_data
 {
-    int16_t cell_voltages_raw[TOTAL_AD68][TOTAL_CELL]; // cell voltage (raw)
+    // int16_t cell_voltages_raw[TOTAL_AD68][TOTAL_CELL]; // cell voltage (raw)
     float cell_v_c[TOTAL_AD68][TOTAL_CELL]; // C-ADC cell voltage (V)
     float cell_v_s[TOTAL_AD68][TOTAL_CELL]; // S-ADC cell voltage (V)
 
-    // RDAUXA - RDAUXD
-    int16_t aux_voltages_raw[TOTAL_AD68][TOTAL_AUX]; // therm/temps (raw)
-    float aux_voltages_parsed[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
-    float aux_voltages_ow[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
+    // int16_t aux_voltages_raw[TOTAL_AD68][TOTAL_AUX]; // therm/temps (raw)
+    // float aux_voltages_parsed[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
+    // float aux_voltages_ow[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
+    float aux_v[TOTAL_AD68][TOTAL_AUX]; // therm/temps (raw)
+    float aux_ow_v[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
     float vmv[TOTAL_AD68]; // V- to S1N (V)
     float vpv[TOTAL_AD68]; // V+ to V- (V)
 

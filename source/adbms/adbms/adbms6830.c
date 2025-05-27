@@ -293,27 +293,31 @@ void bms_readSVoltages(void)
     //bms_receiveData(RDCVALL, rxData, rxPec, rxCc);
     // TODO look into RDCVALL
     // need to change buffer size
-    for (int i = 0; i < 6; i++)
+    for (int group = 0; group < 6; group++)
     {
-        if (!adbms_receive(cmdList[i], rxData))
+        if (!adbms_receive(cmdList[group], rxData))
         {
             return;
         }
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            switch (i)
+            switch (group)
             {
                 case 0:
                 case 1:
                 case 2:
                 case 3:
                 case 4:
-                    bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
-                    bms.cell_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
-                    bms.cell_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
+                    bms_read_cell_v_s(ic, group, 0);
+                    bms_read_cell_v_s(ic, group, 1);
+                    bms_read_cell_v_s(ic, group, 2);
+                    // bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
+                    // bms.cell_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
+                    // bms.cell_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
                 break;
                 case 5:
-                    bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 15
+                    bms_read_cell_v_s(ic, group, 0);
+                    //bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 15
                 break;
             }
         }
@@ -324,8 +328,8 @@ void bms_readSVoltages(void)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
         {
-            bms.cell_voltages_parsed[ic][i] = getVoltage((int16_t)bms.cell_voltages_raw[ic][i]);
-            debug_printf("Cell %02d: %f ", i, bms.cell_voltages_parsed[ic][i]);
+            // bms.cell_voltages_parsed[ic][i] = getVoltage((int16_t)bms.cell_voltages_raw[ic][i]);
+            debug_printf("Cell %02d: %f ", i, bms.cell_v_s[ic][i]);
         }
     }
     debug_printf("\n");
@@ -360,35 +364,52 @@ void bms_checkCellVoltagesStatC(void)
     // TODO check uv/ov
 }
 
+static inline void bms_read_aux_v(int ic, int group, int idx, bool ow)
+{
+    int16_t raw = get_i16(rxData, ic, idx);
+    if (!ow)
+        bms.aux_v[ic][group * 3 + (idx)] = getVoltage(raw);
+    else
+        bms.aux_ow_v[ic][group * 3 + (idx)] = getVoltage(raw);
+}
+
 /* AUX */
 void bms_readAuxVoltages(bool ow)
 {
     uint8_t *cmdList[4] = {RDAUXA, RDAUXB, RDAUXC, RDAUXD};
-    for (int i = 0; i < 4; i++)
+    for (int group = 0; group < 4; group++)
     {
-        if (!adbms_receive(cmdList[i], rxData))
+        if (!adbms_receive(cmdList[group], rxData))
         {
             return;
         }
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            switch (i)
+            switch (group)
             {
                 case 0:
                 case 1:
                 case 2:
+                    bms_read_aux_v(ic, group, 0, ow);
+                    bms_read_aux_v(ic, group, 1, ow);
+                    bms_read_aux_v(ic, group, 2, ow);
                     // TODO parse aux voltage into C for thermistors
-                    bms.aux_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
-                    bms.aux_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
-                    bms.aux_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
+                    // bms.aux_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
+                    // bms.aux_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
+                    // bms.aux_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
                 break;
                 case 3:
                     // for group D: G10V then VMV, VPV
-                    bms.aux_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 9
-                    int16_t vmv = get_i16(rxData, ic, 1);
-                    int16_t vpv = get_i16(rxData, ic, 2);
-                    bms.vmv[ic] = getVoltage(vmv); // V
-                    bms.vpv[ic] = 25 * (vpv * 0.00015 + 1.5); // V
+                    bms_read_aux_v(ic, group, 0, ow);
+                    // bms.aux_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 9
+                    if (!ow)
+                    {
+                        // Do not overwrite vmv values with values obtained during ow check
+                        int16_t vmv = get_i16(rxData, ic, 1);
+                        int16_t vpv = get_i16(rxData, ic, 2);
+                        bms.vmv[ic] = getVoltage(vmv);
+                        bms.vpv[ic] = 25 * (vpv * 0.00015 + 1.5);
+                    }
                 break;
             }
         }
@@ -398,17 +419,17 @@ void bms_readAuxVoltages(bool ow)
     {
         for (int i = 0; i < TOTAL_AUX; i++)
         {
-            if (!ow)
-                bms.aux_voltages_parsed[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
-            else
-                bms.aux_voltages_ow[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
+            // if (!ow)
+            //     bms.aux_voltages_parsed[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
+            // else
+            //     bms.aux_voltages_ow[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
         }
     }
 }
 
-void bms_readAuxVoltagesAll(bool ow)
+void bms_readAuxVoltagesAll(void)
 {
-    bms_readAuxVoltages(ow);
+    bms_readAuxVoltages(false); // Should not read all with ow check
 
     if (!adbms_receive(RDSTATB, rxData))
     {
