@@ -144,7 +144,6 @@ void adBms6830_Adcv(uint8_t rd, uint8_t cont, uint8_t dcp, uint8_t rstf, uint8_t
     cmd[0] = 0x02 + rd;
     cmd[1] = (cont<<7)+(dcp<<4)+(rstf<<2)+(owcs & 0x03) + 0x60;
     adbms_transmit_cmd(cmd);
-    //bms_transmitPoll(PLADC);
 }
 
 void adBms6830_Adsv(uint8_t cont, uint8_t dcp, uint8_t owcs)
@@ -167,7 +166,6 @@ void adBms6830_Adax(uint8_t owaux, uint8_t pup, uint8_t ch)
     cmd[0] = 0x04 + owaux;
     cmd[1] = (pup << 7) + (((ch >>4)&0x01)<<6) + (ch & 0x0F) + 0x10;
     adbms_transmit_cmd(cmd);
-    //bms_transmitPoll(PLAUX1);
 }
 
 void bms_startAdcvAux(void)

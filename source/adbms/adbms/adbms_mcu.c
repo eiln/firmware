@@ -262,7 +262,9 @@ static void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][
     bms_csHigh();
 }
 
-void bms_transmitPoll(uint8_t cmd[CMD_LEN])
+#define BMS_TX_POLL_TIMEOUT 30
+
+static uint32_t bms_transmitPoll(uint8_t cmd[CMD_LEN])
 {
     bms_wakeupChain();
     bms_csLow();
@@ -274,10 +276,16 @@ void bms_transmitPoll(uint8_t cmd[CMD_LEN])
     while (buff == 0x00)
     {
         PHAL_SPI_transfer_noDMA(&bms_spi_config, NULL, 0, 1, &buff);
+        if (bms_getTick() - start > BMS_TX_POLL_TIMEOUT)
+        {
+            bmsmaster.error |= BMS_ERROR_TX;
+            break;
+        }
     }
     uint32_t end = bms_getTick();
     bms_csHigh();
-    debug_printf("poll: delta: %d\n", end - start);
+
+    return end - start;
 }
 
 /* RX */
@@ -319,7 +327,7 @@ static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TO
 }
 
 /* Safe public functions (prefixed adbms_) */
-/* Do not nest */
+/* Do not nest these calls */
 static void bms_crit_enter(void)
 {
     if (xSemaphoreTake(spi1_lock, portMAX_DELAY) != pdTRUE)
@@ -331,15 +339,6 @@ static void bms_crit_enter(void)
 static void bms_crit_exit(void)
 {
     xSemaphoreGive(spi1_lock);
-}
-
-bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t rxdata[TOTAL_AD68][DATA_LEN])
-{
-    bms_crit_enter();
-    bms_receiveData(cmd, rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
-    bool ret = bms_checkRxFault(rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
-    bms_crit_exit();
-    return !ret; // true if successful
 }
 
 void adbms_transmit_cmd(uint8_t cmd[CMD_LEN])
@@ -354,4 +353,21 @@ void adbms_transmit_data(uint8_t cmd[CMD_LEN], uint8_t txdata[TOTAL_AD68][DATA_L
     bms_crit_enter();
     bms_transmitData(cmd, txdata);
     bms_crit_exit();
+}
+
+uint32_t adbms_transmit_poll(uint8_t cmd[CMD_LEN])
+{
+    bms_crit_enter();
+    uint32_t ret = bms_transmitPoll(cmd);
+    bms_crit_exit();
+    return ret;
+}
+
+bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t rxdata[TOTAL_AD68][DATA_LEN])
+{
+    bms_crit_enter();
+    bms_receiveData(cmd, rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
+    bool ret = bms_checkRxFault(rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
+    bms_crit_exit();
+    return !ret; // true if successful
 }

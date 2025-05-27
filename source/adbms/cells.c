@@ -47,10 +47,8 @@ static void bms_read_cells(void)
     // driving mode
     // direct C/S redunancy check
     //adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
-    //bms_transmitPoll(PLCADC);
     adBms6830_Adcv(ADCV_RD_ON, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
-    bms_transmitPoll(PLCADC);
-    //bms_delayMsActive(8); // ADCs are updated at their conversion rate is 1ms
+    adbms_transmit_poll(PLCADC);
     bms_checkCellVoltagesStatC();
     bms_readCellVoltages();
 
@@ -62,8 +60,7 @@ static void bms_read_cells(void)
     // ADCV_CONT_CONTINUOUS
     // ADCV_CONT_SINGLE
     adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_OFF_ALL_CH);
-    //bms_delayMsActive(1); // 8-16ms
-    bms_transmitPoll(PLSADC); // TODO?
+    adbms_transmit_poll(PLSADC); // TODO?
     bms_readSVoltages();
     // check delta
     // TODO if pcb connection is broken
@@ -71,11 +68,11 @@ static void bms_read_cells(void)
 
     // even open wire check
     adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_EVEN_CH);
-    bms_transmitPoll(PLSADC);
+    adbms_transmit_poll(PLSADC);
 
     // odd open wire check
     adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_ODD_CH);
-    bms_transmitPoll(PLSADC);
+    adbms_transmit_poll(PLSADC);
     // Note: discharge is enabled again automatically after the last single shot S-ADC conversion.
 
     // TODO figure out what happens if OW is detected

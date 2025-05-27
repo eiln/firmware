@@ -30,8 +30,7 @@ static void bms_read_temps(void)
 {
     // AUX_ALL includes 10 GPIOS + various temps (VD, VA, ITEMP, VPV, VMV, VRES)
     adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
-    //bms_delayMsActive(1); // ADCs are updated at their conversion rate is 1ms
-    bms_transmitPoll(PLAUX1);
+    adbms_transmit_poll(PLAUX1);
     bms_readAuxVoltages();
     // read temps and status at the same time
     // since it's done by the same GPIO
