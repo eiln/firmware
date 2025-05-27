@@ -83,6 +83,7 @@ static void bms_error_handler(void);
 bms_t bmsmaster = {
     .state = BMS_STATE_IDLE,
     .error = BMS_ERROR_NONE,
+    .fault = {0},
     .conn = 0,
 };
 
@@ -169,9 +170,9 @@ static void bms_periodic(void)
         }
         printf("\n");
         printf("Retrying!...\n");
+        // TODO send over CAN
         bmsmaster.state = BMS_STATE_IDLE;
         bmsmaster.error |= BMS_ERROR_CONN;
-        bmsmaster.error &= ~(BMS_ERROR_RXPEC | BMS_ERROR_TX); // no use
     }
 
     switch (bmsmaster.state)
@@ -198,23 +199,47 @@ static void bms_periodic(void)
     }
 }
 
+static bool is_error(void)
+{
+    bool ret = false;
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        if (bmsmaster.fault[ic])
+        ret = true;
+    }
+    return ret;
+}
+
+#define print_bms_error(x) do {\
+    if (bmsmaster.error & x)\
+        printf("\t " #x "\n");\
+} while (0);
+
+#define print_bms_fault(ic, x) do {\
+    if (bmsmaster.fault[ic] & x)\
+        printf("\t IC[%d]" #x "\n", ic);\
+} while (0);
+
 static void bms_error_handler(void)
 {
-    if (bmsmaster.error)
+    if (bmsmaster.error || is_error())
     {
         PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
         printf("BMS Error: 0x%08x\n", bmsmaster.error);
+
+        print_bms_error(BMS_ERROR_CONN);
+        print_bms_error(BMS_ERROR_TX);
         // TODO report error over CAN
-
-        if (bmsmaster.state > BMS_STATE_CONNECTED)
-            bmsmaster.state = BMS_STATE_CONNECTED; // Demote state
-
-        if (bmsmaster.error & BMS_ERROR_CONN)
-        printf("\t BMS_ERROR_CONN\n");
-        if (bmsmaster.error & BMS_ERROR_RXPEC)
-        printf("\t BMS_ERROR_RXPEC\n");
-        if (bmsmaster.error & BMS_ERROR_TX)
-        printf("\t BMS_ERROR_TX\n");
+        //if (bmsmaster.error & BMS_ERROR_TX)
+        //printf("\t BMS_ERROR_TX\n");
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
+        {
+            printf("BMS Error IC[%d]: 0x%08x\n", ic, bmsmaster.fault[ic]);
+            print_bms_fault(ic, BMS_ERROR_RXPEC);
+            print_bms_fault(ic, BMS_ERROR_VREG);
+            print_bms_fault(ic, BMS_ERROR_ITMP);
+        }
+        /* Clear Errors */
     }
     else
     {

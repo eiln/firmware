@@ -45,6 +45,8 @@ typedef enum
     BMS_ERROR_FIELD_CONN = 0, // No connection
     BMS_ERROR_FIELD_RXPEC,    // RX PEC mismatch
     BMS_ERROR_FIELD_TX,       // TX failed
+    BMS_ERROR_FIELD_VREG,     // Voltage regulator
+    BMS_ERROR_FIELD_ITMP,     // Internal die temperature
     BMS_ERROR_FIELD_COUNT,
 } bms_error_t;
 
@@ -52,11 +54,14 @@ typedef enum
 #define BMS_ERROR_CONN  (1 << (BMS_ERROR_FIELD_CONN))
 #define BMS_ERROR_RXPEC (1 << (BMS_ERROR_FIELD_RXPEC))
 #define BMS_ERROR_TX    (1 << (BMS_ERROR_FIELD_TX))
+#define BMS_ERROR_VREG  (1 << (BMS_ERROR_FIELD_VREG))
+#define BMS_ERROR_ITMP  (1 << (BMS_ERROR_FIELD_ITMP))
 
 typedef struct
 {
     bms_state_t state;
     uint32_t error; // bitfield of bms_error_t
+    uint32_t fault[TOTAL_AD68]; // bitfield of bms_error_t
     uint32_t conn;
 
     uint8_t  txData[TOTAL_AD68][DATA_LEN];
