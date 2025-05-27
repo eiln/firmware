@@ -8,26 +8,27 @@
 #define printf debug_printf
 
 // F4 Disco
-#define LED_PORT_ORANGE GPIOD
-#define LED_PORT_GREEN  GPIOD
-#define LED_PORT_RED    GPIOD
-#define LED_PORT_BLUE   GPIOD
-#define LED_PIN_ORANGE  13
-#define LED_PIN_GREEN   12
-#define LED_PIN_RED     14
-#define LED_PIN_BLUE    15
+#define LED_PORT_ORANGE (GPIOD)
+#define LED_PORT_GREEN  (GPIOD)
+#define LED_PORT_RED    (GPIOD)
+#define LED_PORT_BLUE   (GPIOD)
+#define LED_PIN_GREEN   (12)
+#define LED_PIN_ORANGE  (13)
+#define LED_PIN_RED     (14)
+#define LED_PIN_BLUE    (15)
 
 // SPI2
-#define SPI_CS_PORT   GPIOB
-#define SPI_SCK_PORT  GPIOB
-#define SPI_MISO_PORT GPIOB
-#define SPI_MOSI_PORT GPIOB
-#define SPI_MSTR_PORT GPIOB // random pull high
-#define SPI_CS_PIN    12
-#define SPI_SCK_PIN   13
-#define SPI_MISO_PIN  14
-#define SPI_MOSI_PIN  15
-#define SPI_MSTR_PIN  11
+#define SPI_CS_PORT   (GPIOB)
+#define SPI_SCK_PORT  (GPIOB)
+#define SPI_MISO_PORT (GPIOB)
+#define SPI_MOSI_PORT (GPIOB)
+#define SPI_CS_PIN    (12)
+#define SPI_SCK_PIN   (13)
+#define SPI_MISO_PIN  (14)
+#define SPI_MOSI_PIN  (15)
+
+#define CHARGE_ENABLED_PORT (GPIOC)
+#define CHARGE_ENABLED_PIN   (12)
 
 extern SPI_InitConfig_t bms_spi_config;
 

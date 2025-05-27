@@ -54,7 +54,8 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_AF(SPI_SCK_PORT, SPI_SCK_PIN, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN), // PB13
     GPIO_INIT_AF(SPI_MISO_PORT, SPI_MISO_PIN, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_OPEN_DRAIN, GPIO_INPUT_OPEN_DRAIN), // PB14
     GPIO_INIT_AF(SPI_MOSI_PORT, SPI_MOSI_PIN, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN), // PB15
-    GPIO_INIT_OUTPUT(SPI_MSTR_PORT, SPI_MSTR_PIN, GPIO_OUTPUT_HIGH_SPEED), // PB11
+
+    GPIO_INIT_INPUT(CHARGE_ENABLED_PORT, CHARGE_ENABLED_PIN, GPIO_INPUT_PULL_DOWN),
 };
 
 extern uint32_t APB1ClockRateHz;
@@ -185,18 +186,23 @@ static void bms_periodic(void)
         case BMS_STATE_CONNECTED:
         {
             if (bms_init())
-                bmsmaster.state = BMS_STATE_ACTIVE;
-        }
-        break;
-        case BMS_STATE_ACTIVE:
-        {
-            if (!bms_init())
             {
-                return;
+                ; // TODO
             }
-            bms_monitor_cells();
-            bms_monitor_temps();
-            printf("--------------------------------------------------\n");
+            else
+            {
+                bool charge = PHAL_readGPIO(CHARGE_ENABLED_PORT, CHARGE_ENABLED_PIN);
+                if (charge)
+                {
+                    ; // TODO
+                }
+                else
+                {
+                    bms_monitor_cells();
+                    bms_monitor_temps();
+                    printf("--------------------------------------------------\n");
+                }
+            }
         }
         break;
         default:
