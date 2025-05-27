@@ -142,8 +142,6 @@ static void bms_heartbeat(void)
     PHAL_toggleGPIO(LED_PORT_BLUE, LED_PIN_BLUE);
 }
 
-#define ADBMS_6830B_CONN ((uint32_t)0b1) // n times many TOTAL_AD68
-
 static uint32_t pack_faults(bms_error_t field)
 {
     uint32_t mask = 0;

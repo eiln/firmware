@@ -53,6 +53,10 @@ typedef enum
     BMS_ERROR_FIELD_COUNT,
 } bms_error_t;
 
+// TODO add
+// VMV: S1N to V− measurement
+// VPV: V+ to V− measurement
+
 #define BMS_ERROR_NONE  (0)
 #define BMS_ERROR_CONN  (1 << (BMS_ERROR_FIELD_CONN))
 #define BMS_ERROR_RXPEC (1 << (BMS_ERROR_FIELD_RXPEC))
