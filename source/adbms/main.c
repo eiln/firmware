@@ -217,7 +217,7 @@ static bool is_error(void)
 
 #define print_bms_fault(ic, x) do {\
     if (bmsmaster.fault[ic] & x)\
-        printf("\t IC[%d]" #x "\n", ic);\
+        printf("\t " #x "\n");\
 } while (0);
 
 static void bms_error_handler(void)
