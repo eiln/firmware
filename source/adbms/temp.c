@@ -53,6 +53,8 @@ static void bms_print_aux_all(bool ow)
 
 static void bms_aux_ow_check(void)
 {
+    bool set;
+
     // open-wire check on 10 GPIOs
     // GPIOs assumed pull-up, so should be no difference between pull-up and pull-down
     // AUX_ALL includes 10 GPIOS + various temps (VD, VA, ITEMP, VPV, VMV, VRES)
@@ -84,6 +86,18 @@ static void bms_aux_ow_check(void)
     // if open-wire is okay, use values read from bms_readAuxVoltagesAll()
 
     // TODO check temp min/max
+    #define BMS_TEMP_MIN (-40.0f)
+    #define BMS_TEMP_MAX (60.0f)
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        for (int aux = 0; aux < TOTAL_AUX; aux++)
+        {
+            set = bms.aux_v[ic][aux] < BMS_TEMP_MIN;
+            bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_UNDERTEMP, set);
+            set = bms.aux_v[ic][aux] > BMS_TEMP_MAX;
+            bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_OVERTEMP, set);
+        }
+    }
 }
 
 static void bms_aux_voltages_check(void)

@@ -157,8 +157,8 @@ static uint32_t pack_faults(bms_error_t field)
 static void bms_periodic(void)
 {
     bool ret = adbms_checkalive();
-    uint32_t packed = pack_faults(BMS_ERROR_FIELD_CONN);
-    if (ret == true && !packed)
+    uint32_t packed = pack_faults(BMS_ERROR_FIELD_SID);
+    if (ret == true && !packed) // All device IDs read i.e. connection established
     {
         if (bmsmaster.state == BMS_STATE_IDLE)
         {
@@ -235,7 +235,7 @@ static void bms_error_handler(void)
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
             printf("BMS Error IC[%d]: 0x%08x\n", ic, bmsmaster.fault[ic]);
-            print_bms_fault(ic, BMS_ERROR_CONN);
+            print_bms_fault(ic, BMS_ERROR_SID);
             print_bms_fault(ic, BMS_ERROR_RXPEC);
             print_bms_fault(ic, BMS_ERROR_VA);
             print_bms_fault(ic, BMS_ERROR_VD);
