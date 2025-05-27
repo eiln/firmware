@@ -14,17 +14,13 @@ min discharge - -40 C - prohibit discharging
 
 #endif
 
-#define CELL_TEMP_MAX_C 60.0
-
 static void bms_read_temps(void);
-static void bms_check_temps(void);
 static void bms_send_temps(void);
 
 void bms_monitor_temps(void)
 {
     bms_read_temps();
     bms_send_temps();
-    bms_check_temps();
 }
 
 static void bms_print_aux_voltages(bool ow)
@@ -120,7 +116,6 @@ static void bms_aux_voltages_check(void)
 
     // VREF2
     // Normal range is within 2.988 V to 3.012 V considering data sheet limits, thermal hysteresis, and long-term drift
-    // # 2.988 V to 3.012 V
     #define BMS_VREF2_MIN (2.988f)
     #define BMS_VREF2_MAX (3.012f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
@@ -129,10 +124,7 @@ static void bms_aux_voltages_check(void)
         bms_set_fault(ic, BMS_ERROR_VREF2, set);
     }
 
-    // ITMP
-    // 16-bit ADC measurement value of Internal Die temperature.
-    // Temperature measurement voltage = (ITMP × 150 μV + 1.5 V)/7.5 mV/°C – 273°C.
-    // Reset to 0x7FFF after power-up, sleep, and to 0x8000 after clear command
+    // ITMP: Internal Die temperature
     #define BMS_ITMP_MIN  (0.0f) // 32F
     #define BMS_ITMP_MAX (40.0f) // 104F
     for (int ic = 0; ic < TOTAL_AD68; ic++)
@@ -142,38 +134,33 @@ static void bms_aux_voltages_check(void)
     }
 }
 
-static void bms_read_temps(void)
+static void bms_aux_temps_check(void)
 {
-    bms_aux_ow_check();
-    // Do voltage checks after open-wire in case results were trash due to ow
-    bms_aux_voltages_check();
-}
+    bool set;
 
-static void bms_check_temps(void)
-{
-    #if 0
+    // Absolute min/max for discharge
+    #define BMS_AUX_TEMP_MIN (-40.0f) // TODO calcs
+    #define BMS_AUX_TEMP_MAX (60.0f) // TODO calcs
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        for (int therm = 0; therm < TOTAL_AUX; therm++)
+        for (int aux = 0; aux < TOTAL_AUX; aux++)
         {
-            uint16_t temp = bms.aux_temps_parsed[ic][therm]; // TODO convert to C ?
-            // check unreasonable values & threshold values (too low or too high)
-            // determine thresholds
-            // 60C or datasheet (EV 3.1)
-            if (temp < BMS_MOD_TEMP_MIN || temp > BMS_MOD_TEMP_MAX)
-            {
-                // send emergency CAN (high priority)
-                printf("Module %d therm %d exceeded temp: %d\n", ic, therm, cell_temps[ic][therm]);
-                // send temps before
-                // pull SDC
-                // setFault(ID_HEATSINK_THERMISTOR_FAULT, can_data.orion_errors.heatsink_thermistor);
-                // setFault(ID_THERMISTOR_FAULT, can_data.orion_errors.thermistor);
-            }
+            // TODO convert to C and state uv/ov
+            // set = bms.aux_voltages_parsed[ic][aux] < BMS_AUX_TEMP_MIN;
+            // bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_UV, set);
         }
     }
-    // call cooling?
-    // send warning for medium threshold
-    #endif
+}
+
+static void bms_read_temps(void)
+{
+    // 1. Check open wire
+    // 2. Check operating voltages
+    // 3. Check temperatures
+    bms_aux_ow_check();
+    // Run voltage checks after open-wire in case results were trash due to ow
+    bms_aux_voltages_check();
+    bms_aux_temps_check();
 }
 
 static void bms_send_temps(void)
