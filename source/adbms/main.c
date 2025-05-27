@@ -128,7 +128,7 @@ int main()
 // ADBMS shuts off after ~2200ms
 defineThreadStack(bms_heartbeat, 500, osPriorityNormal, 128);
 defineThreadStack(bms_periodic, 2500, osPriorityNormal, 1024);
-defineThreadStack(bms_error_handler, 250, osPriorityNormal, 256);
+defineThreadStack(bms_error_handler, 500, osPriorityNormal, 256);
 
 static void bms_create_threads(void)
 {
@@ -170,6 +170,7 @@ static void bms_periodic(void)
         printf("Retrying!...\n");
         bmsmaster.state = BMS_STATE_IDLE;
         bmsmaster.error |= BMS_ERROR_CONN;
+        bmsmaster.error &= ~BMS_ERROR_RXPEC; // no use
     }
 
     switch (bmsmaster.state)
