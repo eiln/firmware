@@ -40,11 +40,6 @@ void bms_set_fault_aux(int ic, int aux, uint32_t mask, bool set)
 
 #define ADBMS_6830B_SID (0b000011)
 
-static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int index)
-{
-    return (uint8_t)(data[ic][index] & 0xff);
-}
-
 bool adbms_checkalive(void)
 {
     uint8_t rxdata[TOTAL_AD68][DATA_LEN];
@@ -55,7 +50,7 @@ bool adbms_checkalive(void)
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        uint8_t sid = get_u8(rxdata, ic, 1); // SID1 [1:6]
+        uint8_t sid = rxdata[ic][1]; // SID1 [1:6]
         sid = (sid >> 1) & 0x3f;
         bms_set_fault(ic, BMS_ERROR_CONN, !(sid == ADBMS_6830B_SID));
     }
@@ -382,24 +377,14 @@ void bms_readAuxVoltages(bool ow)
         }
     }
 
-    if (!ow)
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        for (int ic = 0; ic < TOTAL_AD68; ic++)
+        for (int i = 0; i < TOTAL_AUX; i++)
         {
-            for (int i = 0; i < TOTAL_AUX; i++)
-            {
+            if (!ow)
                 bms.aux_voltages_parsed[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
-            }
-        }
-    }
-    else
-    {
-        for (int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            for (int i = 0; i < TOTAL_AUX; i++)
-            {
+            else
                 bms.aux_voltages_ow[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
-            }
         }
     }
 }
