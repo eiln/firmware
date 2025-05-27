@@ -196,6 +196,8 @@ void bms_startAdcvAux(void)
   adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
 }
 
+/* CELL */
+
 #if 0
 6830: Cell voltages:
 IC1: 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, CC: 47 |   IC2: 0x5E, 0xE6, 0x55, 0xE6, 0xAA, 0x7E, CC: 47 |
@@ -228,34 +230,7 @@ float getVoltage(int data)
     return voltage_float;
 }
 
-#if 0
-Stat C:
-IC0: 0xFF, 0xFF, 0x00, 0x20, 0xFF, 0xFB, CC: 4 |
-
-Stat D:
-IC0: 0x45, 0x55, 0x55, 0x55, 0xFF, 0x00, CC: 4 |
-#endif
-
-void bms_checkCellVoltagesStatC(void)
-{
-    // statC is useless
-    debug_printf("Stat C:\n");
-    if (!adbms_receive(RDSTATC, rxData))
-    {
-        return; // TODO exit
-    }
-    adbms_print_rxdata(rxData);
-
-    debug_printf("Stat D:\n");
-    if (!adbms_receive(RDSTATD, rxData))
-    {
-        return; // TODO exit
-    }
-    adbms_print_rxdata(rxData);
-    // TODO check uv/ov
-}
-
-static inline void bms_read_cell_v(int ic, int group, int idx)
+static inline void bms_read_cell_v_c(int ic, int group, int idx)
 {
     int16_t raw = get_i16(rxData, ic, idx);
     bms.cell_v_c[ic][group * 3 + (idx)] = getVoltage(raw);
@@ -284,15 +259,15 @@ void bms_readCellVoltages(void)
                 case 2:
                 case 3:
                 case 4:
-                    bms_read_cell_v(ic, group, 0);
-                    bms_read_cell_v(ic, group, 1);
-                    bms_read_cell_v(ic, group, 2);
+                    bms_read_cell_v_c(ic, group, 0);
+                    bms_read_cell_v_c(ic, group, 1);
+                    bms_read_cell_v_c(ic, group, 2);
                     // bms.cell_v_c_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
                     // bms.cell_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
                     // bms.cell_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
                 break;
                 case 5:
-                    bms_read_cell_v(ic, group, 0);
+                    bms_read_cell_v_c(ic, group, 0);
                     // bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 15
                 break;
             }
@@ -309,6 +284,12 @@ void bms_readCellVoltages(void)
         }
     }
     debug_printf("\n");
+}
+
+static inline void bms_read_cell_v_s(int ic, int group, int idx)
+{
+    int16_t raw = get_i16(rxData, ic, idx);
+    bms.cell_v_s[ic][group * 3 + (idx)] = getVoltage(raw);
 }
 
 void bms_readSVoltages(void)
@@ -355,6 +336,36 @@ void bms_readSVoltages(void)
     debug_printf("\n");
 }
 
+/* STAT */
+
+#if 0
+Stat C:
+IC0: 0xFF, 0xFF, 0x00, 0x20, 0xFF, 0xFB, CC: 4 |
+
+Stat D:
+IC0: 0x45, 0x55, 0x55, 0x55, 0xFF, 0x00, CC: 4 |
+#endif
+
+void bms_checkCellVoltagesStatC(void)
+{
+    // statC is useless
+    debug_printf("Stat C:\n");
+    if (!adbms_receive(RDSTATC, rxData))
+    {
+        return; // TODO exit
+    }
+    adbms_print_rxdata(rxData);
+
+    debug_printf("Stat D:\n");
+    if (!adbms_receive(RDSTATD, rxData))
+    {
+        return; // TODO exit
+    }
+    adbms_print_rxdata(rxData);
+    // TODO check uv/ov
+}
+
+/* AUX */
 void bms_readAuxVoltages(bool ow)
 {
     uint8_t *cmdList[4] = {RDAUXA, RDAUXB, RDAUXC, RDAUXD};
