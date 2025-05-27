@@ -26,22 +26,27 @@ void bms_monitor_temps(void)
     bms_check_temps();
 }
 
-static void bms_print_aux_voltages(void)
+static void bms_print_aux_voltages(bool ow)
 {
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         printf("IC[%d]: ", ic);
         for (int aux = 0; aux < TOTAL_AUX; aux++)
         {
-            printf("%.2f ", bms.aux_voltages_parsed[ic][aux]);
+            float voltage;
+            if (!ow)
+                voltage = bms.aux_voltages_parsed[ic][aux];
+            else
+                voltage = bms.aux_voltages_ow[ic][aux];
+            printf("%.2f ", voltage);
         }
         printf("\n");
     }
 }
 
-static void bms_print_aux_all(void)
+static void bms_print_aux_all(bool ow)
 {
-    bms_print_aux_voltages();
+    bms_print_aux_voltages(ow);
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
@@ -57,40 +62,37 @@ static void bms_aux_ow_check(void)
     printf("normal wire:\n");
     adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
     adbms_transmit_poll(PLAUX1);
-    bms_readAuxVoltagesAll();
-    bms_print_aux_all();
+    bms_readAuxVoltagesAll(false);
+    bms_print_aux_all(false);
 
+    // Run internal pull-down vs pull-up to see if there's open wire
     printf("open wire: up: \n");
     adBms6830_Adax(AUX_OW_ON, PUP_UP, AUX_ALL);
     adbms_transmit_poll(PLAUX1);
-    bms_readAuxVoltages();
-    bms_print_aux_voltages();
+    bms_readAuxVoltages(true);
+    bms_print_aux_voltages(true);
+
+    // TODO compare values
+    #define BMS_AUX_OW_DELTA (1.0f) // TODO calcs
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        for (int aux = 0; aux < TOTAL_AUX; aux++)
+        {
+            bool set = fabsf(bms.aux_voltages_parsed[ic][aux] - bms.aux_voltages_ow[ic][aux]) >= BMS_AUX_OW_DELTA;
+            bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_OW, set);
+        }
+    }
+    // TODO NULL values in case of open-wire and exit state
+    // if open-wire is okay, use values read from bms_readAuxVoltagesAll()
+
+    // TODO check temp min/max
 }
 
 static void bms_read_temps(void)
 {
-    // AUX_ALL includes 10 GPIOS + various temps (VD, VA, ITEMP, VPV, VMV, VRES)
-    printf("normal wire:\n");
-    adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
-    adbms_transmit_poll(PLAUX1);
-    bms_readAuxVoltagesAll();
-    bms_print_aux_all();
-
-    // Run internal pull-down vs pull-up to see if there's open wire
-    printf("open wire: down: \n");
-    adBms6830_Adax(AUX_OW_ON, PUP_DOWN, AUX_ALL);
-    adbms_transmit_poll(PLAUX1);
-    bms_readAuxVoltages();
-    bms_print_aux_voltages();
-
-    printf("open wire: up: \n");
-    adBms6830_Adax(AUX_OW_ON, PUP_UP, AUX_ALL);
-    adbms_transmit_poll(PLAUX1);
-    bms_readAuxVoltages();
-    bms_print_aux_voltages();
-    // read temps and status at the same time
-    // since it's done by the same GPIO
-    //bms_delayMsActive(10);
+    bms_aux_ow_check();
+    // Do voltage checks after open-wire in case results were trash due to ow
+    bms_checkAuxVoltages();
 }
 
 static void bms_check_temps(void)

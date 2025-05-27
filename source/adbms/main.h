@@ -50,12 +50,15 @@ typedef enum
     BMS_ERROR_FIELD_VREG,     // Regulated Power
     BMS_ERROR_FIELD_VREF2,    // Vref2 for thermistors
     BMS_ERROR_FIELD_ITMP,     // Internal die temperature
+    BMS_ERROR_FIELD_AUX_OW,   // AUX open-wire
     BMS_ERROR_FIELD_COUNT,
 } bms_error_t;
 
 // TODO add
 // VMV: S1N to V− measurement
 // VPV: V+ to V− measurement
+
+#define BMS_GET_ERROR_MASK(field) (1 << (field))
 
 #define BMS_ERROR_NONE  (0)
 #define BMS_ERROR_CONN  (1 << (BMS_ERROR_FIELD_CONN))
@@ -66,11 +69,13 @@ typedef enum
 #define BMS_ERROR_VREG  (1 << (BMS_ERROR_FIELD_VREG))
 #define BMS_ERROR_VREF2 (1 << (BMS_ERROR_FIELD_VREF2))
 #define BMS_ERROR_ITMP  (1 << (BMS_ERROR_FIELD_ITMP))
+#define BMS_ERROR_AUX_OW  (1 << (BMS_ERROR_FIELD_AUX_OW))
 
 typedef struct
 {
     bms_state_t state;
     uint32_t fault[TOTAL_AD68]; // bitfield of bms_error_t
+    uint32_t fault_aux[TOTAL_AD68][TOTAL_AUX];
     uint8_t  txData[TOTAL_AD68][DATA_LEN];
     uint8_t  rxData[TOTAL_AD68][DATA_LEN];
     uint16_t rxPec[TOTAL_AD68];
