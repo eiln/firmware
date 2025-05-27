@@ -57,6 +57,8 @@ void adBms6830_Adax(uint8_t owaux, uint8_t pup, uint8_t ch);
 
 void bms_readCellVoltages(void);
 void bms_readAuxVoltages(void);
+void bms_readAuxVoltagesAll(void);
+
 void bms_checkCellVoltagesStatC(void);
 void bms_readSVoltages(void);
 

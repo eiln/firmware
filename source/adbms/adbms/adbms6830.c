@@ -377,8 +377,12 @@ void bms_readAuxVoltages(void)
             bms.aux_voltages_parsed[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
         }
     }
+}
 
-    // The main AUX ADC measures the internal supply voltages (VD and VA)
+void bms_readAuxVoltagesAll(void)
+{
+    bms_readAuxVoltages();
+
     if (!adbms_receive(RDSTATB, rxData))
     {
         return; // TODO exit

@@ -48,7 +48,7 @@ typedef enum
     BMS_ERROR_FIELD_VA,       // Analog power
     BMS_ERROR_FIELD_VD,       // Digital power
     BMS_ERROR_FIELD_VREG,     // Regulated Power
-    BMS_ERROR_FIELD_VREF2,    // Vref
+    BMS_ERROR_FIELD_VREF2,    // Vref2 for thermistors
     BMS_ERROR_FIELD_ITMP,     // Internal die temperature
     BMS_ERROR_FIELD_COUNT,
 } bms_error_t;
