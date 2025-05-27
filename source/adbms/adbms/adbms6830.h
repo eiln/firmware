@@ -3,6 +3,7 @@
 #define __ADBMS_6830_H__
 
 #include "main.h"
+#include "adbms_conf.h"
 #include <assert.h>
 
 typedef struct

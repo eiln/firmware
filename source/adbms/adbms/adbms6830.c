@@ -1,9 +1,8 @@
 
 #include "main.h"
+#include "adbms6830.h"
 #include "adbms_mcu.h"
 #include "adbms_regs.h"
-#include "adbms6830.h"
-#include "adbms_common.h"
 
 #include "string.h"
 #define printfDma debug_printf
@@ -467,7 +466,7 @@ void bms_writePwm(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
 {
     bms_writePwmA(pwm);
     bms_writePwmB(pwm);
-    //(pwm2 & 0xf) << 4 | (pwm1 & 0xf)
+    // (pwm2 & 0xf) << 4 | (pwm1 & 0xf)
 }
 
 void bms_startDischarge(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])

@@ -1,7 +1,7 @@
 #ifndef __ADBMS_MCU_H__
 #define __ADBMS_MCU_H__
 
-#include "adbms_common.h"
+#include "adbms_conf.h"
 
 #define DATA_LEN       (6)       // Data
 #define DATAPKT_LEN    (6 + 2)   // Data + DPEC

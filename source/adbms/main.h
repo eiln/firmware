@@ -27,7 +27,7 @@
 #define SPI_MISO_PIN  (14)
 #define SPI_MOSI_PIN  (15)
 
-#define CHARGE_ENABLED_PORT (GPIOC)
+#define CHARGE_ENABLED_PORT  (GPIOC)
 #define CHARGE_ENABLED_PIN   (12)
 
 extern SPI_InitConfig_t bms_spi_config;
