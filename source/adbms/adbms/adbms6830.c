@@ -59,29 +59,14 @@ static void crit_exit(void)
     xSemaphoreGive(spi1_lock);
 }
 
-#if 0
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN])
 {
     crit_enter();
-
     bms_receiveData(cmd, data, bmsmaster.rxPec, bmsmaster.rxCc);
-    bool ret = false;
-    if (bms_checkRxFault(data, rxPec, rxCc))
-    {
-        bmsmaster.error |= BMS_ERROR_RXPEC;
-        ret = false;
-    }
-    else
-    {
-        bmsmaster.error &= ~BMS_ERROR_RXPEC;
-        ret = true;
-    }
-
+    bool ret = bms_checkRxFault(data, bmsmaster.rxPec, bmsmaster.rxCc);
     crit_exit();
-
-    return ret;
+    return !ret; // true if successful
 }
-#endif
 
 static inline uint8_t get_u8(uint8_t data[TOTAL_AD68][DATA_LEN], int ic, int index)
 {
@@ -95,8 +80,14 @@ uint32_t adbms_checkalive(void)
     uint8_t rxdata[TOTAL_AD68][DATA_LEN];
     uint32_t conn = 0; // bitmask
 
+    #if 0
     bms_receiveData(RDSID, rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
     if (bms_checkRxFault(rxdata, bmsmaster.rxPec, bmsmaster.rxCc))
+    {
+        return conn;
+    }
+    #endif
+    if (!adbms_receive(RDSID, rxdata))
     {
         return conn;
     }
