@@ -88,28 +88,38 @@ bool bms_init(void)
 	buff_6830_a[1] = flag_d; // All flags = 0
 
     // Control reg for SOAK functions
-	buff_6830_a[2] = 0x00;
+    // If OWRNG = 0, soak time = 2^(6 + OWA[2:0]) clocks (32 us to 4.1 ms).
+    // If OWRNG = 1, soak time = 2^(13 + OWA[2:0]) clocks (4.1 ms to 524 ms).
+    uint8_t soakon = 0b1; // soak time enable
+    uint8_t owrng = 0b0; // short soak time
+    uint8_t owa = 0b000; // short soak time
+	buff_6830_a[2] = (soakon << 7) | (owrng << 6) | (owa << 3);
 
     // All GPIO pull down off
-	buff_6830_a[3] = 0xFF; // GPIOs [8:0] are all pulled down. (For ADC measurements)
-	buff_6830_a[4] = 0x03; // GPIOs 10 and 9 pulled down.
+	buff_6830_a[3] = 0b11111111; // GPIOs [8:0] pull down OFF
+	buff_6830_a[4] = 0b00000011; // GPIOs 9/10 pull down OFF
 
-	buff_6830_a[5] = (0x00<<3); // bits [2:0] is for filter.
+    uint8_t snap_st = 0b0;
+    uint8_t mute_st = 0b0;
+    uint8_t comm_bk = 0b0;
+    uint8_t fc = 0b000;
+	buff_6830_a[5] = (snap_st << 5) | (mute_st << 4) | (comm_bk << 3) | (fc);
+
 	// We need to set bit 3 in the last byte for the last one in the daisy chain. We'll do it when we create the final buffer that is sent
 
     /* 6830 CFGB */
-    uint16_t vuv = get_threshold_voltage(0.8);
+    uint16_t vuv = get_threshold_voltage(0.2);
     uint16_t vov = get_threshold_voltage(4.2);
     // Cell undervoltage threshold = VUV × 16 × 150 μV + 1.5 V.
     // Cell overvoltage threshold = VOV × 16 × 150 μV + 1.5 V.
 	buff_6830_b[0] = vuv & 0xff;
 	buff_6830_b[1] = ((vov & 0xf) << 4) | ((vuv >> 8) & 0xf); // Undervoltage and overvoltage
 	buff_6830_b[2] = ((vov >> 4) & 0xff); // Over voltage. Both are set to 1.5V when these registers are set to 0x00
-
+    // discharge settings
 	buff_6830_b[3] = 0x00; // Enable discharge timer monitor if extended balancing (don't)
 	buff_6830_b[4] = 0x00; // DCC to zero. Not sure what to set here
 	buff_6830_b[5] = 0x00; // DCC to zero
-	/* ======================= End of config definition =============================== */
+
 
     uint8_t txData_a[TOTAL_AD68][DATA_LEN];
     uint8_t txData_b[TOTAL_AD68][DATA_LEN];
@@ -149,7 +159,7 @@ void adBms6830_Adcv(uint8_t rd, uint8_t cont, uint8_t dcp, uint8_t rstf, uint8_t
 {
     uint8_t cmd[2];
     cmd[0] = 0x02 + rd;
-    cmd[1] = (cont<<7)+(dcp<<4)+(rstf<<2)+(owcs & 0x03) + 0x60;
+    cmd[1] = (cont << 7) + (dcp << 4) + (rstf << 2) + (owcs & 0x03) + 0x60;
     adbms_transmit_cmd(cmd);
 }
 
@@ -157,7 +167,7 @@ void adBms6830_Adsv(uint8_t cont, uint8_t dcp, uint8_t owcs)
 {
     uint8_t cmd[2];
     cmd[0] = 0x01;
-    cmd[1] = (cont<<7)+(dcp<<4)+(owcs &0x03) + 0x68;
+    cmd[1] = (cont << 7) + (dcp << 4) + (owcs & 0x03) + 0x68;
     adbms_transmit_cmd(cmd);
 }
 
@@ -171,7 +181,7 @@ void adBms6830_Adax(uint8_t owaux, uint8_t pup, uint8_t ch)
     // 1 0 OW PUP CH[4] 0 1 CH[3] CH[2] CH[1] CH[0]
     uint8_t cmd[2];
     cmd[0] = 0x04 + owaux;
-    cmd[1] = (pup << 7) + (((ch >>4)&0x01)<<6) + (ch & 0x0F) + 0x10;
+    cmd[1] = (pup << 7) + (((ch >> 4) & 0x01) << 6) + (ch & 0x0F) + 0x10;
     adbms_transmit_cmd(cmd);
 }
 
@@ -208,13 +218,28 @@ static inline int16_t get_i16(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int 
 float getVoltage(int data)
 {
     float voltage_float; //voltage in Volts
-    voltage_float = ((data + 10000) * 0.000150);
+    voltage_float = ((data + 10000) * 0.000150f);
     return voltage_float;
 }
+
+#if 0
+Stat C:
+IC0: 0xFF, 0xFF, 0x00, 0x20, 0xFF, 0xFB, CC: 4 |
+
+Stat D:
+IC0: 0x45, 0x55, 0x55, 0x55, 0xFF, 0x00, CC: 4 |
+#endif
 
 void bms_checkCellVoltagesStatC(void)
 {
     // statC is useless
+    debug_printf("Stat C:\n");
+    if (!adbms_receive(RDSTATC, rxData))
+    {
+        return; // TODO exit
+    }
+    adbms_print_rxdata(rxData);
+
     debug_printf("Stat D:\n");
     if (!adbms_receive(RDSTATD, rxData))
     {
@@ -222,19 +247,6 @@ void bms_checkCellVoltagesStatC(void)
     }
     adbms_print_rxdata(rxData);
     // TODO check uv/ov
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        //uint16_t csxflt = get_i16(rxData, ic, 0);
-        //debug_printf("statC 0: 0x%04x\n", csxflt);
-        //debug_printf("statC 1: 0x%04x\n", (uint16_t)get_i16(rxData, ic, 1));
-        //debug_printf("statC 2: 0x%04x\n", (uint16_t)get_i16(rxData, ic, 2));
-        // reference = VREF2 × 150 μV +1.5 V
-        //bms.vref2[ic] = getVoltage(get_i16(rxData, ic, 0));
-        //int16_t itmp = get_i16(rxData, ic, 1);
-        // = (ITMP × 150 μV + 1.5 V)/7.5 mV/°C – 273°C.
-        //bms.itmp[ic] = (itmp * 0.00015 + 1.5) / 0.0075 - 273;
-        //debug_printf("itmp: %.2f\n", bms.itmp[ic]);
-    }
 }
 
 void bms_readCellVoltages(void)
@@ -269,6 +281,7 @@ void bms_readCellVoltages(void)
         }
     }
 
+    debug_printf("C-ADC Voltages:\n");
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
@@ -312,6 +325,7 @@ void bms_readSVoltages(void)
         }
     }
 
+    debug_printf("S-ADC Voltages:\n");
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
@@ -464,7 +478,6 @@ void bms_checkAuxVoltages(void)
             bmsmaster.fault[ic] &= ~BMS_ERROR_ITMP;
         }
     }
-
 }
 
 static void bms_writePwmA(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
@@ -539,7 +552,7 @@ void bms_startDischarge(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
 
     ic_ad68[0].cfb_Tx.dcto = 1;     // DC Timer in minutes (DTRNG = 0)
     ic_ad68[0].cfb_Tx.dtmen = 0;    // Disables Discharge Timer Monitor (DTM)
-//    ic_ad68[0].cfb_Tx.dcc = 0b1; // --- High priority discharge (bypasses PWM)
+    //ic_ad68[0].cfb_Tx.dcc = 0b1; // --- High priority discharge (bypasses PWM)
 
     bms_writeConfigB();             // Send the DCTO Timer config
     bms_writePwmA();                // Send the PWM configs
