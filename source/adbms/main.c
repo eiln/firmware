@@ -113,6 +113,7 @@ int main()
         HardFault_Handler();
     }
     log_yellow("PER PER PER\n");
+
     PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 0);
     PHAL_writeGPIO(LED_PORT_BLUE, LED_PIN_BLUE, 0);
     PHAL_writeGPIO(LED_PORT_RED, LED_PIN_RED, 0);
@@ -200,11 +201,12 @@ static void bms_error_handler(void)
     {
         PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
         printf("BMS Error: 0x%08x\n", bmsmaster.error);
-        //if (bmsmaster.error & BMS_ERROR_CONN)
-        //printf("\t BMS_ERROR_CONN\n");
-        //if (bmsmaster.error & BMS_ERROR_RXPEC)
-        //printf("\t BMS_ERROR_RXPEC\n");
         // TODO report error over CAN
+
+        if (bmsmaster.error & BMS_ERROR_CONN)
+        printf("\t BMS_ERROR_CONN\n");
+        if (bmsmaster.error & BMS_ERROR_RXPEC)
+        printf("\t BMS_ERROR_RXPEC\n");
     }
     else
     {
