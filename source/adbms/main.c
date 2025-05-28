@@ -148,21 +148,11 @@ static void bms_heartbeat(void)
     PHAL_toggleGPIO(LED_PORT_BLUE, LED_PIN_BLUE);
 }
 
-static uint32_t pack_faults(bms_error_t field)
-{
-    uint32_t mask = 0;
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        mask |= !!(bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field)) << ic;
-    }
-    return mask;
-}
-
 static void bms_periodic(void)
 {
     bool ret = adbms_checkalive();
-    uint32_t packed = pack_faults(BMS_ERROR_SID);
-    if (ret == true && !packed) // All device IDs read i.e. connection established
+    uint32_t faults = bms_pack_faults(BMS_ERROR_SID);
+    if (ret == true && !faults) // faults == 0: All device IDs read
     {
         if (bmsmaster.state == BMS_STATE_IDLE)
         {
@@ -177,8 +167,8 @@ static void bms_periodic(void)
         printf("Lost connection to %d AFEs! Index: ", TOTAL_AD68);
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            if (packed & (1 << ic))
-            printf("%d ", ic);
+            if (faults & (1 << ic))
+                printf("%d ", ic);
         }
         printf("\n");
         printf("Retrying!...\n");
@@ -215,13 +205,11 @@ static void bms_periodic(void)
 
 static bool is_error(void)
 {
-    bool ret = false;
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        if (bmsmaster.fault[ic])
-        ret = true;
+        if (bmsmaster.fault[ic]) return true;
     }
-    return ret;
+    return false;
 }
 
 #define print_bms_fault(ic, field) do {\
@@ -241,7 +229,8 @@ static void bms_error_handler(void)
             printf("BMS Error IC[%d]: 0x%08x\n", ic, bmsmaster.fault[ic]);
             print_bms_fault(ic, BMS_ERROR_SID);
             print_bms_fault(ic, BMS_ERROR_RXPEC);
-            print_bms_fault(ic, BMS_ERROR_TX);
+            print_bms_fault(ic, BMS_ERROR_CONFIG);
+            print_bms_fault(ic, BMS_ERROR_POLL_TIMEOUT);
             print_bms_fault(ic, BMS_ERROR_VPV);
             print_bms_fault(ic, BMS_ERROR_VMV);
             print_bms_fault(ic, BMS_ERROR_VA);
