@@ -262,8 +262,6 @@ static void bms_transmitData(uint8_t cmd[CMD_LEN], uint8_t txBuffer[TOTAL_AD68][
     bms_csHigh();
 }
 
-#define BMS_TX_POLL_TIMEOUT 30
-
 static uint32_t bms_transmitPoll(uint8_t cmd[CMD_LEN])
 {
     bms_wakeupChain();
@@ -276,30 +274,42 @@ static uint32_t bms_transmitPoll(uint8_t cmd[CMD_LEN])
     while (buff == 0x00)
     {
         PHAL_SPI_transfer_noDMA(&bms_spi_config, NULL, 0, 1, &buff);
-        if (bms_getTick() - start > BMS_TX_POLL_TIMEOUT)
+        if (bms_getTick() - start > BMS_POLL_TIMEOUT)
         {
-            //bmsmaster.error |= BMS_ERROR_TX;
+            bms_set_fault_all(BMS_ERROR_POLL_TIMEOUT, true);
             break;
         }
     }
     uint32_t end = bms_getTick();
     bms_csHigh();
+    bms_set_fault_all(BMS_ERROR_POLL_TIMEOUT, !!buff);
 
     return end - start;
 }
 
+/* Faults */
+
+uint32_t bms_pack_faults(bms_error_t field)
+{
+    uint32_t mask = 0;
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        mask |= !!(bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field)) << ic;
+    }
+    return mask;
+}
+
 uint32_t bms_get_fault_duration(int ic, bms_error_t field)
 {
+    uint32_t now = bms_getTick();
     if (bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field))
     {
-        uint32_t now = bms_getTick();
         bmsmaster.last_fault_time[ic][field] = now;
         return bmsmaster.last_fault_time[ic][field] - bmsmaster.first_fault_time[ic][field];
     }
     return 0;
 }
 
-/* Faults */
 void bms_set_fault(int ic, bms_error_t field, bool set)
 {
     uint32_t now = bms_getTick();
@@ -327,12 +337,19 @@ void bms_set_fault(int ic, bms_error_t field, bool set)
     }
 }
 
+void bms_set_fault_all(bms_error_t field, bool set)
+{
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        bms_set_fault(ic, field, set);
+    }
+}
+
 void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set)
 {
     uint32_t mask = BMS_GET_ERROR_MASK(field);
     if (set)
     {
-
         bmsmaster.fault_aux[ic][aux] |= mask;
     }
     else

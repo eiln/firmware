@@ -123,13 +123,20 @@ bool bms_init(void)
     if (!adbms_receive(RDCFGA, rxData) ||
         memcmp(txData_a, rxData, sizeof(txData_a) != 0))
     {
-        //bmsmaster.error |= BMS_ERROR_TX; // TODO figure out which
+        // TODO for now just set it on all of them
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
+        {
+            bms_set_fault(ic, BMS_ERROR_CONFIG, true);
+        }
         return false;
     }
     if (!adbms_receive(RDCFGB, rxData) ||
         memcmp(txData_b, rxData, sizeof(txData_b) != 0))
     {
-        //bmsmaster.error |= BMS_ERROR_TX;
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
+        {
+            bms_set_fault(ic, BMS_ERROR_CONFIG, true);
+        }
         return false;
     }
 
@@ -358,17 +365,13 @@ void bms_readAuxVoltages(bool ow)
                     bms_read_aux_v(ic, group, 1, ow);
                     bms_read_aux_v(ic, group, 2, ow);
                     // TODO parse aux voltage into C for thermistors
-                    // bms.aux_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
-                    // bms.aux_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
-                    // bms.aux_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
                 break;
                 case 3:
                     // for group D: G10V then VMV, VPV
                     bms_read_aux_v(ic, group, 0, ow);
-                    // bms.aux_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 9
+                    // Do not overwrite vmv values with values obtained during ow check
                     if (!ow)
                     {
-                        // Do not overwrite vmv values with values obtained during ow check
                         int16_t vmv = get_i16(rxData, ic, 1);
                         int16_t vpv = get_i16(rxData, ic, 2);
                         bms.vmv[ic] = getVoltage(vmv);

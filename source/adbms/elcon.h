@@ -53,20 +53,6 @@ void charge(void)
     // send elcon CAN heartbeat
 }
 
-#define BMS_ERROR_NONE  (0)
-#define BMS_ERROR_SID   (1 << (BMS_ERROR_FIELD_SID))
-#define BMS_ERROR_RXPEC (1 << (BMS_ERROR_FIELD_RXPEC))
-#define BMS_ERROR_TX    (1 << (BMS_ERROR_FIELD_TX))
-#define BMS_ERROR_VA    (1 << (BMS_ERROR_FIELD_VA))
-#define BMS_ERROR_VD    (1 << (BMS_ERROR_FIELD_VD))
-#define BMS_ERROR_VREG  (1 << (BMS_ERROR_FIELD_VREG))
-#define BMS_ERROR_VREF2 (1 << (BMS_ERROR_FIELD_VREF2))
-#define BMS_ERROR_ITMP  (1 << (BMS_ERROR_FIELD_ITMP))
-
-#define BMS_ERROR_AUX_OW (1 << (BMS_ERROR_FIELD_AUX_OW))
-#define BMS_ERROR_AUX_UNDERTEMP (1 << (BMS_ERROR_FIELD_AUX_UNDERTEMP))
-#define BMS_ERROR_AUX_OVERTEMP  (1 << (BMS_ERROR_FIELD_AUX_OVERTEMP))
-
 #if 0
 
 Another charging strategy with lower charging time

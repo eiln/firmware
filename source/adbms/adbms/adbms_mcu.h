@@ -30,7 +30,8 @@ typedef enum
 {
     BMS_ERROR_SID = 0,  // Device ID
     BMS_ERROR_RXPEC,    // RX PEC mismatch
-    BMS_ERROR_TX,       // TX failed
+    BMS_ERROR_CONFIG,   // Config TX failed
+    BMS_ERROR_POLL_TIMEOUT, // Poll Timeout
     BMS_ERROR_VPV,      // V+ to V−
     BMS_ERROR_VMV,      // S1N to V−
     BMS_ERROR_VA,       // Analog power
@@ -55,6 +56,9 @@ typedef enum
 #define BMS_GET_ERROR_MASK(field) (1 << (field))
 
 extern struct bms_data bms;
+#define BMS_POLL_TIMEOUT (50) // ms
+
+uint32_t bms_getTick(void);
 
 void adbms_transmit_cmd(uint8_t cmd[CMD_LEN]);
 void adbms_transmit_data(uint8_t cmd[CMD_LEN], uint8_t txdata[TOTAL_AD68][DATA_LEN]);
@@ -62,9 +66,10 @@ uint32_t adbms_transmit_poll(uint8_t cmd[CMD_LEN]);
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN]);
 void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN]);
 
-uint32_t bms_getTick(void);
-uint32_t bms_get_fault_duration(int ic, bms_error_t field);
+uint32_t bms_pack_faults(bms_error_t field);
 void bms_set_fault(int ic, bms_error_t field, bool set);
 void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set);
+void bms_set_fault_all(bms_error_t field, bool set);
+uint32_t bms_get_fault_duration(int ic, bms_error_t field);
 
 #endif // __ADBMS_MCU_H__
