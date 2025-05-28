@@ -85,6 +85,8 @@ bms_t bmsmaster = {
     .state = BMS_STATE_IDLE,
     .fault = {0},
     .fault_aux = {0},
+    .fault_time = {0},
+    .last_fault_time = {0},
 };
 
 defineStaticSemaphore(spi1_lock);
@@ -149,7 +151,7 @@ static uint32_t pack_faults(bms_error_t field)
     uint32_t mask = 0;
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        mask |= !!(bmsmaster.fault[ic] & (1 << field)) << ic;
+        mask |= !!(bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field)) << ic;
     }
     return mask;
 }
@@ -157,7 +159,7 @@ static uint32_t pack_faults(bms_error_t field)
 static void bms_periodic(void)
 {
     bool ret = adbms_checkalive();
-    uint32_t packed = pack_faults(BMS_ERROR_FIELD_SID);
+    uint32_t packed = pack_faults(BMS_ERROR_SID);
     if (ret == true && !packed) // All device IDs read i.e. connection established
     {
         if (bmsmaster.state == BMS_STATE_IDLE)
@@ -222,7 +224,7 @@ static bool is_error(void)
 
 #define print_bms_fault(ic, x) do {\
     if (bmsmaster.fault[ic] & x)\
-        printf("\t " #x "\n");\
+        printf("\t " #x "time: %4d last: %8d\n", bms_get_fault_duration(ic, x), bmsmaster.fault_time[ic][x]);\
 } while (0);
 
 static void bms_error_handler(void)

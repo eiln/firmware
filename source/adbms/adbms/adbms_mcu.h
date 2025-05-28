@@ -31,6 +31,34 @@ struct bms_data
     float itmp[TOTAL_AD68]; // internal die temperature (C)
 };
 
+typedef enum
+{
+    BMS_ERROR_SID = 0,  // Device ID
+    BMS_ERROR_RXPEC,    // RX PEC mismatch
+    BMS_ERROR_TX,       // TX failed
+    BMS_ERROR_VPV,      // V+ to V−
+    BMS_ERROR_VMV,      // S1N to V−
+    BMS_ERROR_VA,       // Analog power
+    BMS_ERROR_VD,       // Digital power
+    BMS_ERROR_VREG,     // Regulated Power
+    BMS_ERROR_VREF2,    // Vref2 for thermistors
+    BMS_ERROR_ITMP,     // Internal die temperature
+
+    BMS_ERROR_CELL_OW,    // Cell open-wire
+    BMS_ERROR_CELL_UV,    // Cell undervoltage
+    BMS_ERROR_CELL_OV,    // Cell overvoltage
+    BMS_ERROR_CELL_REDUN, // Cell redundant measurement
+
+    BMS_ERROR_AUX_OW,        // AUX open-wire
+    BMS_ERROR_AUX_UNDERTEMP, // AUX under temperature
+    BMS_ERROR_AUX_OVERTEMP,  // AUX over temperature
+    BMS_ERROR_AUX_REDUN,  // AUX over temperature
+
+    BMS_ERROR_COUNT,
+} bms_error_t;
+
+#define BMS_GET_ERROR_MASK(field) (1 << (field))
+
 extern struct bms_data bms;
 
 void adbms_transmit_cmd(uint8_t cmd[CMD_LEN]);
@@ -38,5 +66,9 @@ void adbms_transmit_data(uint8_t cmd[CMD_LEN], uint8_t txdata[TOTAL_AD68][DATA_L
 uint32_t adbms_transmit_poll(uint8_t cmd[CMD_LEN]);
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN]);
 void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN]);
+
+uint32_t bms_get_fault_duration(int ic, bms_error_t field);
+void bms_set_fault(int ic, bms_error_t field, bool set);
+void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set);
 
 #endif // __ADBMS_MCU_H__
