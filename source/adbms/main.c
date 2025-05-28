@@ -148,11 +148,13 @@ static void bms_heartbeat(void)
     PHAL_toggleGPIO(LED_PORT_BLUE, LED_PIN_BLUE);
 }
 
-static void bms_periodic(void)
+static void bms_check_connection(void)
 {
+    // Clear faults BMS_ERROR_SID && BMS_ERROR_RXPEC
     bool ret = adbms_checkalive();
-    uint32_t faults = bms_pack_faults(BMS_ERROR_SID);
-    if (ret == true && !faults) // faults == 0: All device IDs read
+    uint32_t sid_faults = bms_pack_faults(BMS_ERROR_SID);
+    uint32_t rxpec_faults = bms_pack_faults(BMS_ERROR_RXPEC);
+    if (ret == true && !sid_faults && !rxpec_faults) // faults == 0: All device IDs read
     {
         if (bmsmaster.state == BMS_STATE_IDLE)
         {
@@ -164,17 +166,30 @@ static void bms_periodic(void)
     else
     {
         PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 0);
-        printf("Lost connection to %d AFEs! Index: ", TOTAL_AD68);
+        bms_error("Lost connection to %d AFEs!", TOTAL_AD68);
+
+        printf("SID faults: ");
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            if (faults & (1 << ic))
+            if (sid_faults & (1 << ic))
+                printf("%d ", ic);
+        }
+        printf("RXPEC faults: ");
+        for (int ic = 0; ic < TOTAL_AD68; ic++)
+        {
+            if (rxpec_faults & (1 << ic))
                 printf("%d ", ic);
         }
         printf("\n");
         printf("Retrying!...\n");
         // TODO send over CAN
-        bmsmaster.state = BMS_STATE_IDLE;
+        bmsmaster.state = BMS_STATE_IDLE; // to not proceed in state machine
     }
+}
+
+static void bms_periodic(void)
+{
+    bms_check_connection();
 
     switch (bmsmaster.state)
     {
