@@ -304,17 +304,22 @@ void bms_set_fault(int ic, bms_error_t field, bool set)
     uint32_t mask = BMS_GET_ERROR_MASK(field);
     if (set)
     {
-        if (bmsmaster.fault[ic] & mask)
+        if (!bmsmaster.last_fault_time[ic][field])
+        {
+            bmsmaster.last_fault_time[ic][field] = bms_getTick();
+        }
+        else if (bmsmaster.fault[ic] & mask)
         {
             // Fault already set, so it's been ongoing
             bmsmaster.fault_time[ic][field] += now - bmsmaster.last_fault_time[ic][field];
+            bmsmaster.last_fault_time[ic][field] = now;
         }
         else
         {
             bmsmaster.fault_time[ic][field] = 0;
+            bmsmaster.last_fault_time[ic][field] = now;
         }
         bmsmaster.fault[ic] |= mask;
-        bmsmaster.last_fault_time[ic][field] = now;
     }
     else
     {
