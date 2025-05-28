@@ -5,7 +5,6 @@
 #include "adbms_regs.h"
 
 #include "string.h"
-#define printfDma debug_printf
 
 ic_ad68_t ic_ad68[TOTAL_AD68];
 struct bms_data bms;
@@ -242,7 +241,7 @@ void bms_readCellVoltages(void)
         for (int i = 0; i < TOTAL_CELL; i++)
         {
             debug_printf("Cell %02d: %f ", i, bms.cell_v_c[ic][i]);
-            if (i % 4 == 0)
+            if (!(i & 3))
                 debug_printf("\n");
         }
     }
@@ -293,6 +292,8 @@ void bms_readSVoltages(void)
         for (int i = 0; i < TOTAL_CELL; i++)
         {
             debug_printf("Cell %02d: %f ", i, bms.cell_v_s[ic][i]);
+            if (!(i & 3))
+                debug_printf("\n");
         }
     }
     debug_printf("\n");
@@ -490,5 +491,4 @@ void bms_startDischarge(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
 void bms_stopDischarge(void)
 {
     adbms_transmit_cmd(SRST);      // Put all devices to sleep
-    printfDma("--- SOFT RESET --- \n");
 }

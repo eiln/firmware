@@ -84,7 +84,7 @@ static void bms_error_handler(void);
 bms_t bmsmaster = {
     .state = BMS_STATE_IDLE,
     .fault = {0},
-    .fault_time = {0},
+    .first_fault_time = {0},
     .last_fault_time = {0},
 
     .fault_aux = {0},
@@ -226,7 +226,7 @@ static bool is_error(void)
 
 #define print_bms_fault(ic, field) do {\
     if (bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field))\
-        printf("\t " #field " time: %d last: %d\n", bms_get_fault_duration(ic, field), bmsmaster.fault_time[ic][field]);\
+        printf("\t " #field " time: %d last: %d\n", bms_get_fault_duration(ic, field), bmsmaster.last_fault_time[ic][field]);\
 } while (0);
 
 static void bms_error_handler(void)

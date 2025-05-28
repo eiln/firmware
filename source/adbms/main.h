@@ -45,7 +45,7 @@ typedef struct
 {
     bms_state_t state;
     uint32_t fault[TOTAL_AD68]; // bitfield of bms_error_t
-    uint32_t fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
+    uint32_t first_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
     uint32_t last_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
 
     uint32_t fault_aux[TOTAL_AD68][TOTAL_AUX];
@@ -59,6 +59,9 @@ typedef struct
 
 extern bms_t bmsmaster;
 extern SemaphoreHandle_t spi1_lock;
+
+#define bms_error log_red
+#define bms_warn  log_yellow
 
 void bms_monitor_cells(void);
 void bms_monitor_temps(void);
