@@ -70,8 +70,9 @@ static void bms_aux_ow_check(void)
     adbms_transmit_poll(PLAUX1);
     bms_readAuxVoltages(true);
     bms_print_aux_voltages(true);
-#if 0
+
     // TODO compare values
+    #if 0
     #define BMS_AUX_OW_DELTA (1.0f) // TODO calcs
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
@@ -81,9 +82,10 @@ static void bms_aux_ow_check(void)
             bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_OW, set);
         }
     }
-#endif
     // TODO NULL values in case of open-wire and exit state
     // if open-wire is okay, use values read from bms_readAuxVoltagesAll()
+    // if else, null it and do shit
+    #endif
 
 #if 0
     // TODO convert volts to C and check temp min/max
@@ -105,9 +107,10 @@ static void bms_aux_ow_check(void)
 
 static void bms_aux_voltages_check(void)
 {
-    // check temps under threshold
-    // check va, vd, etc
+    // Sanity check va, vd, etc
     // IC[0]: vmv: -0.00 vpv: 11.70 vd: 3.03 va: 5.09 vref2: 3.00 itmp: 26.08
+
+    // TODO check VMV and VPV
 
     // Va
     // Analog power supply voltage = voltage at the VREG pin.
