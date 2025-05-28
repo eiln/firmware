@@ -10,25 +10,20 @@
 
 struct bms_data
 {
-    // int16_t cell_voltages_raw[TOTAL_AD68][TOTAL_CELL]; // cell voltage (raw)
     float cell_v_c[TOTAL_AD68][TOTAL_CELL]; // C-ADC cell voltage (V)
     float cell_v_s[TOTAL_AD68][TOTAL_CELL]; // S-ADC cell voltage (V)
 
-    // int16_t aux_voltages_raw[TOTAL_AD68][TOTAL_AUX]; // therm/temps (raw)
-    // float aux_voltages_parsed[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
-    // float aux_voltages_ow[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
-    float aux_v[TOTAL_AD68][TOTAL_AUX]; // therm/temps (raw)
-    float aux_ow_v[TOTAL_AD68][TOTAL_AUX]; // therm/temps (V)
+    float aux_v[TOTAL_AD68][TOTAL_AUX]; // AUX GPIO (V)
+    float aux_ow_v[TOTAL_AD68][TOTAL_AUX]; // AUX GPIO open-wire (V)
+
     float vmv[TOTAL_AD68]; // V- to S1N (V)
     float vpv[TOTAL_AD68]; // V+ to V- (V)
 
-    // RDSTATB: internal supply voltages
-    float vd[TOTAL_AD68]; // digital
-    float va[TOTAL_AD68]; // analog
+    float vd[TOTAL_AD68]; // Digital (V)
+    float va[TOTAL_AD68]; // Analog (V)
 
-    // RDSTATA:
-    float vref2[TOTAL_AD68]; // refernce voltage (V)
-    float itmp[TOTAL_AD68]; // internal die temperature (C)
+    float vref2[TOTAL_AD68]; // Refernce voltage (V)
+    float itmp[TOTAL_AD68]; // Internal die temperature (C)
 };
 
 typedef enum
@@ -67,6 +62,7 @@ uint32_t adbms_transmit_poll(uint8_t cmd[CMD_LEN]);
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t data[TOTAL_AD68][DATA_LEN]);
 void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN]);
 
+uint32_t bms_getTick(void);
 uint32_t bms_get_fault_duration(int ic, bms_error_t field);
 void bms_set_fault(int ic, bms_error_t field, bool set);
 void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set);

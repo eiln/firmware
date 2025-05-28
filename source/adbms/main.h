@@ -45,9 +45,11 @@ typedef struct
 {
     bms_state_t state;
     uint32_t fault[TOTAL_AD68]; // bitfield of bms_error_t
-    uint32_t fault_aux[TOTAL_AD68][TOTAL_AUX];
     uint32_t fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
     uint32_t last_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
+
+    uint32_t fault_aux[TOTAL_AD68][TOTAL_AUX];
+    uint32_t fault_cell[TOTAL_AD68][TOTAL_CELL];
 
     uint8_t  txData[TOTAL_AD68][DATA_LEN];
     uint8_t  rxData[TOTAL_AD68][DATA_LEN];

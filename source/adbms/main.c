@@ -84,9 +84,11 @@ static void bms_error_handler(void);
 bms_t bmsmaster = {
     .state = BMS_STATE_IDLE,
     .fault = {0},
-    .fault_aux = {0},
     .fault_time = {0},
     .last_fault_time = {0},
+
+    .fault_aux = {0},
+    .fault_cell = {0},
 };
 
 defineStaticSemaphore(spi1_lock);
@@ -188,7 +190,7 @@ static void bms_periodic(void)
     {
         case BMS_STATE_CONNECTED:
         {
-            if (bms_init())
+            if (!bms_init())
             {
                 ; // TODO
                 return;
@@ -224,7 +226,7 @@ static bool is_error(void)
 
 #define print_bms_fault(ic, x) do {\
     if (bmsmaster.fault[ic] & x)\
-        printf("\t " #x "time: %4d last: %8d\n", bms_get_fault_duration(ic, x), bmsmaster.fault_time[ic][x]);\
+        printf("\t " #x " time: %d last: %d\n", bms_get_fault_duration(ic, x), bmsmaster.fault_time[ic][x]);\
 } while (0);
 
 static void bms_error_handler(void)
@@ -239,6 +241,9 @@ static void bms_error_handler(void)
             printf("BMS Error IC[%d]: 0x%08x\n", ic, bmsmaster.fault[ic]);
             print_bms_fault(ic, BMS_ERROR_SID);
             print_bms_fault(ic, BMS_ERROR_RXPEC);
+            print_bms_fault(ic, BMS_ERROR_TX);
+            print_bms_fault(ic, BMS_ERROR_VPV);
+            print_bms_fault(ic, BMS_ERROR_VMV);
             print_bms_fault(ic, BMS_ERROR_VA);
             print_bms_fault(ic, BMS_ERROR_VD);
             print_bms_fault(ic, BMS_ERROR_VREG);
