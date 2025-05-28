@@ -8,7 +8,7 @@
 #include "common/phal_F4_F7/gpio/gpio.h"
 #include "common/phal_F4_F7/spi/spi.h"
 
-static inline uint32_t bms_getTick(void)
+uint32_t bms_getTick(void)
 {
     return xTaskGetTickCount();
 }

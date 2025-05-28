@@ -191,7 +191,7 @@ static inline int16_t get_i16(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int 
 
 float getVoltage(int data)
 {
-    float voltage_float; //voltage in Volts
+    float voltage_float; // V
     voltage_float = ((data + 10000) * 0.000150f);
     return voltage_float;
 }
@@ -199,7 +199,7 @@ float getVoltage(int data)
 static inline void bms_read_cell_v_c(int ic, int group, int idx)
 {
     int16_t raw = get_i16(rxData, ic, idx);
-    bms.cell_v_c[ic][group * 3 + (idx)] = getVoltage(raw);
+    bms.cell_v_c[ic][group * 3 + idx] = getVoltage(raw);
 }
 
 void bms_readCellVoltages(void)
@@ -228,13 +228,9 @@ void bms_readCellVoltages(void)
                     bms_read_cell_v_c(ic, group, 0);
                     bms_read_cell_v_c(ic, group, 1);
                     bms_read_cell_v_c(ic, group, 2);
-                    // bms.cell_v_c_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
-                    // bms.cell_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
-                    // bms.cell_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
                 break;
                 case 5:
                     bms_read_cell_v_c(ic, group, 0);
-                    // bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 15
                 break;
             }
         }
@@ -245,8 +241,9 @@ void bms_readCellVoltages(void)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
         {
-            // bms.cell_v_c[ic][i] = getVoltage((int16_t)bms.cell_voltages_raw[ic][i]);
             debug_printf("Cell %02d: %f ", i, bms.cell_v_c[ic][i]);
+            if (i % 4 == 0)
+                debug_printf("\n");
         }
     }
     debug_printf("\n");
@@ -255,7 +252,7 @@ void bms_readCellVoltages(void)
 static inline void bms_read_cell_v_s(int ic, int group, int idx)
 {
     int16_t raw = get_i16(rxData, ic, idx);
-    bms.cell_v_s[ic][group * 3 + (idx)] = getVoltage(raw);
+    bms.cell_v_s[ic][group * 3 + idx] = getVoltage(raw);
 }
 
 void bms_readSVoltages(void)
@@ -282,13 +279,9 @@ void bms_readSVoltages(void)
                     bms_read_cell_v_s(ic, group, 0);
                     bms_read_cell_v_s(ic, group, 1);
                     bms_read_cell_v_s(ic, group, 2);
-                    // bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0);
-                    // bms.cell_voltages_raw[ic][i * 3 + 1] = get_i16(rxData, ic, 1);
-                    // bms.cell_voltages_raw[ic][i * 3 + 2] = get_i16(rxData, ic, 2);
                 break;
                 case 5:
                     bms_read_cell_v_s(ic, group, 0);
-                    //bms.cell_voltages_raw[ic][i * 3 + 0] = get_i16(rxData, ic, 0); // index 15
                 break;
             }
         }
@@ -299,7 +292,6 @@ void bms_readSVoltages(void)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
         {
-            // bms.cell_voltages_parsed[ic][i] = getVoltage((int16_t)bms.cell_voltages_raw[ic][i]);
             debug_printf("Cell %02d: %f ", i, bms.cell_v_s[ic][i]);
         }
     }
@@ -339,9 +331,9 @@ static inline void bms_read_aux_v(int ic, int group, int idx, bool ow)
 {
     int16_t raw = get_i16(rxData, ic, idx);
     if (!ow)
-        bms.aux_v[ic][group * 3 + (idx)] = getVoltage(raw);
+        bms.aux_v[ic][group * 3 + idx] = getVoltage(raw);
     else
-        bms.aux_ow_v[ic][group * 3 + (idx)] = getVoltage(raw);
+        bms.aux_ow_v[ic][group * 3 + idx] = getVoltage(raw);
 }
 
 /* AUX */
@@ -383,17 +375,6 @@ void bms_readAuxVoltages(bool ow)
                     }
                 break;
             }
-        }
-    }
-
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        for (int i = 0; i < TOTAL_AUX; i++)
-        {
-            // if (!ow)
-            //     bms.aux_voltages_parsed[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
-            // else
-            //     bms.aux_voltages_ow[ic][i] = getVoltage(bms.aux_voltages_raw[ic][i]);
         }
     }
 }
