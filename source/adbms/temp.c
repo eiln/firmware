@@ -85,7 +85,8 @@ static void bms_aux_ow_check(void)
     // TODO NULL values in case of open-wire and exit state
     // if open-wire is okay, use values read from bms_readAuxVoltagesAll()
 
-    // TODO check temp min/max
+#if 0
+    // TODO convert volts to C and check temp min/max
     #define BMS_TEMP_MIN (-40.0f)
     #define BMS_TEMP_MAX (60.0f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
@@ -93,11 +94,13 @@ static void bms_aux_ow_check(void)
         for (int aux = 0; aux < TOTAL_AUX; aux++)
         {
             set = bms.aux_v[ic][aux] < BMS_TEMP_MIN;
+            if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_AUX_UNDERTEMP: %.3f\n", ic, bms.vref2[ic]);
             bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_UNDERTEMP, set);
             set = bms.aux_v[ic][aux] > BMS_TEMP_MAX;
             bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_OVERTEMP, set);
         }
     }
+#endif
 }
 
 static void bms_aux_voltages_check(void)
@@ -115,8 +118,7 @@ static void bms_aux_voltages_check(void)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         bool set = bms.va[ic] < BMS_VA_MIN || bms.va[ic] > BMS_VA_MAX;
-        if (set)
-            printf("[FAULT]: [IC%d]: BMS_ERROR_VA: %.3f\n", ic, bms.va[ic]);
+        if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_VA: %.3f\n", ic, bms.va[ic]);
         bms_set_fault(ic, BMS_ERROR_VA, set);
     }
 
@@ -128,8 +130,7 @@ static void bms_aux_voltages_check(void)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         bool set = bms.vd[ic] < BMS_VD_MIN || bms.vd[ic] > BMS_VD_MAX;
-        if (set)
-            printf("[FAULT]: [IC%d]: BMS_ERROR_VD: %.3f\n", ic, bms.vd[ic]);
+        if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_VD: %.3f\n", ic, bms.vd[ic]);
         bms_set_fault(ic, BMS_ERROR_VD, set);
     }
 
@@ -140,8 +141,7 @@ static void bms_aux_voltages_check(void)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         bool set = bms.vref2[ic] < BMS_VREF2_MIN || bms.vref2[ic] > BMS_VREF2_MAX;
-        if (set)
-            printf("[FAULT]: [IC%d]: BMS_ERROR_VREF2: %.3f\n", ic, bms.vref2[ic]);
+        if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_VREF2: %.3f\n", ic, bms.vref2[ic]);
         bms_set_fault(ic, BMS_ERROR_VREF2, set);
     }
 
@@ -151,8 +151,7 @@ static void bms_aux_voltages_check(void)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         bool set = bms.itmp[ic] < BMS_ITMP_MIN || bms.itmp[ic] > BMS_ITMP_MAX;
-        if (set)
-            printf("[FAULT]: [IC%d]: BMS_ERROR_ITMP: %.3f\n", ic, bms.itmp[ic]);
+        if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_ITMP: %.3f\n", ic, bms.itmp[ic]);
         bms_set_fault(ic, BMS_ERROR_ITMP, set);
     }
 }

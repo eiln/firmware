@@ -292,7 +292,9 @@ uint32_t bms_get_fault_duration(int ic, bms_error_t field)
 {
     if (bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field))
     {
-        return bmsmaster.fault_time[ic][field] + (bms_getTick() - bmsmaster.last_fault_time[ic][field]);
+        uint32_t now = bms_getTick();
+        bmsmaster.last_fault_time[ic][field] = now;
+        return bmsmaster.last_fault_time[ic][field] - bmsmaster.first_fault_time[ic][field];
     }
     return 0;
 }
@@ -304,27 +306,23 @@ void bms_set_fault(int ic, bms_error_t field, bool set)
     uint32_t mask = BMS_GET_ERROR_MASK(field);
     if (set)
     {
-        if (!bmsmaster.last_fault_time[ic][field])
+        if (!(bmsmaster.fault[ic] & mask))
         {
-            bmsmaster.last_fault_time[ic][field] = bms_getTick();
-        }
-        else if (bmsmaster.fault[ic] & mask)
-        {
-            // Fault already set, so it's been ongoing
-            bmsmaster.fault_time[ic][field] += now - bmsmaster.last_fault_time[ic][field];
-            bmsmaster.last_fault_time[ic][field] = now;
+            bmsmaster.first_fault_time[ic][field] = now;
         }
         else
         {
-            bmsmaster.fault_time[ic][field] = 0;
-            bmsmaster.last_fault_time[ic][field] = now;
+            // Fault already set, so it's been ongoing
+            if (!bmsmaster.first_fault_time[ic][field])
+                bmsmaster.first_fault_time[ic][field] = now;
         }
         bmsmaster.fault[ic] |= mask;
+        bmsmaster.last_fault_time[ic][field] = now;
     }
     else
     {
         bmsmaster.fault[ic] &= ~mask;
-        bmsmaster.fault_time[ic][field] = 0;
+        bmsmaster.first_fault_time[ic][field] = 0;
         bmsmaster.last_fault_time[ic][field] = 0;
     }
 }
