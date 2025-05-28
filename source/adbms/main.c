@@ -224,9 +224,9 @@ static bool is_error(void)
     return ret;
 }
 
-#define print_bms_fault(ic, x) do {\
-    if (bmsmaster.fault[ic] & x)\
-        printf("\t " #x " time: %d last: %d\n", bms_get_fault_duration(ic, x), bmsmaster.fault_time[ic][x]);\
+#define print_bms_fault(ic, field) do {\
+    if (bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field))\
+        printf("\t " #field " time: %d last: %d\n", bms_get_fault_duration(ic, field), bmsmaster.fault_time[ic][field]);\
 } while (0);
 
 static void bms_error_handler(void)
