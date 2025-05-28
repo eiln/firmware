@@ -5,7 +5,6 @@
 #include "common/phal_F4_F7/spi/spi.h"
 #include "common/phal_F4_F7/usart/usart.h"
 #include "common/freertos/freertos.h"
-
 #include "common/log/log.h"
 
 #include "main.h"
