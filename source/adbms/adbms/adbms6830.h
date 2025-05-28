@@ -47,9 +47,6 @@ typedef struct
 bool adbms_checkalive(void);
 float getVoltage(int data);
 
-void bms_set_fault(int ic, uint32_t mask, bool set);
-void bms_set_fault_aux(int ic, int aux, uint32_t mask, bool set);
-
 bool bms_init(void);
 
 void bms_writePwm(uint8_t pwm[TOTAL_AD68][TOTAL_CELL]);

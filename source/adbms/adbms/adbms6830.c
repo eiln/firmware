@@ -13,30 +13,6 @@ struct bms_data bms;
 uint8_t  txData[TOTAL_AD68][DATA_LEN];
 uint8_t  rxData[TOTAL_AD68][DATA_LEN];
 
-void bms_set_fault(int ic, uint32_t mask, bool set)
-{
-    if (set)
-    {
-        bmsmaster.fault[ic] |= mask;
-    }
-    else
-    {
-        bmsmaster.fault[ic] &= ~mask;
-    }
-}
-
-void bms_set_fault_aux(int ic, int aux, uint32_t mask, bool set)
-{
-    if (set)
-    {
-        bmsmaster.fault_aux[ic][aux] |= mask;
-    }
-    else
-    {
-        bmsmaster.fault_aux[ic][aux] &= ~mask;
-    }
-}
-
 #define ADBMS_6830B_SID (0b000011)
 
 bool adbms_checkalive(void)
@@ -175,11 +151,6 @@ void adBms6830_Adsv(uint8_t cont, uint8_t dcp, uint8_t owcs)
     cmd[0] = 0x01;
     cmd[1] = (cont << 7) + (dcp << 4) + (owcs & 0x03) + 0x68;
     adbms_transmit_cmd(cmd);
-}
-
-void bms_startAdcvCell(void)
-{
-    adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_CONTINUOUS, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
 }
 
 void adBms6830_Adax(uint8_t owaux, uint8_t pup, uint8_t ch)

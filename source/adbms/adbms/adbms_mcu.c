@@ -288,6 +288,56 @@ static uint32_t bms_transmitPoll(uint8_t cmd[CMD_LEN])
     return end - start;
 }
 
+uint32_t bms_get_fault_duration(int ic, bms_error_t field)
+{
+    if (bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field))
+    {
+        return bmsmaster.fault_time[ic][field] + (bms_getTick() - bmsmaster.last_fault_time[ic][field]);
+    }
+    return 0;
+}
+
+/* Faults */
+void bms_set_fault(int ic, bms_error_t field, bool set)
+{
+    uint32_t now = bms_getTick();
+    uint32_t mask = BMS_GET_ERROR_MASK(field);
+    if (set)
+    {
+        if (bmsmaster.fault[ic] & mask)
+        {
+            // Fault already set, so it's been ongoing
+            bmsmaster.fault_time[ic][field] += now - bmsmaster.last_fault_time[ic][field];
+        }
+        else
+        {
+            bmsmaster.fault_time[ic][field] = 0;
+        }
+        bmsmaster.fault[ic] |= mask;
+        bmsmaster.last_fault_time[ic][field] = now;
+    }
+    else
+    {
+        bmsmaster.fault[ic] &= ~mask;
+        bmsmaster.fault_time[ic][field] = 0;
+        bmsmaster.last_fault_time[ic][field] = 0;
+    }
+}
+
+void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set)
+{
+    uint32_t mask = BMS_GET_ERROR_MASK(field);
+    if (set)
+    {
+
+        bmsmaster.fault_aux[ic][aux] |= mask;
+    }
+    else
+    {
+        bmsmaster.fault_aux[ic][aux] &= ~mask;
+    }
+}
+
 /* RX */
 static void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][DATA_LEN], uint16_t rxPec[TOTAL_AD68], uint8_t rxCc[TOTAL_AD68])
 {
@@ -301,38 +351,15 @@ static void bms_receiveData(uint8_t cmd[CMD_LEN], uint8_t rxBuffer[TOTAL_AD68][D
 static bool bms_checkRxFault(uint8_t data[TOTAL_AD68][DATA_LEN], uint16_t pec[TOTAL_AD68], uint8_t cc[TOTAL_AD68])
 {
     uint32_t mask = bms_checkRxPec(data, pec, cc);
-    if (mask)
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        // TODO send error mask over CAN
-        // DEBUG
-        printf("PEC ERROR - IC:");
-        for (int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            if (mask & (1 << ic))
-            {
-                bmsmaster.fault[ic] |= BMS_ERROR_RXPEC;
-                printf(" %d,", ic);
-            }
-            else
-            {
-                bmsmaster.fault[ic] &= ~BMS_ERROR_RXPEC;
-            }
-        }
-        printf("\n");
-        // END OF DEBUG
-    }
-    else
-    {
-        for (int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            bmsmaster.fault[ic] &= ~BMS_ERROR_RXPEC;
-        }
+        bms_set_fault(ic, BMS_ERROR_RXPEC, mask & (1 << ic));
     }
     return !!mask; // true if fault
 }
 
 /* Safe public functions (prefixed adbms_) */
-/* Do not nest these calls */
+/* Do not nest these calls as they take sema */
 static void bms_crit_enter(void)
 {
     if (xSemaphoreTake(spi1_lock, portMAX_DELAY) != pdTRUE)

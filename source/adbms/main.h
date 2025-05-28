@@ -41,54 +41,14 @@ typedef enum
     BMS_STATE_CHARGING,
 } bms_state_t;
 
-typedef enum
-{
-    BMS_ERROR_FIELD_SID = 0,  // Device ID
-    BMS_ERROR_FIELD_RXPEC,    // RX PEC mismatch
-    BMS_ERROR_FIELD_TX,       // TX failed
-    BMS_ERROR_FIELD_VA,       // Analog power
-    BMS_ERROR_FIELD_VD,       // Digital power
-    BMS_ERROR_FIELD_VREG,     // Regulated Power
-    BMS_ERROR_FIELD_VREF2,    // Vref2 for thermistors
-    BMS_ERROR_FIELD_ITMP,     // Internal die temperature
-
-    BMS_ERROR_FIELD_CELL_OW,    // Cell open-wire
-    BMS_ERROR_FIELD_CELL_UV,    // Cell undervoltage
-    BMS_ERROR_FIELD_CELL_OV,    // Cell overvoltage
-    BMS_ERROR_FIELD_CELL_REDUN, // Cell redundant measurement
-
-    BMS_ERROR_FIELD_AUX_OW,        // AUX open-wire
-    BMS_ERROR_FIELD_AUX_UNDERTEMP, // AUX under temperature
-    BMS_ERROR_FIELD_AUX_OVERTEMP,  // AUX over temperature
-
-    BMS_ERROR_FIELD_COUNT,
-} bms_error_t;
-
-// TODO add
-// VMV: S1N to V− measurement
-// VPV: V+ to V− measurement
-
-#define BMS_GET_ERROR_MASK(field) (1 << (field))
-
-#define BMS_ERROR_NONE  (0)
-#define BMS_ERROR_SID   (1 << (BMS_ERROR_FIELD_SID))
-#define BMS_ERROR_RXPEC (1 << (BMS_ERROR_FIELD_RXPEC))
-#define BMS_ERROR_TX    (1 << (BMS_ERROR_FIELD_TX))
-#define BMS_ERROR_VA    (1 << (BMS_ERROR_FIELD_VA))
-#define BMS_ERROR_VD    (1 << (BMS_ERROR_FIELD_VD))
-#define BMS_ERROR_VREG  (1 << (BMS_ERROR_FIELD_VREG))
-#define BMS_ERROR_VREF2 (1 << (BMS_ERROR_FIELD_VREF2))
-#define BMS_ERROR_ITMP  (1 << (BMS_ERROR_FIELD_ITMP))
-
-#define BMS_ERROR_AUX_OW (1 << (BMS_ERROR_FIELD_AUX_OW))
-#define BMS_ERROR_AUX_UNDERTEMP (1 << (BMS_ERROR_FIELD_AUX_UNDERTEMP))
-#define BMS_ERROR_AUX_OVERTEMP  (1 << (BMS_ERROR_FIELD_AUX_OVERTEMP))
-
 typedef struct
 {
     bms_state_t state;
     uint32_t fault[TOTAL_AD68]; // bitfield of bms_error_t
     uint32_t fault_aux[TOTAL_AD68][TOTAL_AUX];
+    uint32_t fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
+    uint32_t last_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
+
     uint8_t  txData[TOTAL_AD68][DATA_LEN];
     uint8_t  rxData[TOTAL_AD68][DATA_LEN];
     uint16_t rxPec[TOTAL_AD68];
