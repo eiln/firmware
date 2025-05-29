@@ -34,20 +34,23 @@ typedef enum
     BMS_ERROR_POLL_TIMEOUT, // Poll Timeout
     BMS_ERROR_VPV,      // V+ to V−
     BMS_ERROR_VMV,      // S1N to V−
-    BMS_ERROR_VA,       // Analog power
-    BMS_ERROR_VD,       // Digital power
+    BMS_ERROR_VA_UV,    // Analog power undervoltage
+    BMS_ERROR_VA_OV,    // Analog power overvoltage
+    BMS_ERROR_VD_UV,    // Digital power undervoltage
+    BMS_ERROR_VD_OV,    // Digital power overvoltage
     BMS_ERROR_VREG,     // Regulated Power
     BMS_ERROR_VREF2,    // Vref2 for thermistors
-    BMS_ERROR_ITMP,     // Internal die temperature
+    BMS_ERROR_ITMP_UT,  // Internal die temperature under temperature
+    BMS_ERROR_ITMP_OT,  // Internal die temperature over temperature
 
     BMS_ERROR_CELL_OW,    // Cell open-wire
     BMS_ERROR_CELL_UV,    // Cell undervoltage
     BMS_ERROR_CELL_OV,    // Cell overvoltage
     BMS_ERROR_CELL_REDUN, // Cell redundant measurement
 
-    BMS_ERROR_AUX_OW,        // AUX open-wire
-    BMS_ERROR_AUX_UNDERTEMP, // AUX under temperature
-    BMS_ERROR_AUX_OVERTEMP,  // AUX over temperature
+    BMS_ERROR_AUX_OW,     // AUX open-wire
+    BMS_ERROR_AUX_UT,     // AUX under temperature
+    BMS_ERROR_AUX_OT,     // AUX over temperature
     BMS_ERROR_AUX_REDUN,  // AUX over temperature
 
     BMS_ERROR_COUNT,

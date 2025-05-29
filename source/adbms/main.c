@@ -247,11 +247,14 @@ static void bms_error_handler(void)
             print_bms_fault(ic, BMS_ERROR_POLL_TIMEOUT);
             print_bms_fault(ic, BMS_ERROR_VPV);
             print_bms_fault(ic, BMS_ERROR_VMV);
-            print_bms_fault(ic, BMS_ERROR_VA);
-            print_bms_fault(ic, BMS_ERROR_VD);
+            print_bms_fault(ic, BMS_ERROR_VA_UV);
+            print_bms_fault(ic, BMS_ERROR_VA_OV);
+            print_bms_fault(ic, BMS_ERROR_VD_UV);
+            print_bms_fault(ic, BMS_ERROR_VD_OV);
             print_bms_fault(ic, BMS_ERROR_VREG);
             print_bms_fault(ic, BMS_ERROR_VREF2);
-            print_bms_fault(ic, BMS_ERROR_ITMP);
+            print_bms_fault(ic, BMS_ERROR_ITMP_UT);
+            print_bms_fault(ic, BMS_ERROR_ITMP_OT);
         }
         /* Clear Errors */
     }

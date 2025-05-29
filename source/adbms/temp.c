@@ -105,10 +105,15 @@ static void bms_aux_ow_check(void)
 #endif
 }
 
+#define BMS_SET_FAULT_DEBUG(field, var)\
+    if (set) bms_error("[FAULT]: [IC%d]: " #field ": %.3f\n", ic, var);\
+    bms_set_fault(ic, field, set);
+
 static void bms_aux_voltages_check(void)
 {
     // Sanity check va, vd, etc
     // IC[0]: vmv: -0.00 vpv: 11.70 vd: 3.03 va: 5.09 vref2: 3.00 itmp: 26.08
+    bool set;
 
     // TODO check VMV and VPV
 
@@ -120,9 +125,11 @@ static void bms_aux_voltages_check(void)
     #define BMS_VA_MAX (5.5f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        bool set = bms.va[ic] < BMS_VA_MIN || bms.va[ic] > BMS_VA_MAX;
-        if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_VA: %.3f\n", ic, bms.va[ic]);
-        bms_set_fault(ic, BMS_ERROR_VA, set);
+        set = bms.va[ic] < BMS_VA_MIN;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VA_UV, bms.va[ic]);
+
+        set = bms.va[ic] > BMS_VA_MAX;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VA_OV, bms.va[ic]);
     }
 
     // Vd
@@ -132,9 +139,11 @@ static void bms_aux_voltages_check(void)
     #define BMS_VD_MAX (3.6f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        bool set = bms.vd[ic] < BMS_VD_MIN || bms.vd[ic] > BMS_VD_MAX;
-        if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_VD: %.3f\n", ic, bms.vd[ic]);
-        bms_set_fault(ic, BMS_ERROR_VD, set);
+        set = bms.vd[ic] < BMS_VD_MIN;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VD_UV, bms.vd[ic]);
+
+        set = bms.vd[ic] > BMS_VD_MAX;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VD_OV, bms.vd[ic]);
     }
 
     // VREF2
@@ -143,9 +152,8 @@ static void bms_aux_voltages_check(void)
     #define BMS_VREF2_MAX (3.012f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        bool set = bms.vref2[ic] < BMS_VREF2_MIN || bms.vref2[ic] > BMS_VREF2_MAX;
-        if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_VREF2: %.3f\n", ic, bms.vref2[ic]);
-        bms_set_fault(ic, BMS_ERROR_VREF2, set);
+        set = bms.vref2[ic] < BMS_VREF2_MIN || bms.vref2[ic] > BMS_VREF2_MAX;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VREF2, bms.vref2[ic]);
     }
 
     // ITMP: Internal Die temperature
@@ -153,9 +161,11 @@ static void bms_aux_voltages_check(void)
     #define BMS_ITMP_MAX (40.0f) // 104F
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        bool set = bms.itmp[ic] < BMS_ITMP_MIN || bms.itmp[ic] > BMS_ITMP_MAX;
-        if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_ITMP: %.3f\n", ic, bms.itmp[ic]);
-        bms_set_fault(ic, BMS_ERROR_ITMP, set);
+        set = bms.itmp[ic] < BMS_ITMP_MIN;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_ITMP_UT, bms.itmp[ic]);
+
+        set = bms.itmp[ic] > BMS_ITMP_MAX;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_ITMP_OT, bms.itmp[ic]);
     }
 }
 
