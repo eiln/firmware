@@ -264,6 +264,26 @@ static void bms_error_handler(void)
     }
 }
 
+#if 0
+
+    /* handle potential errors */
+    if ((sys_stat.byte & BQ769X0_SYS_STAT_ERROR_MASK) != 0) {
+        if (dev_data->error_seconds_counter < 0) {
+            dev_data->error_seconds_counter = 0;
+        }
+
+        err = 0;
+
+        if (sys_stat.DEVICE_XREADY) {
+            /* datasheet recommendation: try to clear after waiting a few seconds */
+            if (dev_data->error_seconds_counter % 3 == 0) {
+                LOG_DBG("Attempting to clear XR error");
+                err |= bq769x0_write_byte(dev, BQ769X0_SYS_STAT, BQ769X0_SYS_STAT_DEVICE_XREADY);
+            }
+        }
+
+#endif
+
 void HardFault_Handler()
 {
     while(1)

@@ -32,6 +32,7 @@ typedef enum
     BMS_ERROR_RXPEC,    // RX PEC mismatch
     BMS_ERROR_CONFIG,   // Config TX failed
     BMS_ERROR_POLL_TIMEOUT, // Poll Timeout
+
     BMS_ERROR_VPV,      // V+ to V−
     BMS_ERROR_VMV,      // S1N to V−
     BMS_ERROR_VA_UV,    // Analog power undervoltage
