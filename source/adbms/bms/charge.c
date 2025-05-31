@@ -1,21 +1,28 @@
 #include "main.h"
 #include "adbms/adbms.h"
 
-bool bms_charge_requested(void)
+static bool bms_charge_requested(void)
 {
     bool charger_connected = PHAL_readGPIO(CHARGE_ENABLED_PORT, CHARGE_ENABLED_PIN);
     bool daq_connected = false; // TODO daqapp
-    return charger_connected && daq_connected;
+    return daq_connected && charger_connected;
 }
 
 static bool bms_can_charge(void)
 {
     // Bare minimum checks to see if charging can continue
+    // 0. Check charger connection
+    bool charger_connected = PHAL_readGPIO(CHARGE_ENABLED_PORT, CHARGE_ENABLED_PIN);
+    if (!charger_connected)
+    {
+        bms_error("[ERROR]: Charger port fault! Cannot charge!\n");
+        return false;
+    }
 
     // 1. Check BMS connection
     if (bms_pack_faults(BMS_ERROR_SID) || bms_pack_faults(BMS_ERROR_RXPEC) || bms_pack_faults(BMS_ERROR_CONFIG) || bms_pack_faults(BMS_ERROR_POLL_TIMEOUT))
     {
-        bms_error("[ERROR]: BMS Connection fault! Cannot charge!\n");
+        bms_error("[ERROR]: BMS connection fault! Cannot charge!\n");
         return false;
     }
 
@@ -50,8 +57,6 @@ static bool bms_can_charge(void)
     return true;
 }
 
-static int charger_fail_count = 0;
-
 static void bms_pull_sdc(void)
 {
     // PHAL_writeGPIO(SPI_CS_PORT, SPI_CS_PIN, 0);
@@ -60,7 +65,6 @@ static void bms_pull_sdc(void)
 
 static void elcon_charger_stop(void)
 {
-    bms.charger_fail_count = 0;
     return;
 }
 
@@ -69,10 +73,39 @@ static void elcon_charger_start(void)
     ;
 }
 
+static void bms_charge_state_exit(void)
+{
+    elcon_charger_stop();
+    // if elcon stop fails, pull SDC
+    bms.charger_fail_count = 0;
+    bms.state = BMS_STATE_CONNECTED;
+}
+
 void bms_cell_balance_task(void);
 
 void bms_charge_task(void)
 {
+    bool req = bms_charge_requested();
+    if (!req)
+    {
+        if (bms.state == BMS_STATE_CHARGING)
+        {
+            // Requested stop charge from charging state
+            bms_charge_state_exit();
+            return;
+        }
+        else
+        {
+            // Was not charging and did not request charge
+            // Do nothing
+            return;
+        }
+    }
+
+    // assert req == true
+    // Assumes task is called in charge requested state
+    bool can_charge = bms_can_charge();
+
     if (!bms_can_charge())
     {
         bms.charger_fail_count++;
@@ -82,12 +115,10 @@ void bms_charge_task(void)
         bms.charger_fail_count = 0;
     }
 
-    // Assumes task is called in charge requested state
     if (bms.charger_fail_count >= 5)
     {
         bms_error("[ERROR]: Charger fault unresolved! Disconnecting from charger\n");
-        elcon_charger_stop();
-        bms_pull_sdc();
+        bms_charge_state_exit();
         return;
     }
     if (bms.charger_fail_count)
@@ -97,8 +128,8 @@ void bms_charge_task(void)
         return;
     }
 
+    // Now enter charging mode
     bms.state = BMS_STATE_CHARGING;
-
     bms_cell_balance_task();
     elcon_charger_start();
     // elcon_send_charge_request(CHARGER_CVL_MAX, CHARGER_CCL_MAX, true);
