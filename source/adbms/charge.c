@@ -33,6 +33,11 @@ bool bms_can_charge(void)
 
     // 4. Check CAN communication
     // TODO Elcon check, no CAN TX fault check
+    if ()
+    {
+        bms_error("[ERROR]: Cell fault! Cannot charge!\n");
+        return false;
+    }
 
     return true;
 }

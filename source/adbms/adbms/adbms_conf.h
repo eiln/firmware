@@ -4,6 +4,7 @@
 
 #include "stdint.h"
 #include "stdbool.h"
+#include "common_types.h"
 
 #define TOTAL_CELL      (16)
 #define TOTAL_AD68      (1)

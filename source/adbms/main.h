@@ -2,6 +2,8 @@
 #define _MAIN_H_
 
 #include "adbms/adbms.h"
+#include "faults.h"
+
 #include "common/freertos/freertos.h"
 #include "common/phal_F4_F7/spi/spi.h"
 #include "common/log/log.h"
@@ -48,6 +50,7 @@ typedef struct
     uint32_t first_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
     uint32_t last_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
 
+    uint32_t fault_global;
     uint32_t fault_aux[TOTAL_AD68][TOTAL_AUX];
     uint32_t fault_cell[TOTAL_AD68][TOTAL_CELL];
 
