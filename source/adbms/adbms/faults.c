@@ -19,6 +19,11 @@ void bms_set_fault_global(bms_global_error_t field, bool set)
     }
 }
 
+bool bms_global_fault(bms_global_error_t field)
+{
+    return bmsmaster.fault_global & BMS_GET_ERROR_MASK(field);
+}
+
 uint32_t bms_get_fault_duration(int ic, bms_error_t field)
 {
     uint32_t now = bms_getTick();

@@ -50,6 +50,8 @@ static_assert(BMS_GLOBAL_ERROR_COUNT < 32); // since packing in u32
 #define BMS_GET_ERROR_MASK(field) (1 << (field))
 
 void bms_set_fault_global(bms_global_error_t field, bool set);
+bool bms_global_fault(bms_global_error_t field);
+
 void bms_set_fault(int ic, bms_error_t field, bool set);
 void bms_set_fault_all(bms_error_t field, bool set);
 uint32_t bms_pack_faults(bms_error_t field);
