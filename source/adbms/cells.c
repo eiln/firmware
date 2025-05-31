@@ -44,11 +44,26 @@ static void bms_read_cells(void)
     measurements).
     #endif
 
-    // driving mode
-    // direct C/S redunancy check
-    //adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
+    // 16 additional ADCs are dedicated to measure the 16 differential
+    // inputs (SxP and SxN) synchronously with an input range of 0 V
+    // to 5. 5 V and a sampling frequency of ~4 MHz, giving out results
+    // every 8 ms.
+    #if 0
+    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_ODD_CH);
+    bms_mDelay(8);
+    bms_readSVoltages();
+
+    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_EVEN_CH);
+    bms_mDelay(8);
+    bms_readSVoltages();
+    #endif
+
+    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_OFF_ALL_CH);
+    bms_mDelay(8);
+    bms_readSVoltages();
+
     adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
-    adbms_transmit_poll(PLCADC);
+    bms_mDelay(1);
     bms_checkCellVoltagesStatC();
     bms_readCellVoltages();
 
