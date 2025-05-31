@@ -79,7 +79,6 @@ void HardFault_Handler(void);
 static void bms_create_threads(void);
 static void bms_heartbeat(void);
 static void bms_periodic(void);
-static void bms_error_handler(void);
 
 bms_t bms = {
     .state = BMS_STATE_IDLE,
@@ -208,88 +207,9 @@ static void bms_periodic(void)
     // Run regular tasks first then enter charge mode
     bms_monitor_cells();
     bms_monitor_temps();
+
     bms_charge_task();
 }
-
-static bool is_any_error(void)
-{
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        if (bms.fault[ic]) return true;
-    }
-    return false;
-}
-
-#define print_bms_fault(ic, field) do {\
-    if (bms.fault[ic] & BMS_GET_ERROR_MASK(field))\
-        printf("\t " #field " time: %d last: %d\n", bms_get_fault_duration(ic, field), bms.last_fault_time[ic][field]);\
-} while (0);
-
-#define print_bms_cell_fault(field) do {\
-    if (bms.fault_cell[ic][cell] & BMS_GET_ERROR_MASK(field))\
-        printf("\t [CELL%2d]" #field "\n", cell);\
-} while (0);
-
-static void bms_error_handler(void)
-{
-    if (is_any_error())
-    {
-        PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
-        printf("BMS State: 0x%02x\n", bms.state);
-
-        for (int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            printf("BMS Error IC[%d]: 0x%08x\n", ic, bms.fault[ic]);
-            print_bms_fault(ic, BMS_ERROR_SID);
-            print_bms_fault(ic, BMS_ERROR_RXPEC);
-            print_bms_fault(ic, BMS_ERROR_CONFIG);
-            print_bms_fault(ic, BMS_ERROR_POLL_TIMEOUT);
-            print_bms_fault(ic, BMS_ERROR_VPV);
-            print_bms_fault(ic, BMS_ERROR_VMV);
-            print_bms_fault(ic, BMS_ERROR_VA_UV);
-            print_bms_fault(ic, BMS_ERROR_VA_OV);
-            print_bms_fault(ic, BMS_ERROR_VD_UV);
-            print_bms_fault(ic, BMS_ERROR_VD_OV);
-            print_bms_fault(ic, BMS_ERROR_VREG);
-            print_bms_fault(ic, BMS_ERROR_VREF2);
-            print_bms_fault(ic, BMS_ERROR_ITMP_UT);
-            print_bms_fault(ic, BMS_ERROR_ITMP_OT);
-
-            for (int cell = 0; cell < TOTAL_CELL; cell++)
-            {
-                print_bms_cell_fault(BMS_ERROR_CELL_OW);
-                print_bms_cell_fault(BMS_ERROR_CELL_UV);
-                print_bms_cell_fault(BMS_ERROR_CELL_OV);
-                print_bms_cell_fault(BMS_ERROR_CELL_REDUN);
-            }
-        }
-        /* Clear Errors */
-    }
-    else
-    {
-        PHAL_writeGPIO(LED_PORT_RED, LED_PIN_RED, 0);
-    }
-}
-
-#if 0
-
-    /* handle potential errors */
-    if ((sys_stat.byte & BQ769X0_SYS_STAT_ERROR_MASK) != 0) {
-        if (dev_data->error_seconds_counter < 0) {
-            dev_data->error_seconds_counter = 0;
-        }
-
-        err = 0;
-
-        if (sys_stat.DEVICE_XREADY) {
-            /* datasheet recommendation: try to clear after waiting a few seconds */
-            if (dev_data->error_seconds_counter % 3 == 0) {
-                LOG_DBG("Attempting to clear XR error");
-                err |= bq769x0_write_byte(dev, BQ769X0_SYS_STAT, BQ769X0_SYS_STAT_DEVICE_XREADY);
-            }
-        }
-
-#endif
 
 void HardFault_Handler()
 {

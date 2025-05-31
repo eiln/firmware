@@ -8,7 +8,10 @@
 
 typedef enum
 {
-    BMS_ERROR_SID = 0,  // Device ID
+    BMS_ERROR_CAN = 0,  // CAN RX/TX
+    BMS_ERROR_CHARGER,
+
+    BMS_ERROR_SID,  // Device ID
     BMS_ERROR_RXPEC,    // RX PEC mismatch
     BMS_ERROR_CONFIG,   // Config TX failed
     BMS_ERROR_POLL_TIMEOUT, // Poll Timeout
@@ -38,18 +41,7 @@ typedef enum
 } bms_error_t;
 static_assert(BMS_ERROR_COUNT < 32); // since packing in u32
 
-typedef enum
-{
-    BMS_GLOBAL_ERROR_CAN = 0,
-    BMS_GLOBAL_ERROR_CHARGER,
-    BMS_GLOBAL_ERROR_COUNT,
-} bms_global_error_t;
-static_assert(BMS_GLOBAL_ERROR_COUNT < 32); // since packing in u32
-
 #define BMS_GET_ERROR_MASK(field) (1 << (field))
-
-void bms_set_fault_global(bms_global_error_t field, bool set);
-bool bms_global_fault(bms_global_error_t field);
 
 void bms_set_fault(int ic, bms_error_t field, bool set);
 void bms_set_fault_all(bms_error_t field, bool set);
@@ -58,6 +50,13 @@ uint32_t bms_get_fault_duration(int ic, bms_error_t field);
 
 void bms_set_fault_cell(int ic, int cell, bms_error_t field, bool set);
 void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set);
+bool bms_any_cell_fault(bms_error_t field);
+bool bms_any_aux_fault(bms_error_t field);
+
+void bms_set_fault_global(bms_error_t field, bool set);
+bool bms_global_fault(bms_error_t field);
+
+void bms_error_handler(void);
 
 #define BMS_SET_FAULT_DEBUG(field, var)\
     if (set) bms_error("[FAULT]: [IC%d]: " #field ": %.3f\n", ic, var);\
