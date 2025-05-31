@@ -38,7 +38,6 @@ typedef enum
 {
     BMS_STATE_IDLE = 0,
     BMS_STATE_CONNECTED,
-    BMS_STATE_ACTIVE,
     BMS_STATE_DISCHARGE,
     BMS_STATE_CHARGING,
 } bms_state_t;

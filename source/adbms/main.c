@@ -202,7 +202,7 @@ static void bms_periodic(void)
     }
 
     // Run regular tasks first then enter charge mode
-    bms_monitor_cells();
+    // bms_monitor_cells();
     bms_monitor_temps();
     bms_charge_task();
 }
