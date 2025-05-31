@@ -80,15 +80,17 @@ static void bms_heartbeat(void);
 static void bms_periodic(void);
 static void bms_error_handler(void);
 
-bms_t bmsmaster = {
+bms_t bms = {
     .state = BMS_STATE_IDLE,
+
     .fault_global = 0,
     .fault = {0},
     .first_fault_time = {0},
     .last_fault_time = {0},
-
     .fault_aux = {0},
     .fault_cell = {0},
+
+    .charger_fail_count = 0,
 };
 
 defineStaticSemaphore(spi1_lock);
@@ -156,9 +158,9 @@ static void bms_check_connection(void)
     uint32_t rxpec_faults = bms_pack_faults(BMS_ERROR_RXPEC);
     if (ret == true && !sid_faults && !rxpec_faults) // faults == 0: All device IDs read
     {
-        if (bmsmaster.state == BMS_STATE_IDLE)
+        if (bms.state == BMS_STATE_IDLE)
         {
-            bmsmaster.state = BMS_STATE_CONNECTED;
+            bms.state = BMS_STATE_CONNECTED;
             printf("Connected to %d AFEs!\n", TOTAL_AD68);
         }
         PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 1);
@@ -183,7 +185,7 @@ static void bms_check_connection(void)
         printf("\n");
         printf("Retrying!...\n");
         // TODO send over CAN
-        bmsmaster.state = BMS_STATE_IDLE; // to not proceed in state machine
+        bms.state = BMS_STATE_IDLE; // to not proceed in state machine
     }
 }
 
@@ -191,7 +193,7 @@ static void bms_periodic(void)
 {
     bms_check_connection();
 
-    switch (bmsmaster.state)
+    switch (bms.state)
     {
         case BMS_STATE_CONNECTED:
         {
@@ -222,14 +224,14 @@ static bool is_error(void)
 {
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        if (bmsmaster.fault[ic]) return true;
+        if (bms.fault[ic]) return true;
     }
     return false;
 }
 
 #define print_bms_fault(ic, field) do {\
-    if (bmsmaster.fault[ic] & BMS_GET_ERROR_MASK(field))\
-        printf("\t " #field " time: %d last: %d\n", bms_get_fault_duration(ic, field), bmsmaster.last_fault_time[ic][field]);\
+    if (bms.fault[ic] & BMS_GET_ERROR_MASK(field))\
+        printf("\t " #field " time: %d last: %d\n", bms_get_fault_duration(ic, field), bms.last_fault_time[ic][field]);\
 } while (0);
 
 static void bms_error_handler(void)
@@ -237,11 +239,11 @@ static void bms_error_handler(void)
     if (is_error())
     {
         PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
-        printf("BMS State: 0x%02x\n", bmsmaster.state);
+        printf("BMS State: 0x%02x\n", bms.state);
 
         for (int ic = 0; ic < TOTAL_AD68; ic++)
         {
-            printf("BMS Error IC[%d]: 0x%08x\n", ic, bmsmaster.fault[ic]);
+            printf("BMS Error IC[%d]: 0x%08x\n", ic, bms.fault[ic]);
             print_bms_fault(ic, BMS_ERROR_SID);
             print_bms_fault(ic, BMS_ERROR_RXPEC);
             print_bms_fault(ic, BMS_ERROR_CONFIG);

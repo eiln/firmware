@@ -27,7 +27,7 @@ struct bms_data
     float itmp[TOTAL_AD68]; // Internal die temperature (C)
 };
 
-extern struct bms_data bms;
+extern struct bms_data data;
 #define BMS_POLL_TIMEOUT (50) // ms
 
 uint32_t bms_getTick(void);

@@ -7,7 +7,7 @@
 #include "string.h"
 
 ic_ad68_t ic_ad68[TOTAL_AD68];
-struct bms_data bms;
+struct bms_data data;
 
 uint8_t  txData[TOTAL_AD68][DATA_LEN];
 uint8_t  rxData[TOTAL_AD68][DATA_LEN];
@@ -205,7 +205,7 @@ float getVoltage(int data)
 static inline void bms_read_cell_v_c(int ic, int group, int idx)
 {
     int16_t raw = get_i16(rxData, ic, idx);
-    bms.cell_v_c[ic][group * 3 + idx] = getVoltage(raw);
+    data.cell_v_c[ic][group * 3 + idx] = getVoltage(raw);
 }
 
 void bms_readCellVoltages(void)
@@ -247,7 +247,7 @@ void bms_readCellVoltages(void)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
         {
-            debug_printf("Cell %02d: %f ", i, bms.cell_v_c[ic][i]);
+            debug_printf("Cell %02d: %f ", i, data.cell_v_c[ic][i]);
             if (!(i & 3))
                 debug_printf("\n");
         }
@@ -258,7 +258,7 @@ void bms_readCellVoltages(void)
 static inline void bms_read_cell_v_s(int ic, int group, int idx)
 {
     int16_t raw = get_i16(rxData, ic, idx);
-    bms.cell_v_s[ic][group * 3 + idx] = getVoltage(raw);
+    data.cell_v_s[ic][group * 3 + idx] = getVoltage(raw);
 }
 
 void bms_readSVoltages(void)
@@ -298,7 +298,7 @@ void bms_readSVoltages(void)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
         {
-            debug_printf("Cell %02d: %f ", i, bms.cell_v_s[ic][i]);
+            debug_printf("Cell %02d: %f ", i, data.cell_v_s[ic][i]);
             if (!(i & 3))
                 debug_printf("\n");
         }
@@ -339,9 +339,9 @@ static inline void bms_read_aux_v(int ic, int group, int idx, bool ow)
 {
     int16_t raw = get_i16(rxData, ic, idx);
     if (!ow)
-        bms.aux_v[ic][group * 3 + idx] = getVoltage(raw);
+        data.aux_v[ic][group * 3 + idx] = getVoltage(raw);
     else
-        bms.aux_ow_v[ic][group * 3 + idx] = getVoltage(raw);
+        data.aux_ow_v[ic][group * 3 + idx] = getVoltage(raw);
 }
 
 /* AUX */
@@ -374,8 +374,8 @@ void bms_readAuxVoltages(bool ow)
                     {
                         int16_t vmv = get_i16(rxData, ic, 1);
                         int16_t vpv = get_i16(rxData, ic, 2);
-                        bms.vmv[ic] = getVoltage(vmv);
-                        bms.vpv[ic] = 25 * (vpv * 0.00015 + 1.5);
+                        data.vmv[ic] = getVoltage(vmv);
+                        data.vpv[ic] = 25 * (vpv * 0.00015 + 1.5);
                     }
                 break;
             }
@@ -393,8 +393,8 @@ void bms_readAuxVoltagesAll(void)
     }
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        bms.vd[ic] = getVoltage(get_i16(rxData, ic, 0));
-        bms.va[ic] = getVoltage(get_i16(rxData, ic, 1));
+        data.vd[ic] = getVoltage(get_i16(rxData, ic, 0));
+        data.va[ic] = getVoltage(get_i16(rxData, ic, 1));
     }
 
     if (!adbms_receive(RDSTATA, rxData))
@@ -404,10 +404,10 @@ void bms_readAuxVoltagesAll(void)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         // reference = VREF2 × 150 μV +1.5 V
-        bms.vref2[ic] = getVoltage(get_i16(rxData, ic, 0));
+        data.vref2[ic] = getVoltage(get_i16(rxData, ic, 0));
         int16_t itmp = get_i16(rxData, ic, 1);
         // = (ITMP × 150 μV + 1.5 V)/7.5 mV/°C – 273°C.
-        bms.itmp[ic] = (itmp * 0.00015 + 1.5) / 0.0075 - 273;
+        data.itmp[ic] = (itmp * 0.00015 + 1.5) / 0.0075 - 273;
     }
 }
 

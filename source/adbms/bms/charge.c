@@ -41,7 +41,7 @@ static bool bms_can_charge(void)
     }
 
     // 5. Check Elcon
-    if (bmsmaster.state == BMS_STATE_CHARGING && bms_global_fault(BMS_GLOBAL_ERROR_CHARGER))
+    if (bms.state == BMS_STATE_CHARGING && bms_global_fault(BMS_GLOBAL_ERROR_CHARGER))
     {
         bms_error("[ERROR]: Charger fault! Cannot charge!\n");
         return false;
@@ -60,7 +60,8 @@ static void bms_pull_sdc(void)
 
 static void elcon_charger_stop(void)
 {
-    ;
+    bms.charger_fail_count = 0;
+    return;
 }
 
 static void elcon_charger_start(void)
@@ -74,29 +75,29 @@ void bms_charge_task(void)
 {
     if (!bms_can_charge())
     {
-        charger_fail_count++;
+        bms.charger_fail_count++;
     }
     else
     {
-        charger_fail_count = 0;
+        bms.charger_fail_count = 0;
     }
 
     // Assumes task is called in charge requested state
-    if (charger_fail_count >= 5)
+    if (bms.charger_fail_count >= 5)
     {
         bms_error("[ERROR]: Charger fault unresolved! Disconnecting from charger\n");
         elcon_charger_stop();
         bms_pull_sdc();
         return;
     }
-    if (charger_fail_count)
+    if (bms.charger_fail_count)
     {
         bms_error("[ERROR]: Retrying charger fault...\n");
         elcon_charger_stop();
         return;
     }
 
-    bmsmaster.state = BMS_STATE_CHARGING;
+    bms.state = BMS_STATE_CHARGING;
 
     bms_cell_balance_task();
     elcon_charger_start();
