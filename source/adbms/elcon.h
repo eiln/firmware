@@ -1,26 +1,59 @@
 
-void charger_elcon_start(void)
+
+#define CELL_C_RATE (4.5f) // 1C, Amps
+#define CHARGER_CCL_MAX (13.5f)   // 3C (4.5*3)
+#define CHARGER_CVL_MAX (596.4f) // Pack voltage
+
+static void elcon_send_charge_request(float voltage_req, float current_req, bool charge)
 {
-    monitor_task();
-    // discharge all to some threshold
-    // start elcon charger CAN command
-    // if can fails -> pull SDC
+    current_req = MIN(current_req, CHARGER_CCL_MAX);
+    voltage_req = MIN(voltage_req, CHARGER_CVL_MAX);
 
-    //user_charge_current_request = 10;
-    charge_current_req = MIN(can_data.orion_info.pack_ccl, user_charge_current_request);
-
-    //user_charge_voltage_request = 314;
-    charge_voltage_req = MIN(user_charge_voltage_request, MAX_VOLT); // Hard limit, don't overcharge
-    charge_voltage_req *= 10;
-    charge_current_req *= 10;
+    current_req *= 10.0f; // Elcon expects 3201 for 320.1 V
+    voltage_req *= 10.0f;
 
     // Swap endianess
-    charge_voltage_req = ((charge_voltage_req & 0x00FF) << 8) | ((charge_voltage_req >> 8) & 0xFF);
-    charge_current_req = ((charge_current_req & 0x00FF) << 8) | ((charge_current_req >> 8) & 0xFF);
+    voltage_req = ((voltage_req & 0x00FF) << 8) | ((voltage_req >> 8) & 0xFF);
+    current_req = ((current_req & 0x00FF) << 8) | ((current_req >> 8) & 0xFF);
 
-    // every 1s, minimum every 5s
-    SEND_ELCON_CHARGER_COMMAND(charge_voltage_req, charge_current_req, 1);
-    bms->state = BMS_STATE_CHARGING;
+    // Every 1s, minimum every 5s
+    // 0 = charge, 1 = dont charge
+    SEND_ELCON_CHARGER_COMMAND(voltage_req, current_req, !charge);
+}
+
+static void elcon_send_stop_request(float voltage_req)
+{
+    elcon_send_charge_request(voltage_req, 0.0f, false);
+}
+
+volatile uint32_t elcon_last_status;
+
+static bool elcon_process_charger_status(CAN_FRAME &frame)
+{
+    float charge_voltage = frame.charge_voltage * 0.1f;
+    float charge_current = frame.charge_current * 0.1f;
+
+    uint32_t now = bms_getTick();
+    // set elcon_last_status as start
+    // 2. The charger send broadcast message (Message 2) at intervals of 1s
+    if (now - elcon_last_status > 5) // 5 second timeout
+    {
+        elcon_last_status = now;
+        return false;
+    }
+    elcon_last_status = now;
+
+    if (frame.hw_fail || frame.temp_fail || frame.input_v_fail || frame.startup_fail || frame.communication_fail)
+    {
+        return false;
+    }
+
+    if (charge_voltage > CHARGER_CVL_MAX || CHARGER_CCL_MAX > CHARGER_CCL_MAX)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 void charger_elcon_stop(void)
@@ -30,9 +63,13 @@ void charger_elcon_stop(void)
     // if can fails -> pull SDC
 }
 
+#define CELL_BALANCE_THRESHOLD (4.0f) // V
+
 void charge(void)
 {
-    charger_elcon_start();
+    elcon_send_charge_request(CHARGER_CVL_MAX, CHARGER_CCL_MAX, true);
+    if ()
+    // discharge rate: voltage / (30 ohm) = 3.0 / (30 ohm) = 0.1A
 
     // loop:
     // monitor_task()
@@ -52,38 +89,3 @@ void charge(void)
 
     // send elcon CAN heartbeat
 }
-
-#if 0
-
-Another charging strategy with lower charging time
-is the constant-current constant-voltage (CC-CV) method. In
-this method, in the first stages, a higher charging current is
-used and when the battery terminal voltages hit the threshold
-value, the current is reduced and a constant voltage is used to
-do the final charging of the battery [8].
-
-balancing: over 4.0
-
-
-current required for a 1-hour discharge is described as 1C
-look at cell C rate
-determine approprate resistor
-
-resistor = 15 ohm
-cell v = variable (e.g 3.0 V)
-current = v / r = 0.2 A
-c rate = 1C = 1 C
-
-estimate time for remaining cells to reach full charge
-assume rate of other cells is constant
-time remaining = (v max - v current) / rate
-time remaining = x seconds
-
-c time remaining = (v max - v current) / c rate
-c time remaining < time remaining
-percent = ct / t
-pwm at percent
-
-discharge emergency loop:
-
-#endif

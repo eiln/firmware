@@ -121,7 +121,6 @@ typedef enum __attribute__ ((__packed__))
 static_assert(sizeof(adcv_pup) == sizeof(uint8_t));
 
 // RSTF: Reset Filter.
-/* Pull Down current during aux conversion (if OW = 1) */
 typedef enum __attribute__ ((__packed__))
 {
     RSTF_OFF = 0x0,
@@ -130,7 +129,6 @@ typedef enum __attribute__ ((__packed__))
 static_assert(sizeof(adcv_rstf) == sizeof(uint8_t));
 
 // ERR: Inject error is spi read out.
-/* Pull Down current during aux conversion (if OW = 1) */
 typedef enum __attribute__ ((__packed__))
 {
     WITHOUT_ERR = 0x0,
