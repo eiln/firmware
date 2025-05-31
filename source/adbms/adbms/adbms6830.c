@@ -248,7 +248,7 @@ void bms_readCellVoltages(void)
         for (int i = 0; i < TOTAL_CELL; i++)
         {
             debug_printf("Cell %02d: %f ", i, data.cell_v_c[ic][i]);
-            if (!(i & 3))
+            if (i % 4 == 3)
                 debug_printf("\n");
         }
     }
@@ -299,7 +299,7 @@ void bms_readSVoltages(void)
         for (int i = 0; i < TOTAL_CELL; i++)
         {
             debug_printf("Cell %02d: %f ", i, data.cell_v_s[ic][i]);
-            if (!(i & 3))
+            if (i % 4 == 3)
                 debug_printf("\n");
         }
     }
