@@ -21,8 +21,6 @@ void bms_balance_cells(void)
         }
     }
 
-    // TODO avoid float comparisons
-    // output is offsetted negative so have to use float I believe
     float max_v = getVoltage(max_volts);
     float min_v = getVoltage(max_volts);
     if (min_v >= BALANCING_MIN_V)
@@ -34,7 +32,7 @@ void bms_balance_cells(void)
                 float v = getVoltage(bms.cell_v_c[ic][cell]);
                 if (v >= BALANCING_MIN_V && (v - min_v) >= MAX_DELTA)
                 {
-                    pwm[ic][cell] = 0b0011; // TODO calculate duty
+                    pwm[ic][cell] = 0b1111; // TODO calculate duty
                 }
             }
         }
