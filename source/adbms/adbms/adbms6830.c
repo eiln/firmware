@@ -124,18 +124,18 @@ bool bms_init(void)
     if (memcmp(txData_a, rxData, sizeof(txData_a) != 0))
     {
         // TODO for now just set it on all of them
-        bms_set_fault_all(ic, BMS_ERROR_CONFIG, true);
+        bms_set_fault_all(BMS_ERROR_CONFIG, true);
         return false;
     }
 
     if (!adbms_receive(RDCFGB, rxData)) return false;
     if (memcmp(txData_b, rxData, sizeof(txData_b) != 0))
     {
-        bms_set_fault_all(ic, BMS_ERROR_CONFIG, true);
+        bms_set_fault_all(BMS_ERROR_CONFIG, true);
         return false;
     }
 
-    bms_set_fault_all(ic, BMS_ERROR_CONFIG, true);
+    bms_set_fault_all(BMS_ERROR_CONFIG, false);
     return true;
 }
 

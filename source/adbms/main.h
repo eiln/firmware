@@ -42,6 +42,25 @@ typedef enum
     BMS_STATE_CHARGING,
 } bms_state_t;
 
+typedef struct {
+    uint64_t internal_comms: 1;    // ADBMS ISOSPI
+    uint64_t external_comms: 1;    // Vehicle CAN/Elcon CAN
+    uint64_t internal_hardware: 1; // Undervoltage/Overvoltage/etc
+    uint64_t hv_isolation: 1;      // IMD fault
+    uint64_t input_psu: 1;         // Power rails
+
+    uint64_t cell_open_wire: 1;
+    uint64_t cell_uv: 1;
+    uint64_t cell_ov: 1;
+    uint64_t weak_cell: 1;
+    uint64_t weak_pack: 1;
+
+    uint64_t thermistor_open_wire: 1;
+    uint64_t thermistor_bad: 1;
+    uint64_t pack_overheat: 1;
+} bms_errors_t;
+static_assert(sizeof(bms_errors_t) == sizeof(uint64_t));
+
 typedef struct
 {
     bms_state_t state;
@@ -61,6 +80,7 @@ typedef struct
 
     // charger
     int charger_fail_count;
+    bms_errors_t errors;
 
 } bms_t;
 

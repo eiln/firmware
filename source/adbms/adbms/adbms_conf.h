@@ -10,4 +10,6 @@
 #define TOTAL_AD68      (1)
 #define TOTAL_AUX       (10)
 
+#define ADBMS_DEBUG_PRINT
+
 #endif // __ADBMS_CONF_H__

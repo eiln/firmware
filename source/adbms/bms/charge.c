@@ -41,14 +41,14 @@ static bool bms_can_charge(void)
     }
 
     // 4. Check CAN communication
-    if (bms_global_fault(BMS_GLOBAL_ERROR_CAN))
+    if (bms_global_fault(BMS_ERROR_CAN))
     {
         bms_error("[ERROR]: CAN fault! Cannot charge!\n");
         return false;
     }
 
     // 5. Check Elcon
-    if (bms.state == BMS_STATE_CHARGING && bms_global_fault(BMS_GLOBAL_ERROR_CHARGER))
+    if (bms.state == BMS_STATE_CHARGING && bms_global_fault(BMS_ERROR_CHARGER))
     {
         bms_error("[ERROR]: Charger fault! Cannot charge!\n");
         return false;
