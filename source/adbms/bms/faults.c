@@ -6,24 +6,6 @@
 #include "adbms_mcu.h"
 #include "main.h"
 
-void bms_set_fault_global(bms_global_error_t field, bool set)
-{
-    uint32_t mask = BMS_GET_ERROR_MASK(field);
-    if (set)
-    {
-        bms.fault_global |= mask;
-    }
-    else
-    {
-        bms.fault_global &= ~mask;
-    }
-}
-
-bool bms_global_fault(bms_global_error_t field)
-{
-    return bms.fault_global & BMS_GET_ERROR_MASK(field);
-}
-
 uint32_t bms_get_fault_duration(int ic, bms_error_t field)
 {
     uint32_t now = bms_getTick();
@@ -104,4 +86,23 @@ void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set)
     {
         bms.fault_aux[ic][aux] &= ~mask;
     }
+}
+
+
+void bms_set_fault_global(bms_global_error_t field, bool set)
+{
+    uint32_t mask = BMS_GET_ERROR_MASK(field);
+    if (set)
+    {
+        bms.fault_global |= mask;
+    }
+    else
+    {
+        bms.fault_global &= ~mask;
+    }
+}
+
+bool bms_global_fault(bms_global_error_t field)
+{
+    return bms.fault_global & BMS_GET_ERROR_MASK(field);
 }
