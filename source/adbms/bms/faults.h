@@ -3,7 +3,6 @@
 #define __BMS_FAULTS_H__
 
 #include <assert.h>
-#include <stdbool.h>
 #include "stdint.h"
 #include "stdbool.h"
 

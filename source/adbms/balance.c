@@ -5,7 +5,7 @@
 #define MAX_DELTA       0.10 // V
 #define BALANCING_MIN_V 3.99 // V
 
-void bms_balance_cells(void)
+void bms_cell_balance_task(void)
 {
     uint8_t pwm[TOTAL_AD68][TOTAL_CELL] = {0};
 
@@ -39,11 +39,4 @@ void bms_balance_cells(void)
     }
 
     bms_startDischarge(pwm);
-}
-
-void bms_monitor_charge(void)
-{
-    bms_monitor_cells();
-    bms_monitor_temps();
-    bms_balance_cells();
 }
