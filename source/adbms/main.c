@@ -9,6 +9,7 @@
 
 #include "main.h"
 #include "adbms/adbms.h"
+#include "bms/charge.h"
 
 dma_init_t spi_rx_dma_config = SPI2_RXDMA_CONT_CONFIG(NULL, 2);
 dma_init_t spi_tx_dma_config = SPI2_TXDMA_CONT_CONFIG(NULL, 1);
@@ -148,6 +149,7 @@ static void bms_create_threads(void)
 static void bms_heartbeat(void)
 {
     PHAL_toggleGPIO(LED_PORT_BLUE, LED_PIN_BLUE);
+    // TODO send state, etc over CAN
 }
 
 static void bms_check_connection(void)
@@ -192,32 +194,17 @@ static void bms_check_connection(void)
 static void bms_periodic(void)
 {
     bms_check_connection();
+    if (bms.state < BMS_STATE_CONNECTED) return;
 
-    switch (bms.state)
+    if (!bms_init())
     {
-        case BMS_STATE_CONNECTED:
-        {
-            if (!bms_init())
-            {
-                ; // TODO
-                return;
-            }
-
-            // run regular tasks first then enter charge mode
-            bms_monitor_cells();
-            bms_monitor_temps();
-            printf("--------------------------------------------------\n");
-            bool charge = PHAL_readGPIO(CHARGE_ENABLED_PORT, CHARGE_ENABLED_PIN);
-            if (charge)
-            {
-                ; // TODO
-            }
-        }
-        break;
-
-        default:
-        break;
+        return; // TODO
     }
+
+    // Run regular tasks first then enter charge mode
+    bms_monitor_cells();
+    bms_monitor_temps();
+    bms_charge_task();
 }
 
 static bool is_error(void)
