@@ -28,9 +28,10 @@ struct bms_data
 };
 
 extern struct bms_data data;
-#define BMS_POLL_TIMEOUT (50) // ms
+#define BMS_POLL_TIMEOUT (500) // ms
 
 uint32_t bms_getTick(void);
+void bms_mDelay(uint32_t delay);
 
 void adbms_transmit_cmd(uint8_t cmd[CMD_LEN]);
 void adbms_transmit_data(uint8_t cmd[CMD_LEN], uint8_t txdata[TOTAL_AD68][DATA_LEN]);

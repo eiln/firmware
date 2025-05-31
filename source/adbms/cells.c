@@ -47,11 +47,12 @@ static void bms_read_cells(void)
     // driving mode
     // direct C/S redunancy check
     //adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
-    adBms6830_Adcv(ADCV_RD_ON, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
+    adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
     adbms_transmit_poll(PLCADC);
     bms_checkCellVoltagesStatC();
     bms_readCellVoltages();
 
+#if 0
     // TODO set S/C delta threshold
     // TODO check CSxFLT
     // ---------------------------------
@@ -78,4 +79,5 @@ static void bms_read_cells(void)
     // TODO figure out what happens if OW is detected
     // Note: discharge is enabled again automatically after the
     // last single shot S-ADC conversion.
+#endif
 }

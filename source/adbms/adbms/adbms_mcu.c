@@ -13,7 +13,7 @@ uint32_t bms_getTick(void)
     return xTaskGetTickCount();
 }
 
-static inline void bms_mDelay(uint32_t delay)
+void bms_mDelay(uint32_t delay)
 {
     mDelay(delay);
 }
@@ -276,7 +276,6 @@ static uint32_t bms_transmitPoll(uint8_t cmd[CMD_LEN])
         PHAL_SPI_transfer_noDMA(&bms_spi_config, NULL, 0, 1, &buff);
         if (bms_getTick() - start > BMS_POLL_TIMEOUT)
         {
-            bms_set_fault_all(BMS_ERROR_POLL_TIMEOUT, true);
             break;
         }
     }
