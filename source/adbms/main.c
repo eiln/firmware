@@ -194,11 +194,15 @@ static void bms_check_connection(void)
 static void bms_periodic(void)
 {
     bms_check_connection();
-    if (bms.state < BMS_STATE_CONNECTED) return;
-
-    if (!bms_init())
+    if (bms.state < BMS_STATE_CONNECTED)
     {
-        return; // TODO
+        return;
+    }
+
+    bms_init();
+    if (bms_pack_faults(BMS_ERROR_RXPEC) || bms_pack_faults(BMS_ERROR_CONFIG))
+    {
+        return;
     }
 
     // Run regular tasks first then enter charge mode

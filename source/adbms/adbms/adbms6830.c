@@ -120,26 +120,22 @@ bool bms_init(void)
     adbms_transmit_data(WRCFGB, txData_b);
 
     // Check if config has been sent
-    if (!adbms_receive(RDCFGA, rxData) ||
-        memcmp(txData_a, rxData, sizeof(txData_a) != 0))
+    if (!adbms_receive(RDCFGA, rxData)) return false;
+    if (memcmp(txData_a, rxData, sizeof(txData_a) != 0))
     {
         // TODO for now just set it on all of them
-        for (int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            bms_set_fault(ic, BMS_ERROR_CONFIG, true);
-        }
-        return false;
-    }
-    if (!adbms_receive(RDCFGB, rxData) ||
-        memcmp(txData_b, rxData, sizeof(txData_b) != 0))
-    {
-        for (int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            bms_set_fault(ic, BMS_ERROR_CONFIG, true);
-        }
+        bms_set_fault_all(ic, BMS_ERROR_CONFIG, true);
         return false;
     }
 
+    if (!adbms_receive(RDCFGB, rxData)) return false;
+    if (memcmp(txData_b, rxData, sizeof(txData_b) != 0))
+    {
+        bms_set_fault_all(ic, BMS_ERROR_CONFIG, true);
+        return false;
+    }
+
+    bms_set_fault_all(ic, BMS_ERROR_CONFIG, true);
     return true;
 }
 
