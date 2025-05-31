@@ -44,7 +44,7 @@ void bms_set_fault(int ic, bms_error_t field, bool set)
     }
 }
 
-static inline bool bms_any_fault(bms_error_t field)
+bool bms_any_fault(bms_error_t field)
 {
     uint32_t mask = BMS_GET_ERROR_MASK(field);
     for (int ic = 0; ic < TOTAL_AD68; ic++)
@@ -174,7 +174,7 @@ static bool is_any_error(void)
 
 #define print_bms_fault(ic, field) do {\
     if (bms.fault[ic] & BMS_GET_ERROR_MASK(field))\
-        printf("\t " #field " time: %d last: %d\n", bms_get_fault_duration(ic, field), bms.last_fault_time[ic][field]);\
+        printf("\t " #field " time: %.2f\n", bms_get_fault_duration(ic, field) * 0.001f);\
 } while (0);
 
 #define print_bms_cell_fault(field) do {\

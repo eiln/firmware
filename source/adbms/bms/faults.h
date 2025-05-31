@@ -47,6 +47,7 @@ void bms_set_fault(int ic, bms_error_t field, bool set);
 void bms_set_fault_all(bms_error_t field, bool set);
 uint32_t bms_pack_faults(bms_error_t field);
 uint32_t bms_get_fault_duration(int ic, bms_error_t field);
+bool bms_any_fault(bms_error_t field);
 
 void bms_set_fault_cell(int ic, int cell, bms_error_t field, bool set);
 void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set);
