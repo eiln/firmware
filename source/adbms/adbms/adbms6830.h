@@ -45,7 +45,6 @@ typedef struct
 } ic_ad68_t;
 
 bool adbms_checkalive(void);
-float getVoltage(int data);
 
 bool bms_init(void);
 

@@ -14,6 +14,21 @@ void bms_monitor_cells(void)
     bms_send_cells();
 }
 
+static void bms_print_cell_voltages(void)
+{
+    debug_printf("C-ADC Voltages:\n");
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        for (int i = 0; i < TOTAL_CELL; i++)
+        {
+            debug_printf("Cell %02d: %.4f ", i, data.cell_v_c[ic][i]);
+            if (i % 4 == 3)
+                debug_printf("\n");
+        }
+    }
+    debug_printf("\n");
+}
+
 static void bms_read_cells(void)
 {
     #if 0
@@ -54,7 +69,7 @@ static void bms_read_cells(void)
 
     adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_ON_EVEN_CH);
     bms_mDelay(1);
-    bms_readCellVoltages();
+    bms_readCellVoltages(); // TODO store in ow slot and compare
 
     adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_ON_ODD_CH);
     bms_mDelay(1);
@@ -68,6 +83,7 @@ static void bms_read_cells(void)
     bms_mDelay(1);
     bms_checkCellVoltagesStatC();
     bms_readCellVoltages();
+    bms_print_cell_voltages();
 }
 
 static void bms_check_cells(void)

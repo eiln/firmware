@@ -195,7 +195,7 @@ static inline int16_t get_i16(uint8_t rxData[TOTAL_AD68][DATA_LEN], int ic, int 
     return (int16_t)(rxData[ic][index * 2 + 0] & 0xff) | ((int16_t)(rxData[ic][index * 2 + 1] & 0xff) << 8);
 }
 
-float getVoltage(int data)
+static inline float getVoltage(int data)
 {
     float voltage_float; // V
     voltage_float = ((data + 10000) * 0.000150f);
@@ -241,18 +241,6 @@ void bms_readCellVoltages(void)
             }
         }
     }
-
-    debug_printf("C-ADC Voltages:\n");
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        for (int i = 0; i < TOTAL_CELL; i++)
-        {
-            debug_printf("Cell %02d: %f ", i, data.cell_v_c[ic][i]);
-            if (i % 4 == 3)
-                debug_printf("\n");
-        }
-    }
-    debug_printf("\n");
 }
 
 static inline void bms_read_cell_v_s(int ic, int group, int idx)
@@ -292,18 +280,6 @@ void bms_readSVoltages(void)
             }
         }
     }
-
-    debug_printf("S-ADC Voltages:\n");
-    for (int ic = 0; ic < TOTAL_AD68; ic++)
-    {
-        for (int i = 0; i < TOTAL_CELL; i++)
-        {
-            debug_printf("Cell %02d: %f ", i, data.cell_v_s[ic][i]);
-            if (i % 4 == 3)
-                debug_printf("\n");
-        }
-    }
-    debug_printf("\n");
 }
 
 /* STAT */
@@ -318,6 +294,7 @@ IC0: 0x45, 0x55, 0x55, 0x55, 0xFF, 0x00, CC: 4 |
 
 void bms_checkCellVoltagesStatC(void)
 {
+    #if 0
     // statC is useless
     debug_printf("Stat C:\n");
     if (!adbms_receive(RDSTATC, rxData))
@@ -325,6 +302,7 @@ void bms_checkCellVoltagesStatC(void)
         return; // TODO exit
     }
     adbms_print_rxdata(rxData);
+    #endif
 
     debug_printf("Stat D:\n");
     if (!adbms_receive(RDSTATD, rxData))
@@ -335,6 +313,7 @@ void bms_checkCellVoltagesStatC(void)
     // TODO check uv/ov
 }
 
+/* AUX */
 static inline void bms_read_aux_v(int ic, int group, int idx, bool ow)
 {
     int16_t raw = get_i16(rxData, ic, idx);
@@ -344,7 +323,6 @@ static inline void bms_read_aux_v(int ic, int group, int idx, bool ow)
         data.aux_ow_v[ic][group * 3 + idx] = getVoltage(raw);
 }
 
-/* AUX */
 void bms_readAuxVoltages(bool ow)
 {
     uint8_t *cmdList[4] = {RDAUXA, RDAUXB, RDAUXC, RDAUXD};

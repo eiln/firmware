@@ -7,6 +7,7 @@
 
 void bms_cell_balance_task(void)
 {
+    #if 0
     uint8_t pwm[TOTAL_AD68][TOTAL_CELL] = {0};
 
     int16_t min_volts = data.cell_v_c[0][0];
@@ -39,4 +40,5 @@ void bms_cell_balance_task(void)
     }
 
     bms_startDischarge(pwm);
+    #endif
 }
