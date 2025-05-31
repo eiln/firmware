@@ -32,9 +32,9 @@ static void bms_print_aux_voltages(bool ow)
         {
             float voltage;
             if (!ow)
-                voltage = bms.aux_v[ic][aux];
+                voltage = data.aux_v[ic][aux];
             else
-                voltage = bms.aux_ow_v[ic][aux];
+                voltage = data.aux_ow_v[ic][aux];
             printf("%.2f ", voltage);
         }
         printf("\n");
@@ -47,7 +47,7 @@ static void bms_print_aux_all(bool ow)
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        printf("IC[%d]: vmv: %.2f vpv: %.2f vd: %.2f va: %.2f vref2: %.2f itmp: %.2f\n", ic, bms.vmv[ic], bms.vpv[ic], bms.vd[ic], bms.va[ic], bms.vref2[ic], bms.itmp[ic]);
+        printf("IC[%d]: vmv: %.2f vpv: %.2f vd: %.2f va: %.2f vref2: %.2f itmp: %.2f\n", ic, data.vmv[ic], data.vpv[ic], data.vd[ic], data.va[ic], data.vref2[ic], data.itmp[ic]);
     }
 }
 
@@ -78,7 +78,7 @@ static void bms_aux_ow_check(void)
     {
         for (int aux = 0; aux < TOTAL_AUX; aux++)
         {
-            bool set = fabsf(bms.aux_voltages_parsed[ic][aux] - bms.aux_voltages_ow[ic][aux]) >= BMS_AUX_OW_DELTA;
+            bool set = fabsf(data.aux_voltages_parsed[ic][aux] - data.aux_voltages_ow[ic][aux]) >= BMS_AUX_OW_DELTA;
             bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_OW, set);
         }
     }
@@ -95,10 +95,10 @@ static void bms_aux_ow_check(void)
     {
         for (int aux = 0; aux < TOTAL_AUX; aux++)
         {
-            set = bms.aux_v[ic][aux] < BMS_TEMP_MIN;
-            if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_AUX_UNDERTEMP: %.3f\n", ic, bms.vref2[ic]);
+            set = data.aux_v[ic][aux] < BMS_TEMP_MIN;
+            if (set) bms_error("[FAULT]: [IC%d]: BMS_ERROR_AUX_UNDERTEMP: %.3f\n", ic, data.vref2[ic]);
             bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_UNDERTEMP, set);
-            set = bms.aux_v[ic][aux] > BMS_TEMP_MAX;
+            set = data.aux_v[ic][aux] > BMS_TEMP_MAX;
             bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_OVERTEMP, set);
         }
     }
@@ -125,11 +125,11 @@ static void bms_aux_voltages_check(void)
     #define BMS_VA_MAX (5.5f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        set = bms.va[ic] < BMS_VA_MIN;
-        BMS_SET_FAULT_DEBUG(BMS_ERROR_VA_UV, bms.va[ic]);
+        set = data.va[ic] < BMS_VA_MIN;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VA_UV, data.va[ic]);
 
-        set = bms.va[ic] > BMS_VA_MAX;
-        BMS_SET_FAULT_DEBUG(BMS_ERROR_VA_OV, bms.va[ic]);
+        set = data.va[ic] > BMS_VA_MAX;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VA_OV, data.va[ic]);
     }
 
     // Vd
@@ -139,11 +139,11 @@ static void bms_aux_voltages_check(void)
     #define BMS_VD_MAX (3.6f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        set = bms.vd[ic] < BMS_VD_MIN;
-        BMS_SET_FAULT_DEBUG(BMS_ERROR_VD_UV, bms.vd[ic]);
+        set = data.vd[ic] < BMS_VD_MIN;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VD_UV, data.vd[ic]);
 
-        set = bms.vd[ic] > BMS_VD_MAX;
-        BMS_SET_FAULT_DEBUG(BMS_ERROR_VD_OV, bms.vd[ic]);
+        set = data.vd[ic] > BMS_VD_MAX;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VD_OV, data.vd[ic]);
     }
 
     // VREF2
@@ -152,8 +152,8 @@ static void bms_aux_voltages_check(void)
     #define BMS_VREF2_MAX (3.012f)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        set = bms.vref2[ic] < BMS_VREF2_MIN || bms.vref2[ic] > BMS_VREF2_MAX;
-        BMS_SET_FAULT_DEBUG(BMS_ERROR_VREF2, bms.vref2[ic]);
+        set = data.vref2[ic] < BMS_VREF2_MIN || data.vref2[ic] > BMS_VREF2_MAX;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_VREF2, data.vref2[ic]);
     }
 
     // ITMP: Internal Die temperature
@@ -161,11 +161,11 @@ static void bms_aux_voltages_check(void)
     #define BMS_ITMP_MAX (40.0f) // 104F
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        set = bms.itmp[ic] < BMS_ITMP_MIN;
-        BMS_SET_FAULT_DEBUG(BMS_ERROR_ITMP_UT, bms.itmp[ic]);
+        set = data.itmp[ic] < BMS_ITMP_MIN;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_ITMP_UT, data.itmp[ic]);
 
-        set = bms.itmp[ic] > BMS_ITMP_MAX;
-        BMS_SET_FAULT_DEBUG(BMS_ERROR_ITMP_OT, bms.itmp[ic]);
+        set = data.itmp[ic] > BMS_ITMP_MAX;
+        BMS_SET_FAULT_DEBUG(BMS_ERROR_ITMP_OT, data.itmp[ic]);
     }
 }
 
@@ -181,7 +181,7 @@ static void bms_aux_temps_check(void)
         for (int aux = 0; aux < TOTAL_AUX; aux++)
         {
             // TODO convert to C and state uv/ov
-            // set = bms.aux_voltages_parsed[ic][aux] < BMS_AUX_TEMP_MIN;
+            // set = data.aux_voltages_parsed[ic][aux] < BMS_AUX_TEMP_MIN;
             // bms_set_fault_aux(ic, aux, BMS_ERROR_AUX_UV, set);
         }
     }
@@ -207,12 +207,12 @@ static void bms_send_temps(void)
     uint16_t avg_temps[TOTAL_AD68] = {0};
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
-        uint16_t max_temp = bms.aux_voltages_raw[ic][0];
-        uint16_t min_temp = bms.aux_voltages_raw[ic][0];
+        uint16_t max_temp = data.aux_voltages_raw[ic][0];
+        uint16_t min_temp = data.aux_voltages_raw[ic][0];
         uint16_t avg_temp = 0;
         for (int therm = 0; therm < TOTAL_AUX; therm++)
         {
-            uint16_t temp = bms.aux_voltages_raw[ic][therm]; // TODO convert to C ?
+            uint16_t temp = data.aux_voltages_raw[ic][therm]; // TODO convert to C ?
             max_temp = MAX(temp, max_temp);
             min_temp = MIN(temp, min_temp);
             avg_temp += temp;

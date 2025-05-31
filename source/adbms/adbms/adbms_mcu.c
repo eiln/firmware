@@ -241,7 +241,7 @@ static void bms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN], uint8_t cc[TOTA
 
 void adbms_print_rxdata(uint8_t data[TOTAL_AD68][DATA_LEN])
 {
-    bms_print_rxdata(data, bmsmaster.rxCc);
+    bms_print_rxdata(data, bms.rxCc);
 }
 
 /* TX */
@@ -347,8 +347,8 @@ uint32_t adbms_transmit_poll(uint8_t cmd[CMD_LEN])
 bool adbms_receive(uint8_t cmd[CMD_LEN], uint8_t rxdata[TOTAL_AD68][DATA_LEN])
 {
     bms_crit_enter();
-    bms_receiveData(cmd, rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
-    bool ret = bms_checkRxFault(rxdata, bmsmaster.rxPec, bmsmaster.rxCc);
+    bms_receiveData(cmd, rxdata, bms.rxPec, bms.rxCc);
+    bool ret = bms_checkRxFault(rxdata, bms.rxPec, bms.rxCc);
     bms_crit_exit();
     return !ret; // true if successful
 }

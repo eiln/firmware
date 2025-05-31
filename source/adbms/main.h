@@ -46,6 +46,7 @@ typedef enum
 typedef struct
 {
     bms_state_t state;
+
     uint32_t fault[TOTAL_AD68]; // bitfield of bms_error_t
     uint32_t first_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
     uint32_t last_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
@@ -58,9 +59,13 @@ typedef struct
     uint8_t  rxData[TOTAL_AD68][DATA_LEN];
     uint16_t rxPec[TOTAL_AD68];
     uint8_t  rxCc[TOTAL_AD68];
+
+    // charger
+    int charger_fail_count;
+
 } bms_t;
 
-extern bms_t bmsmaster;
+extern bms_t bms;
 extern SemaphoreHandle_t spi1_lock;
 
 #define bms_error log_red

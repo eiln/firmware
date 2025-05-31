@@ -9,13 +9,13 @@ void bms_cell_balance_task(void)
 {
     uint8_t pwm[TOTAL_AD68][TOTAL_CELL] = {0};
 
-    int16_t min_volts = bms.cell_v_c[0][0];
-    int16_t max_volts = bms.cell_v_c[0][0];
+    int16_t min_volts = data.cell_v_c[0][0];
+    int16_t max_volts = data.cell_v_c[0][0];
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         for (int cell = 0; cell < TOTAL_CELL; cell++)
         {
-            int16_t volts = bms.cell_v_c[ic][cell];
+            int16_t volts = data.cell_v_c[ic][cell];
             min_volts = MIN(volts, min_volts);
             max_volts = MIN(volts, max_volts);
         }
@@ -29,7 +29,7 @@ void bms_cell_balance_task(void)
         {
             for (int cell = 0; cell < TOTAL_CELL; cell++)
             {
-                float v = getVoltage(bms.cell_v_c[ic][cell]);
+                float v = getVoltage(data.cell_v_c[ic][cell]);
                 if (v >= BALANCING_MIN_V && (v - min_v) >= MAX_DELTA)
                 {
                     pwm[ic][cell] = 0b1111; // TODO calculate duty
