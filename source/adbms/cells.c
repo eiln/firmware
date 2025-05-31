@@ -10,23 +10,22 @@ static void bms_send_cells(void);
 void bms_monitor_cells(void)
 {
     bms_read_cells();
-    bms_check_cells();
-    bms_send_cells();
+    bms_send_cells(); // Still send
 }
 
 static void bms_print_cell_voltages(void)
 {
-    debug_printf("C-ADC Voltages:\n");
+    printf("C-ADC Voltages:\n");
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         for (int i = 0; i < TOTAL_CELL; i++)
         {
-            debug_printf("Cell %02d: %.4f ", i, data.cell_v_c[ic][i]);
+            printf("Cell %02d: %.4f ", i, data.cell_v_c[ic][i]);
             if (i % 4 == 3)
-                debug_printf("\n");
+            printf("\n");
         }
     }
-    debug_printf("\n");
+    printf("\n");
 }
 
 static void bms_read_cells(void)
@@ -81,15 +80,27 @@ static void bms_read_cells(void)
 
     adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
     bms_mDelay(1);
-    bms_checkCellVoltagesStatC();
+    bms_checkCellVoltagesStatC(); // TODO check STAT
     bms_readCellVoltages();
+
+    if (bms_any_fault(BMS_ERROR_RXPEC))
+    {
+        // Bad readings (last checked before cell reading)
+        // Discard away bad readings
+        bms_error("Bad cell readings! Discarding\n");
+        return;
+    }
+
     bms_print_cell_voltages();
+    bms_check_cells(); // Only check faults from readings if readings are good
+
+    // TODO Add LPF/EMA if needed
+    // TODO transfer cell_v_c to cell_v
 }
 
 static void bms_check_cells(void)
 {
     // TODO SIMD lol
-    // TODO Add LPF/EMA if needed
     bool set;
 
     #define CELL_REDUN_DELTA_MAX (0.05) // V
