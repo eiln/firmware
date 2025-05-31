@@ -1,6 +1,7 @@
 
 #include "main.h"
 #include "adbms/adbms.h"
+#include "math.h"
 
 static void bms_read_cells(void);
 static void bms_check_cells(void);
@@ -9,6 +10,8 @@ static void bms_send_cells(void);
 void bms_monitor_cells(void)
 {
     bms_read_cells();
+    bms_check_cells();
+    bms_send_cells();
 }
 
 static void bms_read_cells(void)
@@ -48,15 +51,14 @@ static void bms_read_cells(void)
     // inputs (SxP and SxN) synchronously with an input range of 0 V
     // to 5. 5 V and a sampling frequency of ~4 MHz, giving out results
     // every 8 ms.
-    #if 0
-    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_ODD_CH);
-    bms_mDelay(8);
-    bms_readSVoltages();
 
-    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_EVEN_CH);
-    bms_mDelay(8);
-    bms_readSVoltages();
-    #endif
+    adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_ON_EVEN_CH);
+    bms_mDelay(1);
+    bms_readCellVoltages();
+
+    adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_ON_ODD_CH);
+    bms_mDelay(1);
+    bms_readCellVoltages();
 
     adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_OFF_ALL_CH);
     bms_mDelay(8);
@@ -66,33 +68,27 @@ static void bms_read_cells(void)
     bms_mDelay(1);
     bms_checkCellVoltagesStatC();
     bms_readCellVoltages();
+}
 
-#if 0
-    // TODO set S/C delta threshold
-    // TODO check CSxFLT
-    // ---------------------------------
-    #if 1
-    // redundant check
-    // ADCV_CONT_CONTINUOUS
-    // ADCV_CONT_SINGLE
-    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_OFF_ALL_CH);
-    adbms_transmit_poll(PLSADC); // TODO?
-    bms_readSVoltages();
-    // check delta
-    // TODO if pcb connection is broken
-    #endif
+static void bms_check_cells(void)
+{
+    // TODO SIMD lol
+    bool set;
 
-    // even open wire check
-    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_EVEN_CH);
-    adbms_transmit_poll(PLSADC);
+    #define CELL_REDUN_DELTA_MAX (0.05) // V
 
-    // odd open wire check
-    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_ODD_CH);
-    adbms_transmit_poll(PLSADC);
-    // Note: discharge is enabled again automatically after the last single shot S-ADC conversion.
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        for (int i = 0; i < TOTAL_CELL; i++)
+        {
+            float delta = fabsf(data.cell_v_c[ic][i] - data.cell_v_s[ic][i]);
+            set = delta > CELL_REDUN_DELTA_MAX;
+            BMS_SET_FAULT_CELL_DEBUG(i, BMS_ERROR_CELL_REDUN, delta);
+        }
+    }
+}
 
-    // TODO figure out what happens if OW is detected
-    // Note: discharge is enabled again automatically after the
-    // last single shot S-ADC conversion.
-#endif
+static void bms_send_cells(void)
+{
+    ;
 }

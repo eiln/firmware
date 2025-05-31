@@ -80,6 +80,19 @@ uint32_t bms_pack_faults(bms_error_t field)
     return mask;
 }
 
+void bms_set_fault_cell(int ic, int cell, bms_error_t field, bool set)
+{
+    uint32_t mask = BMS_GET_ERROR_MASK(field);
+    if (set)
+    {
+        bms.fault_cell[ic][cell] |= mask;
+    }
+    else
+    {
+        bms.fault_cell[ic][cell] &= ~mask;
+    }
+}
+
 void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set)
 {
     uint32_t mask = BMS_GET_ERROR_MASK(field);

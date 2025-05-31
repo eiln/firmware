@@ -105,10 +105,6 @@ static void bms_aux_ow_check(void)
 #endif
 }
 
-#define BMS_SET_FAULT_DEBUG(field, var)\
-    if (set) bms_error("[FAULT]: [IC%d]: " #field ": %.3f\n", ic, var);\
-    bms_set_fault(ic, field, set);
-
 static void bms_aux_voltages_check(void)
 {
     // Sanity check va, vd, etc

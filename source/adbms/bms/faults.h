@@ -55,6 +55,16 @@ void bms_set_fault(int ic, bms_error_t field, bool set);
 void bms_set_fault_all(bms_error_t field, bool set);
 uint32_t bms_pack_faults(bms_error_t field);
 uint32_t bms_get_fault_duration(int ic, bms_error_t field);
+
+void bms_set_fault_cell(int ic, int cell, bms_error_t field, bool set);
 void bms_set_fault_aux(int ic, int aux, bms_error_t field, bool set);
+
+#define BMS_SET_FAULT_DEBUG(field, var)\
+    if (set) bms_error("[FAULT]: [IC%d]: " #field ": %.3f\n", ic, var);\
+    bms_set_fault(ic, field, set);
+
+#define BMS_SET_FAULT_CELL_DEBUG(cell, field, var)\
+    if (set) bms_error("[FAULT]: [IC%d]: [CELL%2d]: " #field ": %.3f\n", ic, cell, var);\
+    bms_set_fault_cell(ic, cell, field, set);
 
 #endif // __BMS_FAULTS_H__

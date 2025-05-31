@@ -221,6 +221,11 @@ static bool is_any_error(void)
         printf("\t " #field " time: %d last: %d\n", bms_get_fault_duration(ic, field), bms.last_fault_time[ic][field]);\
 } while (0);
 
+#define print_bms_cell_fault(field) do {\
+    if (bms.fault_cell[ic][cell] & BMS_GET_ERROR_MASK(field))\
+        printf("\t [CELL%2d]" #field "\n", cell);\
+} while (0);
+
 static void bms_error_handler(void)
 {
     if (is_any_error())
@@ -245,6 +250,14 @@ static void bms_error_handler(void)
             print_bms_fault(ic, BMS_ERROR_VREF2);
             print_bms_fault(ic, BMS_ERROR_ITMP_UT);
             print_bms_fault(ic, BMS_ERROR_ITMP_OT);
+
+            for (int cell = 0; cell < TOTAL_CELL; cell++)
+            {
+                print_bms_cell_fault(BMS_ERROR_CELL_OW);
+                print_bms_cell_fault(BMS_ERROR_CELL_UV);
+                print_bms_cell_fault(BMS_ERROR_CELL_OV);
+                print_bms_cell_fault(BMS_ERROR_CELL_REDUN);
+            }
         }
         /* Clear Errors */
     }
