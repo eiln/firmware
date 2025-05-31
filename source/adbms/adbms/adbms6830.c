@@ -26,7 +26,7 @@ bool adbms_checkalive(void)
     {
         uint8_t sid = rxdata[ic][1]; // SID1 [1:6]
         sid = (sid >> 1) & 0x3f;
-        bms_set_fault(ic, BMS_ERROR_SID, !(sid == ADBMS_6830B_SID));
+        bms_set_fault(ic, BMS_ERROR_SID, sid != ADBMS_6830B_SID);
     }
 
     return true;
