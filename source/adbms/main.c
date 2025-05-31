@@ -207,7 +207,7 @@ static void bms_periodic(void)
     bms_charge_task();
 }
 
-static bool is_error(void)
+static bool is_any_error(void)
 {
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
@@ -223,7 +223,7 @@ static bool is_error(void)
 
 static void bms_error_handler(void)
 {
-    if (is_error())
+    if (is_any_error())
     {
         PHAL_toggleGPIO(LED_PORT_RED, LED_PIN_RED);
         printf("BMS State: 0x%02x\n", bms.state);

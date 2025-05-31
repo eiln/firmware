@@ -78,7 +78,7 @@ static void bms_charge_state_exit(void)
     elcon_charger_stop();
     // if elcon stop fails, pull SDC
     bms.charger_fail_count = 0;
-    bms.state = BMS_STATE_CONNECTED;
+    bms.state = BMS_STATE_IDLE;
 }
 
 void bms_cell_balance_task(void);
