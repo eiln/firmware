@@ -1,5 +1,4 @@
 
-
 #define CELL_C_RATE (4.5f) // 1C, Amps
 #define CHARGER_CCL_MAX (13.5f)   // 3C (4.5*3)
 #define CHARGER_CVL_MAX (596.4f) // Pack voltage
@@ -28,7 +27,7 @@ static void elcon_send_stop_request(float voltage_req)
 
 volatile uint32_t elcon_last_status;
 
-static bool elcon_process_charger_status(CAN_FRAME &frame)
+static bool elcon_charger_fault_status(CAN_FRAME &frame)
 {
     float charge_voltage = frame.charge_voltage * 0.1f;
     float charge_current = frame.charge_current * 0.1f;
@@ -39,21 +38,27 @@ static bool elcon_process_charger_status(CAN_FRAME &frame)
     if (now - elcon_last_status > 5) // 5 second timeout
     {
         elcon_last_status = now;
-        return false;
+        return true;
     }
     elcon_last_status = now;
 
     if (frame.hw_fail || frame.temp_fail || frame.input_v_fail || frame.startup_fail || frame.communication_fail)
     {
-        return false;
+        return true;
     }
 
     if (charge_voltage > CHARGER_CVL_MAX || CHARGER_CCL_MAX > CHARGER_CCL_MAX)
     {
-        return false;
+        return true;
     }
 
-    return true;
+    return false;
+}
+
+static void elcon_charger_status(CAN_FRAME &frame)
+{
+    bool set = elcon_process_charger_status(frame);
+    bms_set_fault_global(BMS_GLOBAL_ERROR_CHARGER, set);
 }
 
 void charger_elcon_stop(void)
@@ -68,7 +73,7 @@ void charger_elcon_stop(void)
 void charge(void)
 {
     elcon_send_charge_request(CHARGER_CVL_MAX, CHARGER_CCL_MAX, true);
-    if ()
+
     // discharge rate: voltage / (30 ohm) = 3.0 / (30 ohm) = 0.1A
 
     // loop:

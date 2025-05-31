@@ -82,6 +82,7 @@ static void bms_error_handler(void);
 
 bms_t bmsmaster = {
     .state = BMS_STATE_IDLE,
+    .fault_global = 0,
     .fault = {0},
     .first_fault_time = {0},
     .last_fault_time = {0},
