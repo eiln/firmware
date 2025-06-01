@@ -43,11 +43,24 @@ typedef enum {
     ADC_DATA_ALIGN_LEFT = 0b1
 } ADCDataAlign_t;
 
+typedef enum {
+    ADC_OVERSAMPLE_NONE = 0,
+    ADC_OVERSAMPLE_2   = 2,
+    ADC_OVERSAMPLE_4   = 4,
+    ADC_OVERSAMPLE_8   = 8,
+    ADC_OVERSAMPLE_16  = 16,
+    ADC_OVERSAMPLE_32  = 32,
+    ADC_OVERSAMPLE_64  = 64,
+    ADC_OVERSAMPLE_128 = 128,
+    ADC_OVERSAMPLE_256 = 256,
+} ADCOversampleCount_t;
+
 typedef struct {
     ADCClkPrescaler_t clock_prescaler;
     ADCResolution_t resolution;
     ADCDataAlign_t data_align;
     bool cont_conv_mode;
+    ADCOversampleCount_t oversample;
     ADCDMAMode_t dma_mode;
     ADC_TypeDef *periph;
 } ADCInitConfig_t;
