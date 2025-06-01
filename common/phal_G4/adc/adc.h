@@ -34,7 +34,7 @@ typedef enum {
 
 typedef enum {
     ADC_DMA_OFF      = 0b00,
-    ADC_DMA_ONE_SHOT = 0b01,
+    ADC_DMA_ONESHOT  = 0b01,
     ADC_DMA_CIRCULAR = 0b11
 } ADCDMAMode_t;
 

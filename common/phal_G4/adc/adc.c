@@ -118,18 +118,13 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
 
     if (!PHAL_configureADCChannels(config, channels, num_channels)) return false;
 
-    // DMA configuration
-    if (config->dma_mode != ADC_DMA_OFF)
-    {
-        // adc->CFGR |= ((config->dma_mode == ADC_DMA_CIRCULAR) << ADC_CFGR_DMACFG_Pos) & ADC_CFGR_DMACFG_Msk; // Circular or one shot
-        adc->CFGR |= ADC_CFGR_CONT | ADC_CFGR_DMAEN | ADC_CFGR_DMACFG;
+    if (config->dma_mode == ADC_DMA_ONESHOT) {
+        adc->CFGR |= ADC_CFGR_DMAEN;
+        adc->CFGR &= ~ADC_CFGR_DMACFG;
+    } else if (config->dma_mode == ADC_DMA_CIRCULAR) {
+        adc->CFGR |= ADC_CFGR_DMAEN | ADC_CFGR_DMACFG;
     }
-    else
-    {
-        // Disable ADC DMA Mode
-        adc->CFGR &= ~(ADC_CFGR_DMAEN);
-    }
-
+    
     // Enable ADC
     adc->ISR |= ADC_ISR_ADRDY;  // Clear ready flag
     adc->CR |= ADC_CR_ADEN;     // Enable ADC
