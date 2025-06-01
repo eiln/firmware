@@ -1,6 +1,6 @@
 /**
  * @file rcc.h
- * @author Chris McGalliard (cmcgalli@purdue.edu) - Port of L4 RCC by Adam Busch (busch8@purdue.edu)
+ * @author Eileen Yoon - Port of L4 RCC by Adam Busch (busch8@purdue.edu)
  * @brief RCC Configuration Driver for STM32F4 Devices
  * @version 0.1
  * @date 2023-08-16
