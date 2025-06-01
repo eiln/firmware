@@ -48,28 +48,22 @@ bool PHAL_initDMA(dma_init_t* dma) {
     // Reset preconfigured CR values
     dma->channel->CCR = 0;
     // Set channel, priority, memory data size
-    dma->channel->CCR |= (dma->mem_size   << DMA_CCR_MSIZE_Pos) & DMA_CCR_MSIZE_Msk |
-    (dma->periph_size << DMA_CCR_PSIZE_Pos) & DMA_CCR_PSIZE_Msk |
-                         (dma->priority   << DMA_CCR_PL_Pos) & DMA_CCR_PL_Msk   |
-                         (dma->mem_inc    << DMA_CCR_MINC_Pos) & DMA_CCR_MINC_Msk |
-                         (dma->periph_inc << DMA_CCR_PINC_Pos) & DMA_CCR_PINC_Msk |
-                         (dma->circular   << DMA_CCR_CIRC_Pos) & DMA_CCR_CIRC_Msk  |
-                         (dma->dir        << DMA_CCR_DIR_Pos)  & DMA_CCR_DIR_Msk |
-                         (dma->tx_isr_en  << DMA_CCR_TEIE_Pos) & DMA_CCR_TEIE_Msk |
-                         (dma->tx_isr_en  << DMA_CCR_TCIE_Pos) & DMA_CCR_TCIE_Msk;
-#if 0
-    DMA1_Channel1->CPAR = (uint32_t)&ADC1->DR;    // Peripheral address
-    DMA1_Channel1->CCR = DMA_CCR_PL_1    // Priority medium
-                       | DMA_CCR_MSIZE_0 | DMA_CCR_PSIZE_0  // 16-bit memory & peripheral size
-                       | DMA_CCR_MINC    // Memory increment
-                       | DMA_CCR_CIRC;    // Circular mode
-                       #endif
-                       dma->channel->CCR |= DMA_CCR_EN;
+    dma->channel->CCR |= (dma->mem_size    << DMA_CCR_MSIZE_Pos)  & DMA_CCR_MSIZE_Msk |
+                         (dma->periph_size << DMA_CCR_PSIZE_Pos)  & DMA_CCR_PSIZE_Msk |
+                         (dma->priority    << DMA_CCR_PL_Pos)     & DMA_CCR_PL_Msk    |
+                         (dma->mem_inc     << DMA_CCR_MINC_Pos)   & DMA_CCR_MINC_Msk  |
+                         (dma->periph_inc  << DMA_CCR_PINC_Pos)   & DMA_CCR_PINC_Msk  |
+                         (dma->circular    << DMA_CCR_CIRC_Pos)   & DMA_CCR_CIRC_Msk  |
+                         (dma->dir         << DMA_CCR_DIR_Pos)    & DMA_CCR_DIR_Msk   |
+                         (dma->tx_isr_en   << DMA_CCR_TEIE_Pos)   & DMA_CCR_TEIE_Msk  |
+                         (dma->tx_isr_en   << DMA_CCR_TCIE_Pos)   & DMA_CCR_TCIE_Msk;
 
-                       RCC->AHB1ENR |= RCC_AHB1ENR_DMAMUX1EN;
-                       DMAMUX1_Channel0->CCR &= ~(1 << 8); // Disable channel (clear EN bit)
-                       DMAMUX1_Channel0->CCR = (DMAMUX1_Channel0->CCR & ~0x7F) | 5; // Set DMA request line to 40
-                       DMAMUX1_Channel0->CCR |= (1 << 8); // Enable channel (set EN bit)
+    RCC->AHB1ENR |= RCC_AHB1ENR_DMAMUX1EN;
+    DMAMUX1_Channel0->CCR &= ~(1 << 8); // Disable channel (clear EN bit)
+    DMAMUX1_Channel0->CCR = (DMAMUX1_Channel0->CCR & ~0x7F) | 5; // Set DMA request line to 40
+    DMAMUX1_Channel0->CCR |= (1 << 8); // Enable channel (set EN bit)
+
+    dma->channel->CCR |= DMA_CCR_EN;
     return true;
 }
 
