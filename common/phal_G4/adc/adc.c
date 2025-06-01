@@ -18,9 +18,12 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
         // Enable clock to the selected peripheral
         RCC->AHB2ENR |= RCC_AHB2ENR_ADC12EN;
 
+        #define ADC_CKMODE_DIV1  (0x1UL << ADC_CCR_CKMODE_Pos)
+        ADC12_COMMON->CCR &= ~ADC_CCR_CKMODE;
+        ADC12_COMMON->CCR |= ADC_CKMODE_DIV1;
         // Set prescaler (todo maintain acceptable bounds)
-        ADC12_COMMON->CCR &= ~(ADC_CCR_PRESC_Msk);
-        ADC12_COMMON->CCR |= (config->clock_prescaler << ADC_CCR_PRESC_Pos) & ADC_CCR_PRESC_Msk;
+        // ADC12_COMMON->CCR &= ~(ADC_CCR_PRESC_Msk);
+        // ADC12_COMMON->CCR |= (config->clock_prescaler << ADC_CCR_PRESC_Pos) & ADC_CCR_PRESC_Msk;
     }
     else if (adc == ADC3 || adc == ADC4 || adc == ADC5)
     {
@@ -34,18 +37,37 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
         return false;
     }
 
+    ADC1->CR &= ~ADC_CR_DEEPPWD;
+    ADC1->CR |= ADC_CR_ADVREGEN;
+    for (volatile int i = 0; i < 1000; ++i); // Short delay
+
+    // 1. Ensure ADC is disabled before calibration
+    if (adc->CR & ADC_CR_ADEN) {
+        adc->CR |= ADC_CR_ADDIS; // Disable ADC if it was enabled
+        while (adc->CR & ADC_CR_ADEN); // Wait until disabled
+    }
+
+    // Calibrate ADC
+    adc->CR |= ADC_CR_ADCAL;
+    while (adc->CR & ADC_CR_ADCAL); // Wait for calibration to finish
+
     // Set conversion mode on regular channels
-    adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DISCEN);
-    config->cont_conv_mode ? (adc->CFGR |= (ADC_CFGR_CONT)) : (adc->CFGR |= (ADC_CFGR_DISCEN));
+    // adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DISCEN);
+    // config->cont_conv_mode ? (adc->CFGR |= (ADC_CFGR_CONT)) : (adc->CFGR |= (ADC_CFGR_DISCEN));
 
     // Set resolution
     adc->CFGR &= ~(ADC_CFGR_RES);
-    adc->CFGR |= (config->resolution << ADC_CFGR_RES_Pos) & ADC_CFGR_RES_Msk;
+    adc->CFGR |= (config->resolution << ADC_CFGR_RES_Pos) & ADC_CFGR_RES_Msk;  // 12-bit resolution
 
     // Set data alignment
     adc->CFGR &= ~(ADC_CFGR_ALIGN);
     adc->CFGR |= (config->data_align << ADC_CFGR_ALIGN_Pos) & ADC_CFGR_ALIGN_Msk;
 
+    // 7. Configure channel and sampling time
+    ADC1->SQR1 = (1 << 6); // SQ1 = channel 1 (PA0)
+    ADC1->SMPR1 &= ~(7 << (3 * 1)); // Clear sample time bits
+    ADC1->SMPR1 |= (6 << (3 * 1));  // Set long sample time: 247.5 ADC clk
+#if 0
     // Regular channel sequence length
     adc->SQR1 &= ~(ADC_SQR1_L);
     adc->SQR1 |= ((num_channels - 1) << ADC_SQR1_L_Pos) & ADC_SQR1_L_Msk;
@@ -97,18 +119,32 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
             adc->SQR3 |= ((channels[i].channel & 0b111) << ((channels[i].rank - 10) * 6));
         }
     }
+#endif
+
+    // adc->CFGR2 |= ADC_CFGR2_SMPTRIG;
+    // Enable ADC
+    adc->ISR |= ADC_ISR_ADRDY;  // Clear ready flag
+    adc->CR |= ADC_CR_ADEN;     // Enable ADC
+    while (!(ADC1->ISR & ADC_ISR_ADRDY)); // Wait until ready
 
     return true;
 }
 
-bool PHAL_startADC(ADCInitConfig_t* config)
+uint16_t PHAL_readADC(ADCInitConfig_t* config)
 {
     ADC_TypeDef *adc = config->periph;
+    adc->CR |= ADC_CR_ADSTART; // Start conversion
+    while (!(adc->ISR & ADC_ISR_EOC)); // Wait for end of conversion
+    return (uint16_t)adc->DR; // Read result
+}
 
-    adc->CR |= ADC_CR_ADEN;
-    adc->ISR |= ADC_ISR_ADRDY;
-    while (adc->ISR & ADC_ISR_ADRDY == 0) ;
+bool PHAL_startADC(ADCInitConfig_t* config)
+{
+    #if 0
+    ADC_TypeDef *adc = config->periph;
     adc->CR |= ADC_CR_ADSTART;
+    adc->CFGR2 |= ADC_CFGR2_SWTRIG;
+    #endif
     return true;
 }
 
@@ -121,10 +157,4 @@ bool PHAL_stopADC(ADCInitConfig_t* config)
     }
     adc->CR &= ~ADC_CR_ADSTART;
     return true;
-}
-
-uint16_t PHAL_readADC(ADCInitConfig_t* config)
-{
-    ADC_TypeDef *adc = config->periph;
-    return (uint16_t) (adc->DR & ADC_DR_RDATA_Msk);
 }
