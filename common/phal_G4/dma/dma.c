@@ -34,11 +34,10 @@ bool PHAL_initDMA(dma_init_t* dma) {
 
     // Ensure the stream is disabled, must be in order to configure the DMA control registers
     dma->channel->CCR &= ~(DMA_CCR_EN);
-    while (dma->channel->CCR &= DMA_CCR_EN)
-        ;
+    while (dma->channel->CCR & DMA_CCR_EN);
 
     // Clear any stream dedicated status flags that may have been set previously
-    dma->periph->IFCR = ((uint32_t)DMA_ISR_HTIF1 << (dma->channel_idx & 0x1FU));
+    dma->periph->IFCR = DMA_IFCR_CTCIF1 | DMA_IFCR_CHTIF1 | DMA_IFCR_CTEIF1;
 
     // Set peripheral port register address
     dma->channel->CPAR = dma->periph_addr;
@@ -48,7 +47,6 @@ bool PHAL_initDMA(dma_init_t* dma) {
 
     // Reset preconfigured CR values
     dma->channel->CCR = 0;
-
     // Set channel, priority, memory data size
     dma->channel->CCR |= (dma->mem_size   << DMA_CCR_MSIZE_Pos) |
                          (dma->priority   << DMA_CCR_PL_Pos)    |

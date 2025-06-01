@@ -21,6 +21,12 @@
 #error "Please define a MCU arch"
 #endif
 
+typedef enum {
+    DMA_SIZE_8BIT  = 0,
+    DMA_SIZE_16BIT = 1,
+    DMA_SIZE_32BIT = 2
+} dma_size_t;
+
 typedef struct {
     uint32_t    periph_addr;
     uint32_t    mem_addr;
