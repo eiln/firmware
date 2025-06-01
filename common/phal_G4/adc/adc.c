@@ -71,6 +71,9 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
         // Enable clock to the selected peripheral
         RCC->AHB2ENR |= RCC_AHB2ENR_ADC12EN;
 
+        RCC->CCIPR &= ~RCC_CCIPR_ADC12SEL;  // Clear bits
+        RCC->CCIPR |= RCC_CCIPR_ADC12SEL_0; // Select system clock (PCLK) as ADC clock
+
         #define ADC_CKMODE_DIV1  (0x1UL << ADC_CCR_CKMODE_Pos)
         ADC12_COMMON->CCR &= ~ADC_CCR_CKMODE;
         ADC12_COMMON->CCR |= ADC_CKMODE_DIV1;
@@ -102,8 +105,8 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
     while (adc->CR & ADC_CR_ADCAL); // Wait for calibration to finish
 
     // Set conversion mode on regular channels
-    // adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DISCEN);
-    // config->cont_conv_mode ? (adc->CFGR |= (ADC_CFGR_CONT)) : (adc->CFGR |= (ADC_CFGR_DISCEN));
+    adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DISCEN);
+    config->cont_conv_mode ? (adc->CFGR |= (ADC_CFGR_CONT)) : (adc->CFGR |= (ADC_CFGR_DISCEN));
 
     // Set resolution
     adc->CFGR &= ~(ADC_CFGR_RES);
@@ -115,20 +118,17 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
 
     if (!PHAL_configureADCChannels(config, channels, num_channels)) return false;
 
-#if 0
     // DMA configuration
-    while (adc->CR & ADC_CR_ADSTART || adc->CR & ADC_CR_JADSTART);
     if (config->dma_mode != ADC_DMA_OFF)
     {
-        adc->CFGR |= ADC_CFGR_DMAEN;
-        adc->CFGR |= ((config->dma_mode == ADC_DMA_CIRCULAR) << ADC_CFGR_DMACFG_Pos) & ADC_CFGR_DMACFG_Msk; // Circular or one shot
+        // adc->CFGR |= ((config->dma_mode == ADC_DMA_CIRCULAR) << ADC_CFGR_DMACFG_Pos) & ADC_CFGR_DMACFG_Msk; // Circular or one shot
+        adc->CFGR |= ADC_CFGR_CONT | ADC_CFGR_DMAEN | ADC_CFGR_DMACFG;
     }
     else
     {
         // Disable ADC DMA Mode
         adc->CFGR &= ~(ADC_CFGR_DMAEN);
     }
-#endif
 
     // Enable ADC
     adc->ISR |= ADC_ISR_ADRDY;  // Clear ready flag
@@ -141,18 +141,18 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
 uint16_t PHAL_readADC(ADCInitConfig_t* config)
 {
     ADC_TypeDef *adc = config->periph;
-    adc->CR |= ADC_CR_ADSTART; // Start conversion
+    if (!config->cont_conv_mode)
+    {
+        adc->CR |= ADC_CR_ADSTART; // Start conversion if single-shot mode
+    }
     while (!(adc->ISR & ADC_ISR_EOC)); // Wait for end of conversion
     return (uint16_t)adc->DR; // Read result
 }
 
 bool PHAL_startADC(ADCInitConfig_t* config)
 {
-    #if 0
     ADC_TypeDef *adc = config->periph;
     adc->CR |= ADC_CR_ADSTART;
-    adc->CFGR2 |= ADC_CFGR2_SWTRIG;
-    #endif
     return true;
 }
 
