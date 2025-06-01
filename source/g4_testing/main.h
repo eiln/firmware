@@ -11,23 +11,17 @@
 #define LED_ORANGE_PORT GPIOB
 #define LED_ORANGE_PIN  1
 
-#define NUM_CHANNELS 1
-volatile extern uint16_t raw_adc_values[NUM_CHANNELS];
-
-#if 0
 typedef struct __attribute__((packed))
 {
     // Do not modify this struct
     // unless you modify the ADC DMA config in main.h to match
     uint16_t val1;
-    #if 0
     uint16_t val2;
     uint16_t val3;
     uint16_t val4;
-    #endif
 } raw_adc_values_t;
 
 volatile extern raw_adc_values_t raw_adc_values;
-#endif
+#define ADC_NUM_CHANNELS (sizeof(raw_adc_values) / sizeof(uint16_t))
 
 #endif // __G4_TESTING_MAIN_H__
