@@ -37,7 +37,7 @@ ADCChannelConfig_t adc_channel_config[] = {
     {.channel = ADC_CHANNEL_4,  .rank = 4,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
 };
 
-volatile raw_adc_values_t raw_adc_values;
+volatile raw_adc_values_t raw_adc_values = {0};
 dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t)&raw_adc_values, ADC_NUM_CHANNELS, 0b01);
 
 #define TargetCoreClockrateHz 16000000
