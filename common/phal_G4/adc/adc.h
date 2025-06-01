@@ -64,8 +64,16 @@ typedef enum {
     ADC_CHN_SMP_CYCLES_480  = 0b111,
 } ADCChannelSampleCycles_t;
 
+typedef enum {
+    ADC_CHANNEL_1 = 1,
+    ADC_CHANNEL_2 = 2,
+    ADC_CHANNEL_3 = 3,
+    ADC_CHANNEL_4 = 4,
+} ADCChannel_t;
+
 typedef struct {
-    uint32_t channel; // not the GPIO channel, use the ADC channel
+    ADC_TypeDef *periph;
+    ADCChannel_t channel; // not the GPIO channel, use the ADC channel
     uint32_t rank;    // order at which the channels will be polled, starting at 0
     ADCChannelSampleCycles_t sampling_time;
 } ADCChannelConfig_t;
@@ -76,8 +84,17 @@ typedef struct {
      .tx_size=tx_size_, .increment=true, .circular=true,             \
      .dir=0b0, .mem_inc=true, .periph_inc=false, .mem_to_mem=false,  \
      .priority=priority_, .mem_size=0b01, .periph_size=0b01,         \
-     .tx_isr_en=false, .dma_chan_request=0b0000, .stream_idx=0,      \
-     .periph=ADC1, .stream=DMA2_Stream0}
+     .tx_isr_en=false, .dma_chan_request=0b0000, .channel_idx=1,     \
+     .periph=DMA1, .channel=DMA1_Channel1}
+
+#define ADC1_CH1_GPIO_Port (GPIOA)
+#define ADC1_CH1_Pin       (0)
+#define ADC1_CH2_GPIO_Port (GPIOA)
+#define ADC1_CH2_Pin       (1)
+#define ADC1_CH3_GPIO_Port (GPIOA)
+#define ADC1_CH3_Pin       (2)
+#define ADC1_CH4_GPIO_Port (GPIOA)
+#define ADC1_CH4_Pin       (3)
 
 /**
  * @brief Initializes the ADC, requires GPIO config prior
@@ -94,13 +111,13 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
  *
  * @param adc ADC handle
 **/
-bool PHAL_startADC(ADC_TypeDef* adc);
+bool PHAL_startADC(ADCInitConfig_t* config);
 /**
  * @brief Stops the ADC conversions, requires PHAL_initADC to be called prior
  *
  * @param adc ADC handle
 **/
-bool PHAL_stopADC(ADC_TypeDef* adc);
+bool PHAL_stopADC(ADCInitConfig_t* config);
 
 /**
  * @brief Reads the ADC data register
@@ -108,6 +125,6 @@ bool PHAL_stopADC(ADC_TypeDef* adc);
  * @param adc ADC handle
  * @return contents of the data register
 **/
-uint16_t PHAL_readADC(ADC_TypeDef* adc);
+uint16_t PHAL_readADC(ADCInitConfig_t* config);
 
 #endif
