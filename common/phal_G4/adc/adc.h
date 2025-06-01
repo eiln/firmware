@@ -26,10 +26,11 @@ typedef enum {
 } ADCResolution_t;
 
 typedef enum {
-    ADC_CLK_PRESC_2 = 0b00,
-    ADC_CLK_PRESC_4 = 0b01,
-    ADC_CLK_PRESC_6 = 0b10,
-    ADC_CLK_PRESC_8 = 0b11,
+    ADC_CLK_PRESC_0 = 0b0000,
+    ADC_CLK_PRESC_2 = 0b0001,
+    ADC_CLK_PRESC_4 = 0b0010,
+    ADC_CLK_PRESC_6 = 0b0011,
+    ADC_CLK_PRESC_8 = 0b0100,
 } ADCClkPrescaler_t;
 
 typedef enum {
@@ -56,7 +57,7 @@ typedef enum {
 } ADCOversampleCount_t;
 
 typedef struct {
-    ADCClkPrescaler_t clock_prescaler;
+    ADCClkPrescaler_t prescaler;
     ADCResolution_t resolution;
     ADCDataAlign_t data_align;
     bool cont_conv_mode;

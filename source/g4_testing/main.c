@@ -23,7 +23,7 @@ GPIOInitConfig_t gpio_config[] = {
 /* ADC Configuration */
 ADCInitConfig_t adc_config = {
     .periph          = ADC1,
-    .clock_prescaler = ADC_CLK_PRESC_6,
+    .prescaler       = ADC_CLK_PRESC_0,
     .resolution      = ADC_RES_12_BIT,
     .data_align      = ADC_DATA_ALIGN_RIGHT,
     .cont_conv_mode  = true,
