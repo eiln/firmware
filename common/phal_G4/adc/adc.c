@@ -1,6 +1,6 @@
 /**
  * @file adc.c
- * @author Aditya Anand, Chris McGalliard - port of L4 HAL by Luke Oxley (lcoxley@purdue.edu)
+ * @author Eilen Yoon - Port of F4 HAL by Aditya Anand, Chris McGalliard
  * @brief
  * @version 0.1
  * @date 2023-09-17
@@ -8,43 +8,53 @@
 
 #include "common/phal_G4/adc/adc.h"
 
-bool PHAL_initADC(ADC_TypeDef* adc, ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_t num_channels)
+bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_t num_channels)
 {
-    // Enable clock to the selected peripheral
-    RCC->APB2ENR |= (1 << (RCC_APB2ENR_ADC1EN_Pos + config->adc_number - 1)) & (0x7UL << RCC_APB2ENR_ADC1EN_Pos);
+    ADC_TypeDef *adc = config->periph;
+    if (adc == ADC1 || adc == ADC2)
+    {
+        // Enable clock to the selected peripheral
+        RCC->AHB2ENR |= RCC_AHB2ENR_ADC12EN;
 
-    // Set prescaler (todo maintain acceptable bounds)
-    ADC123_COMMON->CCR &= ~(ADC_CCR_ADCPRE_Msk);
-    ADC123_COMMON->CCR |= (config->clock_prescaler << ADC_CCR_ADCPRE_Pos) & ADC_CCR_ADCPRE_Msk;
+        // Set prescaler (todo maintain acceptable bounds)
+        ADC12_COMMON->CCR &= ~(ADC_CCR_PRESC_Msk);
+        ADC12_COMMON->CCR |= (config->clock_prescaler << ADC_CCR_PRESC_Pos) & ADC_CCR_PRESC_Msk;
+    }
+    else if (adc == ADC3 || adc == ADC4 || adc == ADC5)
+    {
+        RCC->AHB2ENR |= RCC_AHB2ENR_ADC345EN;
+
+        ADC345_COMMON->CCR &= ~(ADC_CCR_PRESC_Msk);
+        ADC345_COMMON->CCR |= (config->clock_prescaler << ADC_CCR_PRESC_Pos) & ADC_CCR_PRESC_Msk;
+    }
 
     // Set conversion mode on regular channels
-    adc->CR2 &= ~(ADC_CR2_CONT);
-    adc->CR1 &= ~(ADC_CR1_DISCEN);
-    config->cont_conv_mode ? (adc->CR2 |= (ADC_CR2_CONT)) : (adc->CR1 |= (ADC_CR1_DISCEN));
+    adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DISCEN);
+    config->cont_conv_mode ? (adc->CFGR |= (ADC_CFGR_CONT)) : (adc->CFGR |= (ADC_CFGR_DISCEN));
 
     // Set resolution
-    adc->CR1 &= ~(ADC_CR1_RES);
-    adc->CR1 |= (config->resolution << ADC_CR1_RES_Pos) & ADC_CR1_RES_Msk;
+    adc->CFGR &= ~(ADC_CFGR_RES);
+    adc->CFGR |= (config->resolution << ADC_CFGR_RES_Pos) & ADC_CFGR_RES_Msk;
 
     // Set data alignment
-    adc->CR2 &= ~(ADC_CR2_ALIGN);
-    adc->CR2 |= (config->data_align << ADC_CR2_ALIGN_Pos) & ADC_CR2_ALIGN_Msk;
+    adc->CFGR &= ~(ADC_CFGR_ALIGN);
+    adc->CFGR |= (config->data_align << ADC_CFGR_ALIGN_Pos) & ADC_CFGR_ALIGN_Msk;
 
     // Regular channel sequence length
     adc->SQR1 &= ~(ADC_SQR1_L);
     adc->SQR1 |= ((num_channels - 1) << ADC_SQR1_L_Pos) & ADC_SQR1_L_Msk;
 
     // DMA configuration
+    while (adc->CR & ADC_CR_ADSTART || adc->CR & ADC_CR_JADSTART);
     if (config->dma_mode != ADC_DMA_OFF)
     {
-        // Circular or one shot
-        adc->CR2 |= (ADC_CR2_DMA) |
-            (((config->dma_mode == ADC_DMA_CIRCULAR) << ADC_CR2_DDS_Pos) & ADC_CR2_DDS_Msk);
+        adc->CFGR |= ADC_CFGR_DMAEN;
+        adc->CFGR |= ((config->dma_mode == ADC_DMA_CIRCULAR) << ADC_CFGR_DMACFG_Pos) & ADC_CFGR_DMACFG_Msk; // Circular or one shot
     }
     else
     {
         // Disable ADC DMA Mode
-        adc->CR2 &= ~(ADC_CR2_DMA);
+        adc->CFGR &= ~(ADC_CFGR_DMAEN);
     }
 
     // Channel configuration
@@ -53,20 +63,20 @@ bool PHAL_initADC(ADC_TypeDef* adc, ADCInitConfig_t* config, ADCChannelConfig_t 
         // Configure sample time: https://controllerstech.com/adc-conversion-time-frequency-calculation-in-stm32/
         if (channels[i].channel < 10)
         {
-            adc->SMPR2 &= ~(ADC_SMPR2_SMP0_Msk << (ADC_SMPR2_SMP1_Pos * channels[i].channel));
-            adc->SMPR2 |= (channels[i].sampling_time & ADC_SMPR2_SMP0_Msk) << (ADC_SMPR2_SMP1_Pos * channels[i].channel);
+            adc->SMPR1 &= ~(1 << (ADC_SMPR1_SMP0_Pos * channels[i].channel));
+            adc->SMPR1 |= (channels[i].sampling_time & ADC_SMPR1_SMP0_Msk) << (ADC_SMPR1_SMP0_Pos * channels[i].channel);
         }
-        else if (channels[i].channel > 9 && channels[i].channel < 19)
+        else if (channels[i].channel >= 10 && channels[i].channel < 19)
         {
-            adc->SMPR1 &= ~(ADC_SMPR1_SMP10_Msk << (ADC_SMPR1_SMP11_Pos * (channels[i].channel - 10)));
-            adc->SMPR1 |= (channels[i].sampling_time & ADC_SMPR1_SMP10_Msk) << (ADC_SMPR1_SMP11_Pos * (channels[i].channel - 10));
+            adc->SMPR2 &= ~(1 << (ADC_SMPR2_SMP10_Pos * (channels[i].channel - 10)));
+            adc->SMPR2 |= (channels[i].sampling_time & ADC_SMPR2_SMP10_Msk) << (ADC_SMPR2_SMP10_Pos * (channels[i].channel - 10));
         }
 
         // Sequence rank
-        if (channels[i].rank < 7)
+        if (channels[i].rank < 4)
         {
-            adc->SQR3 &= ~(ADC_SQR3_SQ1_Msk << ((channels[i].rank - 1) * 5));
-            adc->SQR3 |= (channels[i].channel &  ADC_SQR3_SQ1_Msk) << ((channels[i].rank - 1) * 5);
+            adc->SQR1 &= ~(0b111 << ((channels[i].rank + 1) * 6));
+            adc->SQR1 |= ((channels[i].channel & 0b111) << ((channels[i].rank + 1) * 6));
         }
         else if (channels[i].rank < 13)
         {

@@ -50,6 +50,7 @@ typedef struct {
     bool cont_conv_mode;
     ADCDMAMode_t dma_mode;
     uint8_t adc_number;
+    ADC_TypeDef *periph;
 } ADCInitConfig_t;
 
 typedef enum {
