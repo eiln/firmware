@@ -10,6 +10,8 @@
 
 bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_t num_channels)
 {
+    if (num_channels >= 16) return false;
+
     ADC_TypeDef *adc = config->periph;
     if (adc == ADC1 || adc == ADC2)
     {
@@ -26,6 +28,10 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
 
         ADC345_COMMON->CCR &= ~(ADC_CCR_PRESC_Msk);
         ADC345_COMMON->CCR |= (config->clock_prescaler << ADC_CCR_PRESC_Pos) & ADC_CCR_PRESC_Msk;
+    }
+    else
+    {
+        return false;
     }
 
     // Set conversion mode on regular channels
@@ -78,45 +84,40 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
             adc->SQR1 &= ~(0b111 << ((channels[i].rank + 1) * 6));
             adc->SQR1 |= ((channels[i].channel & 0b111) << ((channels[i].rank + 1) * 6));
         }
-        else if (channels[i].rank < 13)
+        else if (channels[i].rank < 9)
         {
-            adc->SQR2 &= ~(ADC_SQR2_SQ7_Msk << ((channels[i].rank - 7) * 5));
-            adc->SQR2 |= (channels[i].channel & ADC_SQR2_SQ7_Msk) << ((channels[i].rank - 7) * 5);
+            adc->SQR2 &= ~(0b111 << ((channels[i].rank - 4) * 6));
+            adc->SQR2 |= ((channels[i].channel & 0b111) << ((channels[i].rank - 4) * 6));
         }
-        else if (channels[i].rank < 17)
+        else if (channels[i].rank < 16)
         {
-            adc->SQR1 &= ~(ADC_SQR1_SQ13_Msk << ((channels[i].rank - 13) * 5));
-            adc->SQR1 |= (channels[i].channel & ADC_SQR1_SQ13_Msk) << ((channels[i].rank - 13) * 5);
+            adc->SQR3 &= ~(0b111 << ((channels[i].rank - 9) * 6));
+            adc->SQR3 |= ((channels[i].channel & 0b111) << ((channels[i].rank - 9) * 6));
         }
-    }
-    // Enable scan mode to read multiple channels
-    if (num_channels > 1)
-    {
-        adc->CR1 |= ADC_CR1_SCAN;
     }
 
-    // Wake up from power down if necessary
-    if (!(adc->CR2 & ADC_CR2_ADON_Msk))
-    {
-        adc->CR2 |= (ADC_CR2_ADON);
-    }
+    adc->CR |= ADC_CR_ADEN;
 
     return true;
 }
 
 bool PHAL_startADC(ADC_TypeDef* adc)
 {
-    adc->CR2 |= ADC_CR2_SWSTART;
+    adc->CR |= ADC_CR_ADSTART;
     return true;
 }
 
 bool PHAL_stopADC(ADC_TypeDef* adc)
 {
-    adc->CR2 &= ~(ADC_CR2_SWSTART);
+    if (adc->CR & ADC_CR_ADSTART)
+    {
+        adc->CR |= ADC_CR_ADSTP;
+    }
+    adc->CR &= ~ADC_CR_ADSTART;
     return true;
 }
 
 uint16_t PHAL_readADC(ADC_TypeDef* adc)
 {
-    return (uint16_t) (adc->DR & ADC_DR_DATA_Msk);
+    return (uint16_t) (adc->DR & ADC_DR_RDATA_Msk);
 }
