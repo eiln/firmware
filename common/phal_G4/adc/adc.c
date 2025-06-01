@@ -117,16 +117,19 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
         RCC->CCIPR &= ~RCC_CCIPR_ADC12SEL;  // Clear bits
         RCC->CCIPR |= RCC_CCIPR_ADC12SEL_0; // Select system clock (PCLK) as ADC clock
 
-        #define ADC_CKMODE_DIV1  (0x1UL << ADC_CCR_CKMODE_Pos)
         ADC12_COMMON->CCR &= ~ADC_CCR_CKMODE;
-        ADC12_COMMON->CCR |= ADC_CKMODE_DIV1;
+        ADC12_COMMON->CCR |= (0x1UL << ADC_CCR_CKMODE_Pos);
+        ADC12_COMMON->CCR &= ~ADC_CCR_PRESC_Msk;
+        ADC12_COMMON->CCR |= (config->prescaler << ADC_CCR_PRESC_Pos) & ADC_CCR_PRESC_Msk;
     }
     else if (adc == ADC3 || adc == ADC4 || adc == ADC5)
     {
         RCC->AHB2ENR |= RCC_AHB2ENR_ADC345EN;
 
+        ADC345_COMMON->CCR &= ~ADC_CCR_CKMODE;
+        ADC345_COMMON->CCR |= (0x1UL << ADC_CCR_CKMODE_Pos);
         ADC345_COMMON->CCR &= ~(ADC_CCR_PRESC_Msk);
-        ADC345_COMMON->CCR |= (config->clock_prescaler << ADC_CCR_PRESC_Pos) & ADC_CCR_PRESC_Msk;
+        ADC345_COMMON->CCR |= (config->prescaler << ADC_CCR_PRESC_Pos) & ADC_CCR_PRESC_Msk;
     }
     else
     {
@@ -204,4 +207,5 @@ uint16_t PHAL_readADC(ADCInitConfig_t* config)
     }
     while (!(adc->ISR & ADC_ISR_EOC)); // Wait for end of conversion
     return (uint16_t)adc->DR; // Read result
+    return 0;
 }
