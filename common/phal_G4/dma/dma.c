@@ -1,7 +1,7 @@
 /**
  * @file dma.c
- * @author Eileen Yoon - Port of F4 DMA library by Aditya Anand, Chris McGalliard
- * @brief Basic DMA Peripheral HAL library for setting up DMA transfers
+ * @author Eileen Yoon
+ * @brief Basic DMA Peripheral HAL library
  * @version 0.1
  * @date 2023-08-19
  *
@@ -43,7 +43,7 @@ bool PHAL_initDMA(dma_init_t* dma) {
     dma->channel->CPAR = dma->periph_addr;
     // Set memory address (dst)
     dma->channel->CMAR = dma->mem_addr;
-    dma->channel->CNDTR = 1;
+    dma->channel->CNDTR = dma->tx_size;
 
     // Reset preconfigured CR values
     dma->channel->CCR = 0;
