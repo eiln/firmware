@@ -93,7 +93,7 @@ int main()
     {
         HardFault_Handler();
     }
-    // PHAL_startTxfer(&adc_dma_config);
+    PHAL_startTxfer(&adc_dma_config);
     PHAL_startADC(&adc_config);
 
     PHAL_writeGPIO(LED_GREEN_PORT, LED_GREEN_PIN, 1);
