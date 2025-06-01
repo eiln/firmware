@@ -37,29 +37,38 @@ bool PHAL_initDMA(dma_init_t* dma) {
     while (dma->channel->CCR & DMA_CCR_EN);
 
     // Clear any stream dedicated status flags that may have been set previously
-    dma->periph->IFCR = DMA_IFCR_CTCIF1 | DMA_IFCR_CHTIF1 | DMA_IFCR_CTEIF1;
+    dma->periph->IFCR = (DMA_ISR_GIF1 << (dma->channel_idx & 0x1FU));
 
     // Set peripheral port register address
     dma->channel->CPAR = dma->periph_addr;
 
     // Set memory address
     dma->channel->CMAR = dma->mem_addr;
+    dma->channel->CNDTR = 1;
 
     // Reset preconfigured CR values
     dma->channel->CCR = 0;
     // Set channel, priority, memory data size
-    dma->channel->CCR |= (dma->mem_size   << DMA_CCR_MSIZE_Pos) |
-                         (dma->priority   << DMA_CCR_PL_Pos)    |
-                         (dma->mem_inc    << DMA_CCR_MINC_Pos)  |
-                         (dma->periph_inc << DMA_CCR_PINC_Pos)  |
-                         (dma->circular   << DMA_CCR_CIRC_Pos)  |
-                         (dma->dir        << DMA_CCR_DIR_Pos)   |
-                         (dma->tx_isr_en  << DMA_CCR_TEIE_Pos)  |
-                         (dma->tx_isr_en  << DMA_CCR_TCIE_Pos);
+    dma->channel->CCR |= (dma->mem_size   << DMA_CCR_MSIZE_Pos) & DMA_CCR_MSIZE_Msk |
+                         (dma->priority   << DMA_CCR_PL_Pos) & DMA_CCR_PL_Msk   |
+                         (dma->mem_inc    << DMA_CCR_MINC_Pos) & DMA_CCR_MINC_Msk |
+                         (dma->periph_inc << DMA_CCR_PINC_Pos) & DMA_CCR_PINC_Msk |
+                         (dma->circular   << DMA_CCR_CIRC_Pos) & DMA_CCR_CIRC_Msk  |
+                         (dma->dir        << DMA_CCR_DIR_Pos)  & DMA_CCR_DIR_Msk |
+                         (dma->tx_isr_en  << DMA_CCR_TEIE_Pos) & DMA_CCR_TEIE_Msk |
+                         (dma->tx_isr_en  << DMA_CCR_TCIE_Pos) & DMA_CCR_TCIE_Msk;
 
-    // Set stream memory configuration
-    PHAL_DMA_setTxferLength(dma, dma->tx_size);
+    DMA1_Channel1->CPAR = (uint32_t)&ADC1->DR;    // Peripheral address
+    DMA1_Channel1->CCR = DMA_CCR_PL_1    // Priority medium
+                       | DMA_CCR_MSIZE_0 | DMA_CCR_PSIZE_0  // 16-bit memory & peripheral size
+                       | DMA_CCR_MINC    // Memory increment
+                       | DMA_CCR_CIRC;    // Circular mode
+                       dma->channel->CCR |= DMA_CCR_EN;
 
+                       RCC->AHB1ENR |= RCC_AHB1ENR_DMAMUX1EN;
+                       DMAMUX1_Channel0->CCR &= ~(1 << 8); // Disable channel (clear EN bit)
+                       DMAMUX1_Channel0->CCR = (DMAMUX1_Channel0->CCR & ~0x7F) | 5; // Set DMA request line to 40
+                       DMAMUX1_Channel0->CCR |= (1 << 8); // Enable channel (set EN bit)
     return true;
 }
 

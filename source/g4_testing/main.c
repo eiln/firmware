@@ -20,8 +20,6 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_ANALOG(ADC1_CH4_GPIO_Port, ADC1_CH4_Pin),
 };
 
-volatile raw_adc_values_t raw_adc_values;
-
 /* ADC Configuration */
 ADCInitConfig_t adc_config = {
     .periph          = ADC1,
@@ -41,7 +39,9 @@ ADCChannelConfig_t adc_channel_config[] = {
     #endif
 };
 
-dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t)&raw_adc_values, sizeof(raw_adc_values) / sizeof(raw_adc_values.val1), 0b01);
+volatile uint16_t raw_adc_values[NUM_CHANNELS];
+
+dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t)raw_adc_values, NUM_CHANNELS, 0b01);
 
 #define TargetCoreClockrateHz 16000000
 ClockRateConfig_t clock_config = {
@@ -85,18 +85,16 @@ int main()
         HardFault_Handler();
     }
 
+    if (!PHAL_initADC(&adc_config, adc_channel_config, NUM_CHANNELS))
+    {
+        HardFault_Handler();
+    }
     if (!PHAL_initDMA(&adc_dma_config))
     {
         HardFault_Handler();
     }
-
-    if (!PHAL_initADC(&adc_config, adc_channel_config, sizeof(adc_channel_config) / sizeof(ADCChannelConfig_t)))
-    {
-        HardFault_Handler();
-    }
-    
+    // PHAL_startTxfer(&adc_dma_config);
     PHAL_startADC(&adc_config);
-    PHAL_startTxfer(&adc_dma_config);
 
     PHAL_writeGPIO(LED_GREEN_PORT, LED_GREEN_PIN, 1);
     PHAL_writeGPIO(LED_RED_PORT, LED_RED_PIN, 1);

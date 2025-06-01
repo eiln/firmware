@@ -11,6 +11,10 @@
 #define LED_ORANGE_PORT GPIOB
 #define LED_ORANGE_PIN  1
 
+#define NUM_CHANNELS 1
+volatile extern uint16_t raw_adc_values[NUM_CHANNELS];
+
+#if 0
 typedef struct __attribute__((packed))
 {
     // Do not modify this struct
@@ -24,5 +28,6 @@ typedef struct __attribute__((packed))
 } raw_adc_values_t;
 
 volatile extern raw_adc_values_t raw_adc_values;
+#endif
 
 #endif // __G4_TESTING_MAIN_H__

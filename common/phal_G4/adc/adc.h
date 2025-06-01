@@ -110,6 +110,7 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
  * @param adc ADC handle
 **/
 bool PHAL_startADC(ADCInitConfig_t* config);
+
 /**
  * @brief Stops the ADC conversions, requires PHAL_initADC to be called prior
  *
