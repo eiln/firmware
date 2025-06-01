@@ -72,7 +72,7 @@ int main()
 {
     osKernelInitialize();
 
-    if (0 != PHAL_configureClockRates(&clock_config))
+    if (PHAL_configureClockRates(&clock_config))
     {
         HardFault_Handler();
     }
@@ -108,11 +108,6 @@ int main()
 
     osKernelStart(); // Go!
 
-    while (1)
-    {
-        ;
-    }
-
     return 0;
 }
 
@@ -143,4 +138,3 @@ void HardFault_Handler()
         __asm__("nop");
     }
 }
-
