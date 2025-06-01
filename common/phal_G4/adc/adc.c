@@ -204,5 +204,4 @@ uint16_t PHAL_readADC(ADCInitConfig_t* config)
     }
     while (!(adc->ISR & ADC_ISR_EOC)); // Wait for end of conversion
     return (uint16_t)adc->DR; // Read result
-    return 0;
 }
