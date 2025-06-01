@@ -49,7 +49,6 @@ typedef struct {
     ADCDataAlign_t data_align;
     bool cont_conv_mode;
     ADCDMAMode_t dma_mode;
-    uint8_t adc_number;
     ADC_TypeDef *periph;
 } ADCInitConfig_t;
 
@@ -72,7 +71,6 @@ typedef enum {
 } ADCChannel_t;
 
 typedef struct {
-    ADC_TypeDef *periph;
     ADCChannel_t channel; // not the GPIO channel, use the ADC channel
     uint32_t rank;    // order at which the channels will be polled, starting at 0
     ADCChannelSampleCycles_t sampling_time;

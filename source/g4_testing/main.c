@@ -25,12 +25,11 @@ volatile raw_adc_values_t raw_adc_values;
 /* ADC Configuration */
 ADCInitConfig_t adc_config = {
     .periph          = ADC1,
-    .clock_prescaler = ADC_CLK_PRESC_2,
+    .clock_prescaler = ADC_CLK_PRESC_6,
     .resolution      = ADC_RES_12_BIT,
     .data_align      = ADC_DATA_ALIGN_RIGHT,
-    .cont_conv_mode  = true,
-    .dma_mode        = ADC_DMA_CIRCULAR,
-    .adc_number      = 1,
+    .cont_conv_mode  = false,
+    .dma_mode        = ADC_DMA_OFF,
 };
 
 ADCChannelConfig_t adc_channel_config[] = {
@@ -88,11 +87,11 @@ int main()
     {
         HardFault_Handler();
     }
-    if (!PHAL_initDMA(&adc_dma_config))
-    {
-        HardFault_Handler();
-    }
-    PHAL_startTxfer(&adc_dma_config);
+    // if (!PHAL_initDMA(&adc_dma_config))
+    // {
+    //     HardFault_Handler();
+    // }
+    // PHAL_startTxfer(&adc_dma_config);
     PHAL_startADC(&adc_config);
 
     PHAL_writeGPIO(LED_GREEN_PORT, LED_GREEN_PIN, 1);
@@ -110,6 +109,10 @@ int main()
 
     while (1)
     {
+        raw_adc_values.val1 = PHAL_readADC(&adc_config);
+        raw_adc_values.val2 = PHAL_readADC(&adc_config);
+        raw_adc_values.val3 = PHAL_readADC(&adc_config);
+        raw_adc_values.val4 = PHAL_readADC(&adc_config);
         ;
     }
 

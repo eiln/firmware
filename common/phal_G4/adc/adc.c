@@ -98,14 +98,16 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
         }
     }
 
-    adc->CR |= ADC_CR_ADEN;
-
     return true;
 }
 
 bool PHAL_startADC(ADCInitConfig_t* config)
 {
     ADC_TypeDef *adc = config->periph;
+
+    adc->CR |= ADC_CR_ADEN;
+    adc->ISR |= ADC_ISR_ADRDY;
+    while (adc->ISR & ADC_ISR_ADRDY == 0) ;
     adc->CR |= ADC_CR_ADSTART;
     return true;
 }
