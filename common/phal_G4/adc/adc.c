@@ -41,8 +41,8 @@ static bool PHAL_configureADCChannels(ADCInitConfig_t* config, ADCChannelConfig_
             adc->SQR3 &= ~(0b111111 << ((rank - 9) * 6));
             adc->SQR3 |= ((uint32_t)ch << ((rank - 9) * 6));
         } else if (rank < 16) {
-            ADC1->SQR4 &= ~(0b111111 << ((rank - 14) * 6));
-            ADC1->SQR4 |= ((uint32_t)ch << ((rank - 14) * 6));
+            adc->SQR4 &= ~(0b111111 << ((rank - 14) * 6));
+            adc->SQR4 |= ((uint32_t)ch << ((rank - 14) * 6));
         } else {
             return false;
         }
@@ -105,8 +105,9 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
     while (adc->CR & ADC_CR_ADCAL); // Wait for calibration to finish
 
     // Set conversion mode on regular channels
-    adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DISCEN);
-    config->cont_conv_mode ? (adc->CFGR |= (ADC_CFGR_CONT)) : (adc->CFGR |= (ADC_CFGR_DISCEN));
+    // adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DISCEN);
+    // config->cont_conv_mode ? (adc->CFGR |= (ADC_CFGR_CONT)) : (adc->CFGR |= (ADC_CFGR_DISCEN));
+    // Configure CFGR for continuous + DMA circular mode
 
     // Set resolution
     adc->CFGR &= ~(ADC_CFGR_RES);
@@ -116,15 +117,30 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
     adc->CFGR &= ~(ADC_CFGR_ALIGN);
     adc->CFGR |= (config->data_align << ADC_CFGR_ALIGN_Pos) & ADC_CFGR_ALIGN_Msk;
 
+#if 0
     if (!PHAL_configureADCChannels(config, channels, num_channels)) return false;
+#endif
 
+    // Configure resolution and alignment
+    ADC1->CFGR &= ~(ADC_CFGR_RES | ADC_CFGR_ALIGN);
+    ADC1->CFGR |= 0; // 12-bit resolution, right aligned
+
+    // Configure sequence length and channels
+    ADC1->SQR1 = (0 << ADC_SQR1_L_Pos);   // 1 channel (L=0 means 1 conversion)
+    ADC1->SQR1 |= (1 & 0x1F) << ADC_SQR1_SQ1_Pos; // Channel 1 for SQ1
+
+    // Configure sampling time for channel 1
+    ADC1->SMPR1 &= ~ADC_SMPR1_SMP1_Msk;
+    ADC1->SMPR1 |= ADC_SMPR1_SMP1_2;     // 19.5 ADC cycles (just example)
+
+    adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DMAEN | ADC_CFGR_DMACFG);  // Clear first
     if (config->dma_mode == ADC_DMA_ONESHOT) {
         adc->CFGR |= ADC_CFGR_DMAEN;
         adc->CFGR &= ~ADC_CFGR_DMACFG;
     } else if (config->dma_mode == ADC_DMA_CIRCULAR) {
-        adc->CFGR |= ADC_CFGR_DMAEN | ADC_CFGR_DMACFG;
+        adc->CFGR |= ADC_CFGR_CONT | ADC_CFGR_DMAEN | ADC_CFGR_DMACFG;
     }
-    
+
     // Enable ADC
     adc->ISR |= ADC_ISR_ADRDY;  // Clear ready flag
     adc->CR |= ADC_CR_ADEN;     // Enable ADC
@@ -135,6 +151,7 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
 
 uint16_t PHAL_readADC(ADCInitConfig_t* config)
 {
+    #if 0
     ADC_TypeDef *adc = config->periph;
     if (!config->cont_conv_mode)
     {
@@ -142,12 +159,13 @@ uint16_t PHAL_readADC(ADCInitConfig_t* config)
     }
     while (!(adc->ISR & ADC_ISR_EOC)); // Wait for end of conversion
     return (uint16_t)adc->DR; // Read result
+    #endif
+    return 0;
 }
 
 bool PHAL_startADC(ADCInitConfig_t* config)
 {
-    ADC_TypeDef *adc = config->periph;
-    adc->CR |= ADC_CR_ADSTART;
+    config->periph->CR |= ADC_CR_ADSTART;
     return true;
 }
 
