@@ -28,6 +28,7 @@ ADCInitConfig_t adc_config = {
     .data_align      = ADC_DATA_ALIGN_RIGHT,
     .cont_conv_mode  = true,
     .dma_mode        = ADC_DMA_CIRCULAR,
+    .oversample      = ADC_OVERSAMPLE_16,
 };
 
 ADCChannelConfig_t adc_channel_config[] = {

@@ -10,6 +10,49 @@
 
 #include <stdint.h>
 
+#include <stdint.h>
+#include <stdbool.h>
+#include "stm32g4xx.h"  // adjust include as needed
+
+// Oversample count must be 2,4,8,16,32,64,128,256
+// The shift is automatically set as log2(oversample_count)
+static bool PHAL_configureOversampling(ADCInitConfig_t* config) {
+    ADC_TypeDef *adc = config->periph;
+
+    uint16_t oversample_count = config->oversample;
+    if (oversample_count == ADC_OVERSAMPLE_NONE) return true;
+    if (oversample_count < 2 || oversample_count > 256) return false;
+
+    // Check power of two
+    if ((oversample_count & (oversample_count - 1)) != 0) return false;
+
+    // Map oversample_count to OVSR encoding:
+    // OVSR = log2(oversample_count) - 1 (0 means no oversampling)
+    // e.g. 2 => OVSR=0, 4=>1, 8=>2, 16=>3, 32=>4, 64=>5, 128=>6, 256=>7
+    uint8_t ovsr = 0;
+    uint16_t tmp = oversample_count;
+    while (tmp > 2) {
+        tmp >>= 1;
+        ovsr++;
+    }
+
+    // Shift = log2(oversample_count) (to scale sum to average)
+    uint8_t ovss = 0;
+    tmp = oversample_count;
+    while (tmp > 1) {
+        tmp >>= 1;
+        ovss++;
+    }
+
+    // Clear previous oversampling bits
+    adc->CFGR2 &= ~(ADC_CFGR2_OVSR_Msk | ADC_CFGR2_OVSS_Msk);
+
+    // Set new oversampling ratio and shift
+    adc->CFGR2 |= (ovsr << ADC_CFGR2_OVSR_Pos) | (ovss << ADC_CFGR2_OVSS_Pos);
+
+    return true;
+}
+
 static bool PHAL_configureADCChannels(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_t num_channels)
 {
     ADC_TypeDef *adc = config->periph;
@@ -117,6 +160,8 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
     adc->CFGR |= (config->data_align << ADC_CFGR_ALIGN_Pos) & ADC_CFGR_ALIGN_Msk;
 
     if (!PHAL_configureADCChannels(config, channels, num_channels)) return false;
+
+    if (!PHAL_configureOversampling(config)) return false;
 
     adc->CFGR &= ~(ADC_CFGR_CONT | ADC_CFGR_DMAEN | ADC_CFGR_DMACFG);
     if (config->dma_mode == ADC_DMA_ONESHOT) {
