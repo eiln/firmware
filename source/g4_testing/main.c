@@ -34,9 +34,11 @@ ADCInitConfig_t adc_config = {
 
 ADCChannelConfig_t adc_channel_config[] = {
     {.channel = ADC_CHANNEL_1,  .rank = 1,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
+    #if 1
     {.channel = ADC_CHANNEL_2,  .rank = 2,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
     {.channel = ADC_CHANNEL_3,  .rank = 3,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
     {.channel = ADC_CHANNEL_4,  .rank = 4,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
+    #endif
 };
 
 dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &raw_adc_values, sizeof(raw_adc_values) / sizeof(raw_adc_values.val1), 0b01);
@@ -111,10 +113,6 @@ int main()
 
     while (1)
     {
-        raw_adc_values.val1 = PHAL_readADC(&adc_config);
-        raw_adc_values.val2 = PHAL_readADC(&adc_config);
-        raw_adc_values.val3 = PHAL_readADC(&adc_config);
-        raw_adc_values.val4 = PHAL_readADC(&adc_config);
         ;
     }
 
@@ -124,6 +122,9 @@ int main()
 static void ledblink1(void)
 {
     raw_adc_values.val1 = PHAL_readADC(&adc_config);
+    raw_adc_values.val2 = PHAL_readADC(&adc_config);
+    raw_adc_values.val3 = PHAL_readADC(&adc_config);
+    raw_adc_values.val4 = PHAL_readADC(&adc_config);
     PHAL_toggleGPIO(LED_GREEN_PORT, LED_GREEN_PIN);
 }
 
