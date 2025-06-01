@@ -25,9 +25,9 @@ bool PHAL_initDMA(dma_init_t* dma) {
 
     // Enable clock in RCC
     if (dma->periph == DMA1) {
-        RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
+        RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN | RCC_AHB1ENR_DMAMUX1EN;
     } else if (dma->periph == DMA2) {
-        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
+        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN | RCC_AHB1ENR_DMAMUX1EN;
     } else {
         return false;
     }
@@ -58,12 +58,18 @@ bool PHAL_initDMA(dma_init_t* dma) {
                          (dma->tx_isr_en   << DMA_CCR_TEIE_Pos)   & DMA_CCR_TEIE_Msk  |
                          (dma->tx_isr_en   << DMA_CCR_TCIE_Pos)   & DMA_CCR_TCIE_Msk;
 
-    RCC->AHB1ENR |= RCC_AHB1ENR_DMAMUX1EN;
-    DMAMUX1_Channel0->CCR &= ~(1 << 8); // Disable channel (clear EN bit)
-    DMAMUX1_Channel0->CCR = (DMAMUX1_Channel0->CCR & ~0x7F) | 5; // Set DMA request line to 40
-    DMAMUX1_Channel0->CCR |= (1 << 8); // Enable channel (set EN bit)
+    /* DMA Mux */
+    // For category 3 and category 4 devices:
+    // DMAMUX channels 0 to 7 are connected to DMA1 channels 1 to 8
+    // DMAMUX channels 8 to 15 are connected to DMA2 channels 1 to 8
+    // DMAMUX Channel (usually equal to DMA channel number - 1)
+    DMAMUX_Channel_TypeDef *mux;
+    mux = (DMAMUX1_Channel0 + dma->channel_idx - 1);
 
-    dma->channel->CCR |= DMA_CCR_EN;
+    mux->CCR &= ~(1 << 8); // Disable channel
+    mux->CCR = (DMAMUX1_Channel0->CCR & ~0x7F) | dma->mux_request;
+    mux->CCR |= (1 << 8); // Enable channel
+
     return true;
 }
 
