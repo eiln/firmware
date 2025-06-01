@@ -46,12 +46,14 @@ make_cmsis_library(CMSIS_L471 STM32L4xx STM32L471xx ${CMAKE_SOURCE_DIR}/common/S
 make_cmsis_library(CMSIS_L496 STM32L4xx STM32L496xx ${CMAKE_SOURCE_DIR}/common/STM32CubeL4/Drivers/CMSIS)
 make_cmsis_library(CMSIS_F407 STM32F4xx STM32F407xx ${CMAKE_SOURCE_DIR}/common/STM32CubeF4/Drivers/CMSIS)
 make_cmsis_library(CMSIS_F732 STM32F7xx STM32F732xx ${CMAKE_SOURCE_DIR}/common/STM32CubeF7/Drivers/CMSIS)
+make_cmsis_library(CMSIS_G474 STM32G4xx STM32G474xx ${CMAKE_SOURCE_DIR}/common/STM32CubeG4/Drivers/CMSIS)
 
 include(cmake/FindFreeRTOS.cmake)
 
 # Add Common modules
 add_subdirectory(common/phal_F4_F7) #L4, F4/F7 directories are never linked together
 add_subdirectory(common/phal_L4)
+add_subdirectory(common/phal_G4)
 add_subdirectory(common/psched)
 add_subdirectory(common/freertos)
 add_subdirectory(common/bootloader)
