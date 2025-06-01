@@ -20,15 +20,14 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_ANALOG(ADC1_CH4_GPIO_Port, ADC1_CH4_Pin),
 };
 
-/* ADC Configuration */
 ADCInitConfig_t adc_config = {
-    .periph          = ADC1,
-    .prescaler       = ADC_CLK_PRESC_0,
-    .resolution      = ADC_RES_12_BIT,
-    .data_align      = ADC_DATA_ALIGN_RIGHT,
-    .cont_conv_mode  = true,
-    .dma_mode        = ADC_DMA_CIRCULAR,
-    .oversample      = ADC_OVERSAMPLE_16,
+    .periph         = ADC1,
+    .prescaler      = ADC_CLK_PRESC_0,
+    .resolution     = ADC_RES_12_BIT,
+    .data_align     = ADC_DATA_ALIGN_RIGHT,
+    .cont_conv_mode = true,
+    .dma_mode       = ADC_DMA_CIRCULAR,
+    .oversample     = ADC_OVERSAMPLE_16,
 };
 
 ADCChannelConfig_t adc_channel_config[] = {
