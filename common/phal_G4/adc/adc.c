@@ -79,20 +79,22 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
         }
 
         // Sequence rank
-        if (channels[i].rank < 4)
+        if (channels[i].rank < 1 || channels[i].rank > 16) return false;
+
+        if (channels[i].rank < 5)
         {
-            adc->SQR1 &= ~(0b111 << ((channels[i].rank + 1) * 6));
-            adc->SQR1 |= ((channels[i].channel & 0b111) << ((channels[i].rank + 1) * 6));
+            adc->SQR1 &= ~(0b111 << ((channels[i].rank) * 6));
+            adc->SQR1 |= ((channels[i].channel & 0b111) << ((channels[i].rank) * 6));
         }
-        else if (channels[i].rank < 9)
+        else if (channels[i].rank < 10)
         {
-            adc->SQR2 &= ~(0b111 << ((channels[i].rank - 4) * 6));
-            adc->SQR2 |= ((channels[i].channel & 0b111) << ((channels[i].rank - 4) * 6));
+            adc->SQR2 &= ~(0b111 << ((channels[i].rank - 5) * 6));
+            adc->SQR2 |= ((channels[i].channel & 0b111) << ((channels[i].rank - 5) * 6));
         }
-        else if (channels[i].rank < 16)
+        else if (channels[i].rank < 17)
         {
-            adc->SQR3 &= ~(0b111 << ((channels[i].rank - 9) * 6));
-            adc->SQR3 |= ((channels[i].channel & 0b111) << ((channels[i].rank - 9) * 6));
+            adc->SQR3 &= ~(0b111 << ((channels[i].rank - 10) * 6));
+            adc->SQR3 |= ((channels[i].channel & 0b111) << ((channels[i].rank - 10) * 6));
         }
     }
 
@@ -101,14 +103,16 @@ bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_
     return true;
 }
 
-bool PHAL_startADC(ADC_TypeDef* adc)
+bool PHAL_startADC(ADCInitConfig_t* config)
 {
+    ADC_TypeDef *adc = config->periph;
     adc->CR |= ADC_CR_ADSTART;
     return true;
 }
 
-bool PHAL_stopADC(ADC_TypeDef* adc)
+bool PHAL_stopADC(ADCInitConfig_t* config)
 {
+    ADC_TypeDef *adc = config->periph;
     if (adc->CR & ADC_CR_ADSTART)
     {
         adc->CR |= ADC_CR_ADSTP;
@@ -117,7 +121,8 @@ bool PHAL_stopADC(ADC_TypeDef* adc)
     return true;
 }
 
-uint16_t PHAL_readADC(ADC_TypeDef* adc)
+uint16_t PHAL_readADC(ADCInitConfig_t* config)
 {
+    ADC_TypeDef *adc = config->periph;
     return (uint16_t) (adc->DR & ADC_DR_RDATA_Msk);
 }

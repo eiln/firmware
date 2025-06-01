@@ -11,4 +11,16 @@
 #define LED_ORANGE_PORT GPIOB
 #define LED_ORANGE_PIN  1
 
+typedef struct __attribute__((packed))
+{
+    // Do not modify this struct
+    // unless you modify the ADC DMA config in main.h to match
+    uint16_t val1;
+    uint16_t val2;
+    uint16_t val3;
+    uint16_t val4;
+} raw_adc_values_t;
+
+volatile extern raw_adc_values_t raw_adc_values;
+
 #endif // __G4_TESTING_MAIN_H__
