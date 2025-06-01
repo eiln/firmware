@@ -6,8 +6,8 @@
  * @date 2023-09-17
  */
 
-#ifndef _PHAL_ADC_H
-#define _PHAL_ADC_H
+#ifndef __PHAL_G4_ADC_H__
+#define __PHAL_G4_ADC_H__
 
 #include <stdbool.h>
 
@@ -131,4 +131,4 @@ bool PHAL_stopADC(ADCInitConfig_t* config);
 **/
 uint16_t PHAL_readADC(ADCInitConfig_t* config);
 
-#endif
+#endif // __PHAL_G4_ADC_H__

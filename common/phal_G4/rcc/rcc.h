@@ -1,6 +1,6 @@
 /**
  * @file rcc.h
- * @author Chris McGalliard (cmcgalli@purdue.edu) - Port of L4 RCC by Adam Busch (busch8@purdue.edu)
+ * @author Eileen Yoon - Port of L4 RCC by Adam Busch (busch8@purdue.edu)
  * @brief RCC Configuration Driver for STM32F4 Devices
  * @version 0.1
  * @date 2023-08-16
@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  *
  */
-#ifndef _PHAL_RCC_H_
-#define _PHAL_RCC_H_
+#ifndef __PHAL_G4_RCC_H__
+#define __PHAL_G4_RCC_H__
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -174,4 +174,4 @@ bool PHAL_configureAPB1Clock(uint32_t apb1_clock_target_hz);
  */
 bool PHAL_configureAPB2Clock(uint32_t apb2_clock_target_hz);
 
-#endif // _PHAL_PLL_H_
+#endif // __PHAL_G4_RCC_H__

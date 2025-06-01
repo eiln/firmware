@@ -10,8 +10,8 @@
  *
  *
  */
-#ifndef _PHAL_GPIO_H_
-#define _PHAL_GPIO_H_
+#ifndef __PHAL_G4_GPIO_H__
+#define __PHAL_G4_GPIO_H__
 
 #if defined(STM32G474xx)
 #include "stm32g4xx.h"
@@ -195,4 +195,4 @@ inline void PHAL_toggleGPIO(GPIO_TypeDef *bank, uint8_t pin)
     PHAL_writeGPIO(bank, pin, !PHAL_readGPIO(bank, pin));
 }
 
-#endif
+#endif // __PHAL_G4_GPIO_H__
