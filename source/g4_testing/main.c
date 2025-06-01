@@ -32,16 +32,13 @@ ADCInitConfig_t adc_config = {
 
 ADCChannelConfig_t adc_channel_config[] = {
     {.channel = ADC_CHANNEL_1,  .rank = 1,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
-    #if 0
     {.channel = ADC_CHANNEL_2,  .rank = 2,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
     {.channel = ADC_CHANNEL_3,  .rank = 3,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
     {.channel = ADC_CHANNEL_4,  .rank = 4,  .sampling_time = ADC_CHN_SMP_CYCLES_480},
-    #endif
 };
 
-volatile uint16_t raw_adc_values[NUM_CHANNELS];
-
-dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t)raw_adc_values, NUM_CHANNELS, 0b01);
+volatile raw_adc_values_t raw_adc_values;
+dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t)&raw_adc_values, ADC_NUM_CHANNELS, 0b01);
 
 #define TargetCoreClockrateHz 16000000
 ClockRateConfig_t clock_config = {
@@ -85,14 +82,16 @@ int main()
         HardFault_Handler();
     }
 
-    if (!PHAL_initADC(&adc_config, adc_channel_config, NUM_CHANNELS))
+    if (!PHAL_initADC(&adc_config, adc_channel_config, ADC_NUM_CHANNELS))
     {
         HardFault_Handler();
     }
+
     if (!PHAL_initDMA(&adc_dma_config))
     {
         HardFault_Handler();
     }
+
     PHAL_startTxfer(&adc_dma_config);
     PHAL_startADC(&adc_config);
 
