@@ -65,20 +65,19 @@ typedef enum {
 } ADCChannelSampleCycles_t;
 
 typedef struct {
-    uint32_t channel;                           // not the GPIO channel, use the ADC channel
-    uint32_t rank;                              // order at which the channels will be polled, starting at 1
+    uint32_t channel; // not the GPIO channel, use the ADC channel
+    uint32_t rank;    // order at which the channels will be polled, starting at 0
     ADCChannelSampleCycles_t sampling_time;
 } ADCChannelConfig_t;
 
 // TODO DMA CONFIGS FOR ADC
-#define ADC1_DMA_CONT_CONFIG(mem_addr_, tx_size_, priority_)        \
-    {.periph_addr=(uint32_t) &(ADC1->DR), .mem_addr=mem_addr_,      \
-     .tx_size=tx_size_, .increment=true, .circular=true,            \
-     .dir=0b0, .mem_inc=true, .periph_inc=false, .mem_to_mem=false, \
-     .priority=priority_, .mem_size=0b01, .periph_size=0b01,        \
-     .tx_isr_en=false, .dma_chan_request=0b0000, .stream_idx=0,    \
-     .periph=DMA2, .stream=DMA2_Stream0}
-
+#define ADC1_DMA_CONT_CONFIG(periph, mem_addr_, tx_size_, priority_) \
+    {.periph_addr=(uint32_t) &(periph->DR), .mem_addr=mem_addr_,     \
+     .tx_size=tx_size_, .increment=true, .circular=true,             \
+     .dir=0b0, .mem_inc=true, .periph_inc=false, .mem_to_mem=false,  \
+     .priority=priority_, .mem_size=0b01, .periph_size=0b01,         \
+     .tx_isr_en=false, .dma_chan_request=0b0000, .stream_idx=0,      \
+     .periph=periph, .stream=DMA2_Stream0}
 
 /**
  * @brief Initializes the ADC, requires GPIO config prior
@@ -88,7 +87,7 @@ typedef struct {
  * @param channels List of channel configurations
  * @param num_channels Number of channels in the channel configuration list
 **/
-bool PHAL_initADC(ADC_TypeDef* adc, ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_t num_channels);
+bool PHAL_initADC(ADCInitConfig_t* config, ADCChannelConfig_t channels[], uint8_t num_channels);
 
 /**
  * @brief Starts the ADC conversions, requires PHAL_initADC to be called prior
