@@ -89,16 +89,6 @@ typedef struct {
     ADCChannelSampleCycles_t sampling_time;
 } ADCChannelConfig_t;
 
-// TODO ADC3 config (ADC2 doesn't support DMA)
-#define ADC1_DMA_CONT_CONFIG(mem_addr_, tx_size_, priority_)       \
-    {.periph_addr=(uint32_t)&(ADC1->DR), .mem_addr=mem_addr_,      \
-     .tx_size=tx_size_, .increment=true, .circular=true, .dir=0b0, \
-     .mem_inc=true, .periph_inc=false, .mem_to_mem=false,          \
-     .priority=priority_,                                          \
-     .mem_size=DMA_SIZE_16BIT, .periph_size=DMA_SIZE_16BIT,        \
-     .tx_isr_en=false, .dma_chan_request=0b0000, .channel_idx=1,   \
-     .mux_request=DMA_REQUEST_ADC1, .periph=DMA1, .channel=DMA1_Channel1}
-
 #define ADC1_CH1_GPIO_Port (GPIOA)
 #define ADC1_CH1_Pin       (0)
 #define ADC1_CH2_GPIO_Port (GPIOA)
