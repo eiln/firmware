@@ -13,7 +13,7 @@ void bms_monitor_cells(void)
     bms_send_cells(); // Still send
 }
 
-static void bms_print_cell_voltages(void)
+static void bms_print_c_voltages(void)
 {
     printf("C-ADC Voltages:\n");
     for (int ic = 0; ic < TOTAL_AD68; ic++)
@@ -21,6 +21,21 @@ static void bms_print_cell_voltages(void)
         for (int i = 0; i < TOTAL_CELL; i++)
         {
             printf("Cell %02d: %.4f ", i, data.cell_v_c[ic][i]);
+            if (i % 4 == 3)
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+
+static void bms_print_s_voltages(void)
+{
+    printf("S-ADC Voltages:\n");
+    for (int ic = 0; ic < TOTAL_AD68; ic++)
+    {
+        for (int i = 0; i < TOTAL_CELL; i++)
+        {
+            printf("Cell %02d: %.4f ", i, data.cell_v_s[ic][i]);
             if (i % 4 == 3)
             printf("\n");
         }
@@ -83,9 +98,22 @@ static void bms_read_cells(void)
 
     bms_readCellVoltages();
 
+    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_EVEN_CH);
+    bms_mDelay(8);
+    bms_readSVoltages();
+    bms_print_s_voltages();
+
+    adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_ODD_CH);
+    bms_mDelay(8);
+    bms_readSVoltages();
+    bms_print_s_voltages();
+
     adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_OFF_ALL_CH);
     bms_mDelay(8);
     bms_readSVoltages();
+    bms_print_s_voltages();
+
+    bms_checkCellVoltagesStatC(); // TODO check STAT
 
 #if 0
     adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
@@ -102,7 +130,7 @@ static void bms_read_cells(void)
         return;
     }
 
-    bms_print_cell_voltages();
+    bms_print_c_voltages();
     bms_check_cells(); // Only check faults from readings if readings are good
 
     // TODO Add LPF/EMA if needed
