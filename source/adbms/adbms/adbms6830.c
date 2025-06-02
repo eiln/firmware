@@ -101,7 +101,6 @@ bool bms_init(void)
 	buff_6830_b[4] = 0x00; // DCC to zero. Not sure what to set here
 	buff_6830_b[5] = 0x00; // DCC to zero
 
-
     uint8_t txData_a[TOTAL_AD68][DATA_LEN];
     uint8_t txData_b[TOTAL_AD68][DATA_LEN];
     for (int ic = 0; ic < TOTAL_AD68; ic++)

@@ -45,7 +45,7 @@ static void bms_print_s_voltages(void)
 
 void bms_monitor_cells_start(void)
 {
-    adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_CONTINUOUS, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
+    adBms6830_Adcv(ADCV_RD_ON, ADCV_CONT_CONTINUOUS, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
     bms_mDelay(1);
 }
 
@@ -86,42 +86,26 @@ static void bms_read_cells(void)
     // inputs (SxP and SxN) synchronously with an input range of 0 V
     // to 5. 5 V and a sampling frequency of ~4 MHz, giving out results
     // every 8 ms.
+
+    // TODO open wire switches
 #if 0
-    adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_ON_EVEN_CH);
-    bms_mDelay(1);
-    bms_readCellVoltages(); // TODO store in ow slot and compare
-
-    adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_ON_ODD_CH);
-    bms_mDelay(1);
-    bms_readCellVoltages();
-#endif
-
-    bms_readCellVoltages();
-
     adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_EVEN_CH);
     bms_mDelay(8);
     bms_readSVoltages();
-    bms_print_s_voltages();
+    // bms_print_s_voltages();
 
     adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_ON_ODD_CH);
     bms_mDelay(8);
     bms_readSVoltages();
-    bms_print_s_voltages();
+    // bms_print_s_voltages();
+#endif
 
     adBms6830_Adsv(ADCV_CONT_SINGLE, DCP_OFF, OW_OFF_ALL_CH);
     bms_mDelay(8);
     bms_readSVoltages();
     bms_print_s_voltages();
 
-    bms_checkCellVoltagesStatC(); // TODO check STAT
-
-#if 0
-    adBms6830_Adcv(ADCV_RD_OFF, ADCV_CONT_SINGLE, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
-    bms_mDelay(1);
-    bms_checkCellVoltagesStatC(); // TODO check STAT
     bms_readCellVoltages();
-#endif
-
     if (bms_any_fault(BMS_ERROR_RXPEC))
     {
         // Bad readings (last checked before cell reading)
