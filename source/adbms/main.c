@@ -135,7 +135,7 @@ int main(void)
 
 // ADBMS shuts off after ~2200ms
 defineThreadStack(bms_heartbeat, 250, osPriorityNormal, 128);
-defineThreadStack(bms_periodic, 2500, osPriorityNormal, 2056);
+defineThreadStack(bms_periodic, 500, osPriorityNormal, 2056);
 defineThreadStack(bms_error_handler, 250, osPriorityNormal, 1024);
 
 static void bms_create_threads(void)
@@ -181,17 +181,31 @@ static void bms_periodic(void)
         return;
     }
 
-    bms_init();
-    if (bms_any_fault(BMS_ERROR_RXPEC) || bms_any_fault(BMS_ERROR_CONFIG))
+    if (bms.state == BMS_STATE_CONNECTED)
     {
-        return;
+        bms_init();
+        if (bms_any_fault(BMS_ERROR_RXPEC) || bms_any_fault(BMS_ERROR_CONFIG))
+        {
+            bms.state = BMS_STATE_IDLE;
+            return;
+        }
+        bms_monitor_cells_start();
+        if (bms_any_fault(BMS_ERROR_RXPEC))
+        {
+            bms.state = BMS_STATE_IDLE;
+            return;
+        }
+        bms.state = BMS_STATE_DISCHARGE;
     }
 
-    // Run regular tasks first then enter charge mode
-    bms_monitor_cells();
-    bms_monitor_temps();
+    if (bms.state == BMS_STATE_DISCHARGE)
+    {
+        // Run regular tasks first then enter charge mode
+        bms_monitor_cells();
+        bms_monitor_temps();
+    }
 
-    bms_charge_task();
+    // bms_charge_task();
 }
 
 void HardFault_Handler()

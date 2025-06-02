@@ -92,6 +92,7 @@ extern SemaphoreHandle_t spi1_lock;
 
 void bms_monitor_cells(void);
 void bms_monitor_temps(void);
+void bms_monitor_cells_start(void);
 
 static inline void catch_error(void)
 {
