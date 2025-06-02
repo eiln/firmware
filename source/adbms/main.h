@@ -39,7 +39,7 @@ typedef enum
     BMS_STATE_IDLE = 0,
     BMS_STATE_CONNECTED,
     BMS_STATE_DISCHARGE,
-    BMS_STATE_CHARGING,
+    BMS_STATE_CHARGE,
 } bms_state_t;
 
 typedef struct {

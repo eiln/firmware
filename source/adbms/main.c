@@ -198,14 +198,13 @@ static void bms_periodic(void)
         bms.state = BMS_STATE_DISCHARGE;
     }
 
-    if (bms.state == BMS_STATE_DISCHARGE)
+    if (bms.state >= BMS_STATE_DISCHARGE)
     {
         // Run regular tasks first then enter charge mode
         bms_monitor_cells();
         bms_monitor_temps();
+        bms_charge_task();
     }
-
-    // bms_charge_task();
 }
 
 void HardFault_Handler()

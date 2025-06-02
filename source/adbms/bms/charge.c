@@ -13,6 +13,7 @@ static bool bms_can_charge(void)
     // Bare minimum checks to see if charging can continue
     // 0. Check charger connection
     bool charger_connected = PHAL_readGPIO(CHARGE_ENABLED_PORT, CHARGE_ENABLED_PIN);
+    bms_set_fault_global(BMS_ERROR_CHARGER_PORT, !charger_connected);
     if (!charger_connected)
     {
         bms_error("[ERROR]: Charger port fault! Cannot charge!\n");
@@ -20,21 +21,21 @@ static bool bms_can_charge(void)
     }
 
     // 1. Check BMS connection
-    if (bms_pack_faults(BMS_ERROR_SID) || bms_pack_faults(BMS_ERROR_RXPEC) || bms_pack_faults(BMS_ERROR_CONFIG) || bms_pack_faults(BMS_ERROR_POLL_TIMEOUT))
+    if (bms_any_fault(BMS_ERROR_SID) || bms_any_fault(BMS_ERROR_RXPEC) || bms_any_fault(BMS_ERROR_CONFIG) || bms_any_fault(BMS_ERROR_POLL_TIMEOUT))
     {
         bms_error("[ERROR]: BMS connection fault! Cannot charge!\n");
         return false;
     }
 
     // 2. Check temperatures
-    if (bms_pack_faults(BMS_ERROR_AUX_OW) || bms_pack_faults(BMS_ERROR_AUX_UT) || bms_pack_faults(BMS_ERROR_AUX_OT) || bms_pack_faults(BMS_ERROR_AUX_REDUN))
+    if (bms_any_fault(BMS_ERROR_AUX_OW) || bms_any_fault(BMS_ERROR_AUX_UT) || bms_any_fault(BMS_ERROR_AUX_OT) || bms_any_fault(BMS_ERROR_AUX_REDUN))
     {
         bms_error("[ERROR]: Temperature fault! Cannot charge!\n");
         return false;
     }
 
     // 3. Check voltages
-    if (bms_pack_faults(BMS_ERROR_CELL_OW) || bms_pack_faults(BMS_ERROR_CELL_UV) || bms_pack_faults(BMS_ERROR_CELL_OV) || bms_pack_faults(BMS_ERROR_CELL_REDUN))
+    if (bms_any_fault(BMS_ERROR_CELL_OW) || bms_any_fault(BMS_ERROR_CELL_UV) || bms_any_fault(BMS_ERROR_CELL_OV) || bms_any_fault(BMS_ERROR_CELL_REDUN))
     {
         bms_error("[ERROR]: Cell fault! Cannot charge!\n");
         return false;
@@ -48,7 +49,7 @@ static bool bms_can_charge(void)
     }
 
     // 5. Check Elcon
-    if (bms.state == BMS_STATE_CHARGING && bms_global_fault(BMS_ERROR_CHARGER))
+    if (bms.state == BMS_STATE_CHARGE && bms_global_fault(BMS_ERROR_ELCON))
     {
         bms_error("[ERROR]: Charger fault! Cannot charge!\n");
         return false;
@@ -88,7 +89,7 @@ void bms_charge_task(void)
     bool req = bms_charge_requested();
     if (!req)
     {
-        if (bms.state == BMS_STATE_CHARGING)
+        if (bms.state == BMS_STATE_CHARGE)
         {
             // Requested stop charge from charging state
             bms_charge_state_exit();
@@ -103,6 +104,7 @@ void bms_charge_task(void)
     }
 
     // assert req == true
+
     // Assumes task is called in charge requested state
     bool can_charge = bms_can_charge();
 
@@ -129,7 +131,7 @@ void bms_charge_task(void)
     }
 
     // Now enter charging mode
-    bms.state = BMS_STATE_CHARGING;
+    bms.state = BMS_STATE_CHARGE;
     bms_cell_balance_task();
     elcon_charger_start();
     // elcon_send_charge_request(CHARGER_CVL_MAX, CHARGER_CCL_MAX, true);

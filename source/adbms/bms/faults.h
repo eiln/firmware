@@ -9,7 +9,8 @@
 typedef enum
 {
     BMS_ERROR_CAN = 0,  // CAN RX/TX
-    BMS_ERROR_CHARGER,
+    BMS_ERROR_ELCON,
+    BMS_ERROR_CHARGER_PORT,
 
     BMS_ERROR_SID,  // Device ID
     BMS_ERROR_RXPEC,    // RX PEC mismatch

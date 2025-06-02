@@ -195,10 +195,15 @@ static void print_faults(void)
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         printf("BMS Error IC[%d]: 0x%08x\n", ic, bms.fault[ic]);
+        print_bms_fault(ic, BMS_ERROR_CAN);
+        print_bms_fault(ic, BMS_ERROR_ELCON);
+        print_bms_fault(ic, BMS_ERROR_CHARGER_PORT);
+
         print_bms_fault(ic, BMS_ERROR_SID);
         print_bms_fault(ic, BMS_ERROR_RXPEC);
         print_bms_fault(ic, BMS_ERROR_CONFIG);
         print_bms_fault(ic, BMS_ERROR_POLL_TIMEOUT);
+
         print_bms_fault(ic, BMS_ERROR_VPV);
         print_bms_fault(ic, BMS_ERROR_VMV);
         print_bms_fault(ic, BMS_ERROR_VA_UV);
