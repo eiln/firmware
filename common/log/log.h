@@ -15,8 +15,6 @@
 #include "common/common_defs/common_defs.h"
 #include "common/log/vsprintf.h"
 
-int snprintf(char *buffer, size_t size, const char *fmt, ...);
-int sprintf(char *buffer, const char *fmt, ...);
 int debug_printf(const char *fmt, ...);
 
 // cursed macro to workaround accessing different hals
@@ -44,6 +42,7 @@ int debug_printf(const char *fmt, ...)                                        \
                                                                               \
     return i;                                                                 \
 }
+
 // can add SPI etc as necessary
 
 // plog: requires \n
