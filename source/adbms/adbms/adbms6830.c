@@ -434,34 +434,12 @@ void bms_writePwm(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
 {
     bms_writePwmA(pwm);
     bms_writePwmB(pwm);
-    // (pwm2 & 0xf) << 4 | (pwm1 & 0xf)
 }
 
 void bms_startDischarge(uint8_t pwm[TOTAL_AD68][TOTAL_CELL])
 {
-    #if 0
-    ic_ad68[0].cfb_Tx.dcto = 1;     // DC Timer in minutes (DTRNG = 0)
-    ic_ad68[0].cfb_Tx.dtmen = 0;    // Disables Discharge Timer Monitor (DTM)
-    ic_ad68[0].cfb_Tx.dcc = 0b1; // --- High priority discharge (bypasses PWM)
-    bms_writeConfigB();             // Send the DCTO Timer config
-    #endif
-
     bms_writePwmA(pwm); // Send the PWM configs
     bms_writePwmB(pwm); // Send the PWM configs
-    #if 0
-    ic_ad68[0].pwma.pwm1 = 0b0111;  // 4 bit pwm at 937 ms (for testing -> enables discharge for cell 1)
-
-    // The PWM discharge functionality is possible in the standby, REF-UP, extended balancing and in the measure states
-    // AND while the discharge timeout has not expired (DCTO ≠ 0)
-
-    ic_ad68[0].cfb_Tx.dcto = 1;     // DC Timer in minutes (DTRNG = 0)
-    ic_ad68[0].cfb_Tx.dtmen = 0;    // Disables Discharge Timer Monitor (DTM)
-    //ic_ad68[0].cfb_Tx.dcc = 0b1; // --- High priority discharge (bypasses PWM)
-
-    bms_writeConfigB();             // Send the DCTO Timer config
-    bms_writePwmA();                // Send the PWM configs
-    bms_writePwmB();                // Send the PWM configs
-    #endif
 }
 
 void bms_stopDischarge(void)
