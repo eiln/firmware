@@ -15,6 +15,7 @@
 #include "common/phal_G4/phal_g4.h"
 
 bool phal_fdcan_init(FDCAN_GlobalTypeDef *Instance, uint32_t bitrate);
+void fdcan_test_send(FDCAN_GlobalTypeDef *Instance);
 
 #define GPIO_AF9_FDCAN1 (9)
 

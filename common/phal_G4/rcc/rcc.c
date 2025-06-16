@@ -89,15 +89,14 @@ static bool PHAL_configurePLLRates(const rcc_config_t *config)
 		return false;
 	}
 
-	RCC->PLLCFGR |= (RCC_PLLCFGR_PLLPEN | RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN);
 	RCC->PLLCFGR &= ~(RCC_PLLCFGR_PLLP_Msk | RCC_PLLCFGR_PLLQ_Msk);
+	RCC->PLLCFGR |= (RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN | RCC_PLLCFGR_PLLPEN);
 	RCC->PLLCFGR |= ((pllm) << RCC_PLLCFGR_PLLM_Pos) & RCC_PLLCFGR_PLLM_Msk; // Set PLLM
 	RCC->PLLCFGR |= ((plln) << RCC_PLLCFGR_PLLN_Pos) & RCC_PLLCFGR_PLLN_Msk; // Set PLLN
 	RCC->PLLCFGR |= ((pllq) << RCC_PLLCFGR_PLLQ_Pos) & RCC_PLLCFGR_PLLQ_Msk; // Set PLLQ
 	RCC->PLLCFGR |= ((pllr) << RCC_PLLCFGR_PLLR_Pos) & RCC_PLLCFGR_PLLR_Msk; // Set PLLR
 	__DSB();
 
-	SystemCoreClockUpdate();
 	return true;
 }
 
