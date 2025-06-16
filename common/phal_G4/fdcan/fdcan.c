@@ -22,12 +22,10 @@ bool phal_fdcan_init(FDCAN_GlobalTypeDef *Instance, uint32_t bitrate)
 {
 	// Enable FDCAN clock
 	RCC->APB1ENR1 |= RCC_APB1ENR1_FDCANEN;
-	// RCC->APB1RSTR1 |= RCC_APB1RSTR1_FDCANRST;
-	// RCC->APB1RSTR1 &= ~RCC_APB1RSTR1_FDCANRST;
 
 	// Select 48 MHz for FDCAN kernel clock (e.g., from PLLQ)
 	RCC->CCIPR &= ~RCC_CCIPR_FDCANSEL; // Clear bits
-	RCC->CCIPR |= (RCC_CCIPR_FDCANSEL_0 << RCC_CCIPR_FDCANSEL_Pos);
+	RCC->CCIPR |= RCC_CCIPR_FDCANSEL_0;
 
 	// Exit sleep mode
 	Instance->CCCR &= ~FDCAN_CCCR_CSR;
@@ -71,7 +69,7 @@ bool phal_fdcan_init(FDCAN_GlobalTypeDef *Instance, uint32_t bitrate)
 					 | ((prescaler - 1) << FDCAN_NBTP_NBRP_Pos);
 
 	/* Select between Tx FIFO and Tx Queue operation modes */
-	Instance->TXBC |= FDCAN_TX_FIFO_OPERATION;
+	Instance->TXBC |= FDCAN_TX_QUEUE_OPERATION;
 	/* Calculate each RAM block address */
 	// FDCAN_CalcultateRamBlockAddresses(hfdcan);
 	Instance->RXGFC = (0 << FDCAN_RXGFC_LSS_Pos) |	  // 0 standard filters
