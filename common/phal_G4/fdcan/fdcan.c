@@ -59,6 +59,7 @@ bool phal_fdcan_init(FDCAN_GlobalTypeDef *Instance, uint32_t bitrate)
 	// clear existing modes
 	Instance->CCCR &= ~(FDCAN_CCCR_TEST | FDCAN_CCCR_MON | FDCAN_CCCR_ASM);
 	Instance->TEST &= ~(FDCAN_TEST_LBCK);
+	Instance->TOCC = 0x00000000;
 
 	Instance->NBTP = ((16 - 1) << FDCAN_NBTP_NSJW_Pos) |    // SJW = 16
 	((140 - 1) << FDCAN_NBTP_NTSEG1_Pos) | // TSEG1 = 140
