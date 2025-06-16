@@ -141,7 +141,7 @@ typedef struct {
  * @return true All GPIOs were a valid configuration format
  * @return false Some of the GPIOs had an invalid configuration format
  */
-bool PHAL_initGPIO(GPIOInitConfig_t config[], uint8_t config_len);
+bool PHAL_initGPIO(const GPIOInitConfig_t config[], uint8_t config_len);
 
 /**
  * @brief Read the state of the input register for the specific GPIO pin

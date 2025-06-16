@@ -11,6 +11,8 @@
 #define _FREERTOS_DIR common/STM32CubeF4/Middlewares/Third_Party/FreeRTOS/Source/
 #elif defined(STM32F732xx)
 #define _FREERTOS_DIR common/STM32CubeF7/Middlewares/Third_Party/FreeRTOS/Source/
+#elif defined(STM32G474xx)
+#define _FREERTOS_DIR common/STM32CubeG4/Middlewares/Third_Party/FreeRTOS/Source/
 #else
 #error "Unsupported MCU arch"
 #endif

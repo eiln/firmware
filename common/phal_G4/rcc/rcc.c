@@ -8,21 +8,21 @@
 
 #include "common/phal_G4/rcc/rcc.h"
 
-static bool PHAL_configurePLLRates(rcc_config_t *config);
-static bool PHAL_configurePLLSystemClock(rcc_config_t *config);
-static bool PHAL_configureHSISystemClock(rcc_config_t *config);
-static bool PHAL_configureHSESystemClock(rcc_config_t *config);
-static bool PHAL_configureAPBClocks(rcc_config_t *config);
+static bool PHAL_configurePLLRates(const rcc_config_t *config);
+static bool PHAL_configurePLLSystemClock(const rcc_config_t *config);
+static bool PHAL_configureHSISystemClock(const rcc_config_t *config);
+static bool PHAL_configureHSESystemClock(const rcc_config_t *config);
+static bool PHAL_configureAPBClocks(const rcc_config_t *config);
 
-bool PHAL_configureClockRates(rcc_config_t *config)
+bool PHAL_configureClockRates(const rcc_config_t *config)
 {
 	if (config->target_hz != RCC_144_MHZ || (config->use_hse && !((config->input_hz == RCC_16_MHZ) || (config->input_hz == RCC_8_MHZ)))) // lol
 	{
 		return false;
 	}
 
-	if (!config->use_hse) {
-		config->input_hz = RCC_16_MHZ; // HSI16
+	if (!config->use_hse && (config->input_hz != RCC_16_MHZ)) {
+		return false; // HSI16
 	}
 
 	if (config->use_hse) {
@@ -54,7 +54,7 @@ bool PHAL_configureClockRates(rcc_config_t *config)
 	return true;
 }
 
-static bool PHAL_configurePLLRates(rcc_config_t *config)
+static bool PHAL_configurePLLRates(const rcc_config_t *config)
 {
 	// Turn off and wait for PLL to disable
 	RCC->CR &= ~RCC_CR_PLLON;
@@ -89,7 +89,7 @@ static bool PHAL_configurePLLRates(rcc_config_t *config)
 		return false;
 	}
 
-	RCC->PLLCFGR |= (RCC_PLLCFGR_PLLNEN | RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN);
+	RCC->PLLCFGR |= (RCC_PLLCFGR_PLLPEN | RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN);
 	RCC->PLLCFGR &= ~(RCC_PLLCFGR_PLLP_Msk | RCC_PLLCFGR_PLLQ_Msk);
 	RCC->PLLCFGR |= ((pllm) << RCC_PLLCFGR_PLLM_Pos) & RCC_PLLCFGR_PLLM_Msk; // Set PLLM
 	RCC->PLLCFGR |= ((plln) << RCC_PLLCFGR_PLLN_Pos) & RCC_PLLCFGR_PLLN_Msk; // Set PLLN
@@ -101,7 +101,7 @@ static bool PHAL_configurePLLRates(rcc_config_t *config)
 	return true;
 }
 
-static bool PHAL_configurePLLSystemClock(rcc_config_t *config)
+static bool PHAL_configurePLLSystemClock(const rcc_config_t *config)
 {
 	RCC->CR |= RCC_CR_PLLON; // Enable PLL
 	while (!(RCC->CR & RCC_CR_PLLRDY))
@@ -143,7 +143,7 @@ static bool PHAL_configurePLLSystemClock(rcc_config_t *config)
 	return true;
 }
 
-static bool PHAL_configureHSISystemClock(rcc_config_t *config)
+static bool PHAL_configureHSISystemClock(const rcc_config_t *config)
 {
 	// Turn on and wait for HSI to enable
 	RCC->CR |= RCC_CR_HSION;
@@ -167,7 +167,7 @@ static bool PHAL_configureHSISystemClock(rcc_config_t *config)
 	return true;			 // Return true upon completion
 }
 
-static bool PHAL_configureHSESystemClock(rcc_config_t *config)
+static bool PHAL_configureHSESystemClock(const rcc_config_t *config)
 {
 	// 1. Enable PWR clock if needed
 	RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
@@ -211,7 +211,7 @@ static bool PHAL_configureHSESystemClock(rcc_config_t *config)
 	return true;
 }
 
-static bool PHAL_configureAPBClocks(rcc_config_t *config)
+static bool PHAL_configureAPBClocks(const rcc_config_t *config)
 {
 	// Set AHB, APB1, and APB2 prescalers, defualt to 1
 	RCC->CFGR &= ~RCC_CFGR_HPRE;  // AHB prescaler = 1

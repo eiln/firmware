@@ -6,8 +6,8 @@
  * @date 2023-09-17
  */
 
-#ifndef __PHAL_G4_ADC_H__
-#define __PHAL_G4_ADC_H__
+#ifndef PHAL_G4_ADC_H_
+#define PHAL_G4_ADC_H_
 
 #include "common/phal_G4/phal_g4.h"
 
@@ -72,9 +72,9 @@ typedef struct {
 	ADCChannelSampleCycles_t sampling_time;
 } ADCChannelConfig_t;
 
-#define ADC1_DMA_CONT_CONFIG(mem_addr_, tx_size_, priority_)                                                                                                   \
+#define ADC1_DMA_CONT_CONFIG(tx_size_, priority_)                                                                                                              \
 	{                                                                                                                                                          \
-		.periph_addr = (uint32_t) & (ADC1->DR), .mem_addr = mem_addr_, .tx_size = tx_size_, .increment = true, .circular = true, .dir = 0b0, .mem_inc = true,  \
+		.periph_addr = (uint32_t) & (ADC1->DR), .mem_addr = 0, .tx_size = tx_size_, .increment = true, .circular = true, .dir = 0b0, .mem_inc = true,          \
 		.periph_inc = false, .mem_to_mem = false, .priority = priority_, .mem_size = DMA_SIZE_16BIT, .periph_size = DMA_SIZE_16BIT, .tx_isr_en = false,        \
 		.dma_chan_request = 0b0000, .channel_idx = 1, .mux_request = DMA_REQUEST_ADC1, .periph = DMA1, .channel = DMA1_Channel1                                \
 	}
@@ -89,37 +89,8 @@ typedef struct {
 #define ADC1_CH4_Pin (3)
 
 // TODO ADC3 config (ADC2 doesn't support DMA)
+bool PHAL_initADC(const ADCInitConfig_t *config, const ADCChannelConfig_t channels[], uint8_t num_channels);
+bool PHAL_startADC(const ADCInitConfig_t *config);
+bool PHAL_stopADC(const ADCInitConfig_t *config);
 
-/**
- * @brief Initializes the ADC, requires GPIO config prior
- *
- * @param adc ADC handle
- * @param config ADC initial config settings
- * @param channels List of channel configurations
- * @param num_channels Number of channels in the channel configuration list
- **/
-bool PHAL_initADC(ADCInitConfig_t *config, ADCChannelConfig_t channels[], uint8_t num_channels);
-
-/**
- * @brief Starts the ADC conversions, requires PHAL_initADC to be called prior
- *
- * @param adc ADC handle
- **/
-bool PHAL_startADC(ADCInitConfig_t *config);
-
-/**
- * @brief Stops the ADC conversions, requires PHAL_initADC to be called prior
- *
- * @param adc ADC handle
- **/
-bool PHAL_stopADC(ADCInitConfig_t *config);
-
-/**
- * @brief Reads the ADC data register
- *
- * @param adc ADC handle
- * @return contents of the data register
- **/
-uint16_t PHAL_readADC(ADCInitConfig_t *config);
-
-#endif // __PHAL_G4_ADC_H__
+#endif // PHAL_G4_ADC_H_

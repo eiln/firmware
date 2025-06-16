@@ -9,7 +9,7 @@
 
 #include "common/phal_G4/gpio/gpio.h"
 
-bool PHAL_initGPIO(GPIOInitConfig_t config[], uint8_t config_len)
+bool PHAL_initGPIO(const GPIOInitConfig_t config[], uint8_t config_len)
 {
 	uint8_t afr_i;
 
