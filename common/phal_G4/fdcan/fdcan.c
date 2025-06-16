@@ -12,6 +12,7 @@
 #include "common/phal_G4/fdcan/fdcan.h"
 #include "common/phal_G4/rcc/rcc.h"
 
+#define FDCAN_MSG_RAM_START  SRAMCAN_BASE
 #define FDCAN_TX_FIFO_OPERATION ((uint32_t)0x00000000U)		 /*!< FIFO mode  */
 #define FDCAN_TX_QUEUE_OPERATION ((uint32_t)FDCAN_TXBC_TFQM) /*!< Queue mode */
 
@@ -59,17 +60,13 @@ bool phal_fdcan_init(FDCAN_GlobalTypeDef *Instance, uint32_t bitrate)
 	Instance->CCCR &= ~(FDCAN_CCCR_TEST | FDCAN_CCCR_MON | FDCAN_CCCR_ASM);
 	Instance->TEST &= ~(FDCAN_TEST_LBCK);
 
-	// Setup bit timing (example for 1 Mbps, adjust for your clock)
-	uint32_t tseg1 = 1;
-	uint32_t tseg2 = 1;
-	uint32_t sjw = 1;
-	uint32_t prescaler = 64;
-
-	Instance->NBTP = ((sjw - 1) << FDCAN_NBTP_NSJW_Pos) | ((tseg1 - 1) << FDCAN_NBTP_NTSEG1_Pos) | ((tseg2 - 1) << FDCAN_NBTP_NTSEG2_Pos)
-					 | ((prescaler - 1) << FDCAN_NBTP_NBRP_Pos);
-
-	/* Select between Tx FIFO and Tx Queue operation modes */
-	Instance->TXBC |= FDCAN_TX_QUEUE_OPERATION;
+	Instance->NBTP = ((16 - 1) << FDCAN_NBTP_NSJW_Pos) |    // SJW = 16
+	((140 - 1) << FDCAN_NBTP_NTSEG1_Pos) | // TSEG1 = 140
+	((51  - 1) << FDCAN_NBTP_NTSEG2_Pos) | // TSEG2 = 51
+	((1   - 1) << FDCAN_NBTP_NBRP_Pos);    // Prescaler = 1
+	//
+	Instance->TXBC = (2 << 0)  // TFQS = 2 means 3 elements (0-based count)
+                 | (1 << 7);  // TFQM = 1: FIFO mode
 	/* Calculate each RAM block address */
 	// FDCAN_CalcultateRamBlockAddresses(hfdcan);
 	Instance->RXGFC = (0 << FDCAN_RXGFC_LSS_Pos) |	  // 0 standard filters
@@ -77,166 +74,78 @@ bool phal_fdcan_init(FDCAN_GlobalTypeDef *Instance, uint32_t bitrate)
 					  FDCAN_RXGFC_ANFS_ACCEPT_FIFO0 | // Accept all non-matching STD IDs into FIFO0
 					  FDCAN_RXGFC_ANFE_ACCEPT_FIFO0;  // Accept all non-matching EXT IDs into FIFO0
 
-	// Leave INIT mode - keep CCE set during transition
-	Instance->CCCR &= ~FDCAN_CCCR_INIT;
-	while (Instance->CCCR & FDCAN_CCCR_INIT) {
-		;
-	}
+// Enable interrupt lines and interrupts *before* clearing CCE
+Instance->ILE |= FDCAN_ILE_EINT0;
+Instance->IE  |= FDCAN_IE_RF0NE | FDCAN_IE_RF1NE;
 
-	// Disable config changes (clear CCE)
-	Instance->CCCR &= ~FDCAN_CCCR_CCE;
+// Leave init mode
+Instance->CCCR &= ~FDCAN_CCCR_INIT;
+while (Instance->CCCR & FDCAN_CCCR_INIT);
+
+// Disable config changes (clear CCE)
+Instance->CCCR &= ~FDCAN_CCCR_CCE;
+
+	NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
+	NVIC_SetPriority(FDCAN1_IT0_IRQn, 7);
 
 	return true;
 }
 
-#if 0
-static void FDCAN_CalcultateRamBlockAddresses(FDCAN_HandleTypeDef *hfdcan)
-{
-	uint32_t RAMcounter;
-	uint32_t SramCanInstanceBase = SRAMCAN_BASE;
-#if defined(FDCAN2)
+void FDCAN1_IT0_IRQHandler(void) {
+    uint32_t ir = FDCAN1->IR;  // Read interrupt register
 
-	if (hfdcan->Instance == FDCAN2)
-	{
-		SramCanInstanceBase += SRAMCAN_SIZE;
-	}
-#endif /* FDCAN2 */
-#if defined(FDCAN3)
-	if (hfdcan->Instance == FDCAN3)
-	{
-		SramCanInstanceBase += SRAMCAN_SIZE * 2U;
-	}
-#endif /* FDCAN3 */
+    if (ir & FDCAN_IR_RF0N) {
+        // Handle RX FIFO0 new message interrupt
+        FDCAN1->IR = FDCAN_IR_RF0N; // Clear the interrupt flag
+		asm("bkpt");
+        // Read message from RX FIFO0 here
+    }
+	if (ir & FDCAN_IR_RF1N) {
+        FDCAN1->IR = FDCAN_IR_RF1N;
+		asm("bkpt");
+    }
 
-	/* Standard filter list start address */
-	hfdcan->msgRam.StandardFilterSA = SramCanInstanceBase + SRAMCAN_FLSSA;
-
-	/* Standard filter elements number */
-	MODIFY_REG(hfdcan->Instance->RXGFC, FDCAN_RXGFC_LSS, (hfdcan->Init.StdFiltersNbr << FDCAN_RXGFC_LSS_Pos));
-
-	/* Extended filter list start address */
-	hfdcan->msgRam.ExtendedFilterSA = SramCanInstanceBase + SRAMCAN_FLESA;
-
-	/* Extended filter elements number */
-	MODIFY_REG(hfdcan->Instance->RXGFC, FDCAN_RXGFC_LSE, (hfdcan->Init.ExtFiltersNbr << FDCAN_RXGFC_LSE_Pos));
-
-	/* Rx FIFO 0 start address */
-	hfdcan->msgRam.RxFIFO0SA = SramCanInstanceBase + SRAMCAN_RF0SA;
-
-	/* Rx FIFO 1 start address */
-	hfdcan->msgRam.RxFIFO1SA = SramCanInstanceBase + SRAMCAN_RF1SA;
-
-	/* Tx event FIFO start address */
-	hfdcan->msgRam.TxEventFIFOSA = SramCanInstanceBase + SRAMCAN_TEFSA;
-
-	/* Tx FIFO/queue start address */
-	hfdcan->msgRam.TxFIFOQSA = SramCanInstanceBase + SRAMCAN_TFQSA;
-
-	/* Flush the allocated Message RAM area */
-	for (RAMcounter = SramCanInstanceBase; RAMcounter < (SramCanInstanceBase + SRAMCAN_SIZE); RAMcounter += 4U)
-	{
-		*(uint32_t *)(RAMcounter) = 0x00000000U;
-	}
+    // Handle other interrupts as needed
+	asm("bkpt");
 }
-#endif
 
-#if 0
-extern uint32_t APB1ClockRateHz;
+void fdcan_test_send(FDCAN_GlobalTypeDef *Instance) {
+    // Wait until there is space in the Tx FIFO/Queue (TFQF = FIFO full flag, bit 24)
+    while (Instance->TXFQS & FDCAN_TXFQS_TFQF) {
+        // Wait while FIFO is full
+    }
 
-bool phal_fdcan_init(MY_FDCAN_HandleTypeDef *hfdcan)
-{
-		uint32_t tickstart;
+    // Get the next free buffer index to write (TFQPI bits [13:8])
+    uint32_t buf_idx = (Instance->TXFQS & FDCAN_TXFQS_TFQPI) >> FDCAN_TXFQS_TFQPI_Pos;
 
-		RCC->APB1ENR1 |= RCC_APB1ENR1_FDCANEN;
+    // Setup standard ID (11-bit) and 8-byte data payload
+    uint32_t id = 0x123;
+    uint8_t data[8] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' };
 
-		// Exit sleep mode: clear CSR bit
-		hfdcan->Instance->CCCR &= ~FDCAN_CCCR_CSR;
+    // Pointer to the Tx buffer in message RAM
+    volatile uint32_t *tx_buf = (volatile uint32_t *)(FDCAN_MSG_RAM_START + 0x100 * buf_idx);
 
-		tickstart = MY_HAL_GetTick();
-		while ((hfdcan->Instance->CCCR & FDCAN_CCCR_CSA) != 0)
-		{
-				if ((MY_HAL_GetTick() - tickstart) > FDCAN_TIMEOUT_VALUE)
-				{
-						return false;
-				}
-		}
+    // T0 register: bits
+    // Bits 28:18 = Standard ID (11 bits)
+    // Bit 30 = IDE (0 for standard)
+    // Bit 31 = RTR (0 for data frame)
+    tx_buf[0] = (id << 18) & 0x1FFC0000;
 
-		// Request initialization: set INIT bit
-		hfdcan->Instance->CCCR |= FDCAN_CCCR_INIT;
+    // T1 register:
+    // Bits 15:12 = DLC (Data length code, 8 bytes = 8)
+    // Bit 10 = ESI (Error State Indicator, 0)
+    // Bits 9:8 = RTR, XTD (0 for data frame, standard ID)
+    tx_buf[1] = (8 << 16);  // DLC in bits 19:16 (not 15:12) on STM32, check datasheet
 
-		tickstart = MY_HAL_GetTick();
-		while ((hfdcan->Instance->CCCR & FDCAN_CCCR_INIT) == 0)
-		{
-				if ((MY_HAL_GetTick() - tickstart) > FDCAN_TIMEOUT_VALUE)
-				{
-						return false;
-				}
-		}
+    // Copy 8 bytes data into Tx buffer payload (4 bytes each uint32_t)
+    tx_buf[2] = ((uint32_t*)data)[0];
+    tx_buf[3] = ((uint32_t*)data)[1];
 
-		// Enable configuration changes: set CCE bit
-		hfdcan->Instance->CCCR |= FDCAN_CCCR_CCE;
+    // Request transmission by setting the request bit for this buffer index
+    Instance->TXBAR = (1 << buf_idx);
 
-		// Clock divider config (only FDCAN1)
-		if (hfdcan->Instance == FDCAN1)
-		{
-				FDCAN_CONFIG->CKDIV = hfdcan->Init.ClockDivider;
-		}
-
-		// Auto retransmission: clear or set DAR bit
-		if (hfdcan->Init.AutoRetransmission == ENABLE)
-		{
-				hfdcan->Instance->CCCR &= ~FDCAN_CCCR_DAR;
-		}
-		else
-		{
-				hfdcan->Instance->CCCR |= FDCAN_CCCR_DAR;
-		}
-
-		// Transmit pause: set or clear TXP bit
-		if (hfdcan->Init.TransmitPause == ENABLE)
-		{
-				hfdcan->Instance->CCCR |= FDCAN_CCCR_TXP;
-		}
-		else
-		{
-				hfdcan->Instance->CCCR &= ~FDCAN_CCCR_TXP;
-		}
-
-		// Protocol exception: clear or set PXHD bit
-		if (hfdcan->Init.ProtocolException == ENABLE)
-		{
-				hfdcan->Instance->CCCR &= ~FDCAN_CCCR_PXHD;
-		}
-		else
-		{
-				hfdcan->Instance->CCCR |= FDCAN_CCCR_PXHD;
-		}
-
-		// Set Frame Format bits: clear relevant bits then set
-		hfdcan->Instance->CCCR &= ~FDCAN_CCCR_FDOE; // Assuming FDOE mask here (replace with actual)
-		hfdcan->Instance->CCCR |= hfdcan->Init.FrameFormat;
-
-		// Clear test, monitor and ASM bits
-		hfdcan->Instance->CCCR &= ~(FDCAN_CCCR_TEST | FDCAN_CCCR_MON | FDCAN_CCCR_ASM);
-
-		// Clear loopback test bit in TEST register
-		hfdcan->Instance->TEST &= ~FDCAN_TEST_LBCK;
-
-		// Set Nominal Bit Timing Register (NBTP)
-		hfdcan->Instance->NBTP =
-				((hfdcan->Init.NominalSyncJumpWidth - 1U) << FDCAN_NBTP_NSJW_Pos) |
-				((hfdcan->Init.NominalTimeSeg1 - 1U) << FDCAN_NBTP_NTSEG1_Pos) |
-				((hfdcan->Init.NominalTimeSeg2 - 1U) << FDCAN_NBTP_NTSEG2_Pos) |
-				((hfdcan->Init.NominalPrescaler - 1U) << FDCAN_NBTP_NBRP_Pos);
-
-		// Set Tx FIFO/Queue Mode bits in TXBC register
-		hfdcan->Instance->TXBC |= hfdcan->Init.TxFifoQueueMode;
-
-		// Calculate RAM block addresses (user provided function)
-		FDCAN_CalculateRamBlockAddresses(hfdcan);
-
-		hfdcan->LatestTxFifoQRequest = 0;
-
-		return true;
+    // Optionally wait until transmission is complete for this buffer
+    while (Instance->TXBRP & (1 << buf_idx)) {
+        // wait for buffer to be transmitted
+    }
 }
-#endif
