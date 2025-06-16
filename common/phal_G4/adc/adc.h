@@ -73,11 +73,24 @@ typedef struct {
 } ADCChannelConfig_t;
 
 #define ADC1_DMA_CONT_CONFIG(tx_size_, priority_)                                                                                                              \
-	{                                                                                                                                                          \
-		.periph_addr = (uint32_t) & (ADC1->DR), .mem_addr = 0, .tx_size = tx_size_, .increment = true, .circular = true, .dir = 0b0, .mem_inc = true,          \
-		.periph_inc = false, .mem_to_mem = false, .priority = priority_, .mem_size = DMA_SIZE_16BIT, .periph_size = DMA_SIZE_16BIT, .tx_isr_en = false,        \
-		.dma_chan_request = 0b0000, .channel_idx = 1, .mux_request = DMA_REQUEST_ADC1, .periph = DMA1, .channel = DMA1_Channel1                                \
-	}
+	{.periph_addr = (uint32_t)&(ADC1->DR),                                                                                                                     \
+	 .mem_addr = 0,                                                                                                                                            \
+	 .tx_size = tx_size_,                                                                                                                                      \
+	 .increment = true,                                                                                                                                        \
+	 .circular = true,                                                                                                                                         \
+	 .dir = 0b0,                                                                                                                                               \
+	 .mem_inc = true,                                                                                                                                          \
+	 .periph_inc = false,                                                                                                                                      \
+	 .mem_to_mem = false,                                                                                                                                      \
+	 .priority = priority_,                                                                                                                                    \
+	 .mem_size = DMA_SIZE_16BIT,                                                                                                                               \
+	 .periph_size = DMA_SIZE_16BIT,                                                                                                                            \
+	 .tx_isr_en = false,                                                                                                                                       \
+	 .dma_chan_request = 0b0000,                                                                                                                               \
+	 .channel_idx = 1,                                                                                                                                         \
+	 .mux_request = DMA_REQUEST_ADC1,                                                                                                                          \
+	 .periph = DMA1,                                                                                                                                           \
+	 .channel = DMA1_Channel1}
 
 #define ADC1_CH1_GPIO_Port (GPIOA)
 #define ADC1_CH1_Pin (0)

@@ -199,9 +199,9 @@ extern uint32_t PLLClockRateHz;
 
 #define TargetCoreClockrateHz 144000000
 ClockRateConfig_t clock_config = {
-    .clock_source               =CLOCK_SOURCE_HSE,
+    .clock_source               =CLOCK_SOURCE_HSI,
     .use_pll                    =true,
-    .pll_src                    =PLL_SRC_HSE,
+    .pll_src                    =PLL_SRC_HSI16,
     .vco_output_rate_target_hz  =288000000,
     .system_clock_target_hz     =TargetCoreClockrateHz,
     .ahb_clock_target_hz        =(TargetCoreClockrateHz / 1),
@@ -541,7 +541,7 @@ void can2Relaycan1(CAN_TypeDef *can_h)
         /* Pass through CAN2 messages onto CAN1 */
         rx.Bus = CAN1; // Override
         canTxSendToBack(&rx);
-        
+
     }
 }
 

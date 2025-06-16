@@ -111,6 +111,7 @@ int main()
 
 static void ledblink1(void)
 {
+	fdcan_test_send(FDCAN1);
 	PHAL_toggleGPIO(LED_GREEN_PORT, LED_GREEN_PIN);
 }
 
