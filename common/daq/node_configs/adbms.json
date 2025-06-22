@@ -5,11 +5,11 @@
       "bus_name": "VCAN",
       "nodes": [
         {
-          "node_name": "a_box",
+          "node_name": "adbms",
           "can_peripheral": "CAN1",
           "tx": [
             {
-              "msg_name": "precharge_hb",
+              "msg_name": "adbms_precharge_hb",
               "msg_desc": "heart beat for precharge",
               "signals": [
                 {
@@ -27,7 +27,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "elcon_charger_command",
+              "msg_name": "adbms_elcon_charger_command",
               "msg_desc": "Charge voltage and current request to ELCON charger",
               "signals": [
                 {
@@ -53,11 +53,11 @@
                   "length": 1
                 }
               ],
-              "msg_id_override": "0x1806E5F4",
+              "msg_id_override": "0x1806E5F5",
               "msg_period": 1000
             },
             {
-              "msg_name": "num_therm_bad",
+              "msg_name": "adbms_num_therm_bad",
               "msg_desc": "Number of wonky thermistors on pack",
               "signals": [
                 {
@@ -125,7 +125,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "pack_charge_status",
+              "msg_name": "adbms_pack_charge_status",
               "msg_desc": "Statistics about current charge cycle",
               "signals": [
                 {
@@ -162,7 +162,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "max_cell_temp",
+              "msg_name": "adbms_max_cell_temp",
               "msg_desc": "maximum cell temperature for the whole pack",
               "signals": [
                 {
@@ -175,7 +175,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "mod_cell_temp_avg_a_b_c",
+              "msg_name": "adbms_mod_cell_temp_avg_a_b_c",
               "msg_desc": "Average cell temperature for each module",
               "signals": [
                 {
@@ -198,7 +198,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "mod_cell_temp_avg_d_e",
+              "msg_name": "adbms_mod_cell_temp_avg_d_e",
               "msg_desc": "Average cell temperature for each module",
               "signals": [
                 {
@@ -216,7 +216,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "mod_cell_temp_max_a_b_c",
+              "msg_name": "adbms_mod_cell_temp_max_a_b_c",
               "msg_desc": "Max cell temperature for a, b, and c",
               "signals": [
                 {
@@ -239,7 +239,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "mod_cell_temp_max_d_e",
+              "msg_name": "adbms_mod_cell_temp_max_d_e",
               "msg_desc": "Max cell temperature for d and e",
               "signals": [
                 {
@@ -257,7 +257,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "mod_cell_temp_min_a_b_c",
+              "msg_name": "adbms_mod_cell_temp_min_a_b_c",
               "msg_desc": "Min cell temperature for each a, b, and c",
               "signals": [
                 {
@@ -280,7 +280,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "mod_cell_temp_min_d_e",
+              "msg_name": "adbms_mod_cell_temp_min_d_e",
               "msg_desc": "Min cell temperature for each d and e",
               "signals": [
                 {
@@ -298,7 +298,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "raw_cell_temp_module1",
+              "msg_name": "adbms_raw_cell_temp_module1",
               "msg_desc": "Raw cell temperature for each module of thermistor at index",
               "signals": [
                 {
@@ -323,7 +323,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "raw_cell_temp_module2",
+              "msg_name": "adbms_raw_cell_temp_module2",
               "msg_desc": "Raw cell temperature for each module of thermistor at index",
               "signals": [
                 {
@@ -348,7 +348,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "raw_cell_temp_module3",
+              "msg_name": "adbms_raw_cell_temp_module3",
               "msg_desc": "Raw cell temperature for each module of thermistor at index",
               "signals": [
                 {
@@ -373,7 +373,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "raw_cell_temp_module4",
+              "msg_name": "adbms_raw_cell_temp_module4",
               "msg_desc": "Raw cell temperature for each module of thermistor at index",
               "signals": [
                 {
@@ -398,7 +398,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "raw_cell_temp_module5",
+              "msg_name": "adbms_raw_cell_temp_module5",
               "msg_desc": "Raw cell temperature for each module of thermistor at index",
               "signals": [
                 {
@@ -423,7 +423,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "a_box_can_stats",
+              "msg_name": "adbms_can_stats",
               "msg_desc": "CAN diagnostics",
               "signals": [
                 {
@@ -466,7 +466,7 @@
               "msg_priority": 3
             },
             {
-              "msg_name": "i_sense",
+              "msg_name": "adbms_i_sense",
               "msg_desc": "Current sense value for channel 1 and channel 2 of pack current sensor",
               "signals": [
                 {
@@ -489,21 +489,6 @@
             }
           ],
           "rx": [
-            {
-              "msg_name": "orion_info",
-              "msg_priority": 3,
-              "msg_period": 0
-            },
-            {
-              "msg_name": "orion_currents_volts",
-              "msg_priority": 3,
-              "msg_period": 0
-            },
-            {
-              "msg_name": "orion_errors",
-              "msg_priority": 3,
-              "msg_period": 0
-            },
             {
               "msg_name": "a_box_bl_cmd",
               "callback": true,
