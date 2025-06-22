@@ -35,6 +35,9 @@ set(PROJECT_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/output)
 # Common Variables
 set(COMMON_SOURCE_DIR ${CMAKE_SOURCE_DIR}/common)
 
+# Allow building selected module
+set(BUILD_MODULES "" CACHE STRING "Semicolon-separated list of modules in 'source/' to build (leave empty to build all)")
+
 # Add Libraries
 include(cmake/utils.cmake)
 include(cmake/FindCMSIS.cmake)
@@ -88,19 +91,31 @@ define_property(TARGET PROPERTY OUTPUT_DIR
 include(cmake/common_component.cmake)
 
 # Add Components
-add_subdirectory(source/main_module)
-add_subdirectory(source/bootloader)
-add_subdirectory(source/l4_testing)
-add_subdirectory(source/f4_testing)
-add_subdirectory(source/f7_testing)
-add_subdirectory(source/g4_testing)
-add_subdirectory(source/a_box)
-add_subdirectory(source/torque_vector)
-add_subdirectory(source/dashboard)
-add_subdirectory(source/pdu)
-add_subdirectory(source/daq)
-add_subdirectory(source/adbms)
+# List all available modules
+set(ALL_MODULES
+    main_module
+    bootloader
+    l4_testing
+    f4_testing
+    f7_testing
+    g4_testing
+    a_box
+    torque_vector
+    dashboard
+    pdu
+    daq
+    adbms
+)
 
+foreach(MODULE ${ALL_MODULES})
+    # If no selection given, build everything
+    if(BUILD_MODULES STREQUAL "" OR MODULE IN_LIST BUILD_MODULES)
+        message(STATUS "Including module: ${MODULE}")
+        add_subdirectory(source/${MODULE})
+    else()
+        # message(STATUS "Skipping module: ${MODULE}")
+    endif()
+endforeach()
 
 # Deprecated Components
 # add_subdirectory(source/driveline)

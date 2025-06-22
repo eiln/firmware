@@ -75,20 +75,16 @@ parser.add_option("-v", "--verbose",
 
 (options, args) = parser.parse_args()
 
-
 BUILD_TYPE = "Release" if options.release else "Debug"
-TARGET = options.target if options.target else "all"
-VERBOSE = "--verbose" if options.verbose else ""
-RUN_TESTS = not options.no_test # TODO: This
-
 
 # Always clean if we specify
 if options.clean:
     subprocess.run(["cmake", "-E", "rm", "-rf", str(BUILD_DIR), str(OUT_DIR)])
     print("Build and output directories clean.")
+    exit()
 
 # Build the target if specified or we did not clean
-if options.target or not options.clean:
+if 1:
     CMAKE_OPTIONS = [
         "-S", str(SOURCE_DIR),
         "-B", str(BUILD_DIR),
@@ -96,12 +92,19 @@ if options.target or not options.clean:
         f"-DCMAKE_BUILD_TYPE={BUILD_TYPE}",
         f"-DBOOTLOADER_BUILD={'ON' if options.bootloader else 'OFF'}",
     ]
+    if options.target:
+        modules_cmake = ";".join(options.target.split())
+        CMAKE_OPTIONS.append(f"-DBUILD_MODULES={modules_cmake}")
+    else:
+        # Important: Clear the cached value if no --target is passed
+        CMAKE_OPTIONS.append("-DBUILD_MODULES=")
 
-    NINJA_OPTIONS = [
-        "-C", str(BUILD_DIR),
-        TARGET,
-    ]
-    NINJA_COMMAND = ["ninja"] + NINJA_OPTIONS
+    # Convert space-separated --target into .elf targets
+    if options.target:
+        ninja_targets = [f"{m}.elf" for m in options.target.split()]
+    else:
+        ninja_targets = ["all"]
+    NINJA_COMMAND = ["ninja", "-C", str(BUILD_DIR)] + ninja_targets
 
     try:
         subprocess.run(["cmake"] + CMAKE_OPTIONS, check=True)
