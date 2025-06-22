@@ -5,25 +5,36 @@
  * q_tx_can_2 -> hlp [4,5] -> mailbox 3
 */
 
-can_stats_t can_stats;
+can_stats_t can_stats = {0};
+uint32_t can_mbx_last_send_time[NUM_CAN_PERIPHERALS][CAN_TX_MAILBOX_CNT] = {0};
+volatile uint32_t last_can_rx_time_ms = 0;
 
+#ifndef AUTOCAN_USE_FREERTOS
 q_handle_t q_tx_can[NUM_CAN_PERIPHERALS][CAN_TX_MAILBOX_CNT];
-uint32_t can_mbx_last_send_time[NUM_CAN_PERIPHERALS][CAN_TX_MAILBOX_CNT];
-
 q_handle_t q_rx_can;
+#else
+defineStaticQueue(q_rx_can, CanMsgTypeDef_t, 2048); // CAN messages RX'd to DAQ
+defineStaticQueue(q_can1_tx, CanMsgTypeDef_t, 2048); // CAN messages RX'd to DAQ
+defineStaticQueue(q_can2_tx, CanMsgTypeDef_t, 2048); // CAN messages RX'd to DAQ
+QueueHandle_t *q_can_tx[NUM_CAN_PERIPHERALS] = {&q_can1_tx, &q_can2_tx};
+#endif
 
-void initCANParseBase()
+void initCANParseBase(void)
 {
+    #ifndef AUTOCAN_USE_FREERTOS
     for (uint8_t can_periph = 0; can_periph < NUM_CAN_PERIPHERALS; can_periph++)
     {
       for (uint8_t mbx = 0; mbx < CAN_TX_MAILBOX_CNT; mbx++)
       {
         qConstruct(&q_tx_can[can_periph][mbx], sizeof(CanMsgTypeDef_t));
-        can_mbx_last_send_time[can_periph][mbx] = 0;
       }
     }
     qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
-    can_stats = (can_stats_t){0};
+    #else
+    q_rx_can = createStaticQueue(q_rx_can, CanMsgTypeDef_t, 2048);
+    q_can1_tx = createStaticQueue(q_can1_tx, CanMsgTypeDef_t, 2048);
+    q_can2_tx = createStaticQueue(q_can2_tx, CanMsgTypeDef_t, 2048);
+    #endif
 }
 
 void canTxSendToBack(CanMsgTypeDef_t *msg)
@@ -66,7 +77,7 @@ void __attribute__((weak)) canTxUpdate(void)
     for (uint8_t i = 0; i < CAN_TX_MAILBOX_CNT; ++i)
     {
         // Handle CAN1
-        if(PHAL_txMailboxFree(CAN1, i))
+        if (PHAL_txMailboxFree(CAN1, i))
         {
             if (qReceive(&q_tx_can[CAN1_IDX][i], &tx_msg) == SUCCESS_G)    // Check queue for items and take if there is one
             {
@@ -79,7 +90,7 @@ void __attribute__((weak)) canTxUpdate(void)
             PHAL_txCANAbort(CAN1, i); // aborts tx and empties the mailbox
             can_stats.can_peripheral_stats[CAN1_IDX].tx_fail++;
         }
-# ifdef CAN2
+#ifdef CAN2
         // Handle CAN2
         if(PHAL_txMailboxFree(CAN2, i))
         {
@@ -100,6 +111,11 @@ void __attribute__((weak)) canTxUpdate(void)
 
 void canParseIRQHandler(CAN_TypeDef *can_h)
 {
+    #ifdef AUTOCAN_USE_FREERTOS
+    portBASE_TYPE xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
+    #endif
+
     can_peripheral_stats_t *rx_stats = (can_h == CAN1) ? (&can_stats.can_peripheral_stats[CAN1_IDX]) : (&can_stats.can_peripheral_stats[CAN2_IDX]);
     if (can_h->RF0R & CAN_RF0R_FOVR0) // FIFO Overrun
     {
@@ -139,11 +155,97 @@ void canParseIRQHandler(CAN_TypeDef *can_h)
         rx.Data[7] = (uint8_t) (can_h->sFIFOMailBox[0].RDHR >> 24) & 0xFF;
 
         can_h->RF0R |= (CAN_RF0R_RFOM0);
-        can_h->RF0R |= (CAN_RF0R_RFOM0);
 
-        if (qSendToBack(&q_rx_can, &rx) != SUCCESS_G)
-        {
+        #ifndef AUTOCAN_USE_FREERTOS
+        if (qSendToBack(&q_rx_can, &rx) != SUCCESS_G) {
             can_stats.rx_of++;
         }
+        #else
+        if (xQueueSendToBack(q_rx_can, &rx, (TickType_t)10) != pdPASS) {
+            can_stats.rx_of++;
+        }
+        #endif
     }
+
+    #ifdef AUTOCAN_USE_FREERTOS
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    #endif
+}
+
+void canRxUpdate(void)
+{
+    CanMsgTypeDef_t rx_msg;
+    #ifndef AUTOCAN_USE_FREERTOS
+    while (qReceive(&q_rx_can, &rx_msg) == SUCCESS_G)
+    #else
+    while (xQueueReceive(q_can_rx, &rx_msg, portMAX_DELAY) == pdPASS)
+    #endif
+    {
+        #ifndef AUTOCAN_USE_FREERTOS
+        last_can_rx_time_ms = sched.os_ticks;
+        #else
+        last_can_rx_time_ms = getTick();
+    #endif
+        /* BEGIN AUTO CASES */
+        handle_rx_autocase(&rx_msg);
+        /* END AUTO CASES */
+    }
+
+    /* BEGIN AUTO STALE CHECKS */
+    handle_rx_stale();
+    /* END AUTO STALE CHECKS */
+}
+
+static bool initCANFilter()
+{
+    uint32_t timeout = 0;
+    CAN1->MCR |= CAN_MCR_INRQ;                // Enter back into INIT state (required for changing scale)
+    while(!(CAN1->MSR & CAN_MSR_INAK) && ++timeout < PHAL_CAN_INIT_TIMEOUT)
+         ;
+    if (timeout >= PHAL_CAN_INIT_TIMEOUT)
+         return false;
+    CAN1->FMR  |= CAN_FMR_FINIT;              // Enter init mode for filter banks
+    CAN1->FM1R |= 0x07FFFFFF;                 // Set banks 0-27 to id mode
+    CAN1->FS1R |= 0x07FFFFFF;                 // Set banks 0-27 to 32-bit scale
+
+#ifdef CAN2
+    CAN2->MCR |= CAN_MCR_INRQ;                // Enter back into INIT state (required for changing scale)
+    while(!(CAN2->MSR & CAN_MSR_INAK) && ++timeout < PHAL_CAN_INIT_TIMEOUT)
+         ;
+    if (timeout == PHAL_CAN_INIT_TIMEOUT)
+         return false;
+    CAN2->FMR  |= CAN_FMR_FINIT;              // Enter init mode for filter banks
+    CAN2->FM1R |= 0x07FFFFFF;                 // Set banks 0-27 to id mode
+    CAN2->FS1R |= 0x07FFFFFF;                 // Set banks 0-27 to 32-bit scale
+#endif /* CAN2 */
+
+    /* BEGIN AUTO FILTER */
+    set_rx_filter();
+    /* END AUTO FILTER */
+
+    CAN1->FMR  &= ~CAN_FMR_FINIT;             // Enable Filters (exit filter init mode)
+    // Enter back into NORMAL mode
+    CAN1->MCR &= ~CAN_MCR_INRQ;
+    while((CAN1->MSR & CAN_MSR_INAK) && ++timeout < PHAL_CAN_INIT_TIMEOUT)
+        ;
+    if (timeout >= PHAL_CAN_INIT_TIMEOUT)
+        return false;
+
+#ifdef CAN2
+    CAN2->FMR  &= ~CAN_FMR_FINIT;             // Enable Filters (exit filter init mode)
+    // Enter back into NORMAL mode
+    CAN2->MCR &= ~CAN_MCR_INRQ;
+    while((CAN2->MSR & CAN_MSR_INAK) && ++timeout < PHAL_CAN_INIT_TIMEOUT)
+        ;
+    if (timeout >= PHAL_CAN_INIT_TIMEOUT)
+         return false;
+#endif /* CAN2 */
+
+    return true;
+}
+
+void initCANParse(void)
+{
+    initCANParseBase();
+    initCANFilter();
 }

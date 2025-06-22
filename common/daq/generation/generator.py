@@ -263,7 +263,7 @@ def find_node_paths(node_names, source_dir, c_dir, h_dir):
                         name = line[a+1:b]
                         if name in node_names:
                             # print("Match found for " + name)
-                            if path.exists(c_path):
+                            if path.exists(h_path):
                                 node_paths[name] = [h_path, c_path]
                             else:
                                 log_warning("C file not found for " + name +" at "+c_path)
