@@ -1,6 +1,6 @@
 
-#ifndef __PHAL_G4_H__
-#define __PHAL_G4_H__
+#ifndef PHAL_G4_H_
+#define PHAL_G4_H_
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -8,8 +8,9 @@
 
 #if defined(STM32G474xx)
 #include "stm32g4xx.h"
+#include "common/STM32CubeG4/Drivers/CMSIS/Device/ST/STM32G4xx/Include/stm32g474xx.h"
 #else
 #error "Please define a MCU arch"
 #endif
 
-#endif // __PHAL_G4_H__
+#endif // PHAL_G4_H_

@@ -1,6 +1,8 @@
 
-#ifndef __G4_TESTING_MAIN_H__
-#define __G4_TESTING_MAIN_H__
+#ifndef G4_TESTING_MAIN_H_
+#define G4_TESTING_MAIN_H_
+
+#include "stdint.h"
 
 #define LED_GREEN_PORT GPIOB
 #define LED_GREEN_PIN 7
@@ -23,4 +25,4 @@ typedef struct __attribute__((packed)) {
 volatile extern raw_adc_values_t raw_adc_values;
 #define ADC_NUM_CHANNELS (sizeof(raw_adc_values) / sizeof(uint16_t))
 
-#endif // __G4_TESTING_MAIN_H__
+#endif // G4_TESTING_MAIN_H_

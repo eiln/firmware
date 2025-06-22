@@ -8,7 +8,7 @@
 
 #include "common/phal_G4/dma/dma.h"
 
-bool PHAL_initDMA(dma_init_t *dma)
+bool PHAL_initDMA(dma_init_t *dma, uint32_t mem_addr)
 {
 	// Check we aren't going to break the peripheral
 	if (dma->mem_to_mem && dma->circular) {
@@ -20,6 +20,7 @@ bool PHAL_initDMA(dma_init_t *dma)
 	} else if (dma->mem_size > 2 || dma->periph_size > 2) {
 		return false;
 	}
+	dma->mem_addr = mem_addr;
 
 	// Enable clock in RCC
 	if (dma->periph == DMA1) {

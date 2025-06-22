@@ -26,8 +26,8 @@ bool phal_fdcan_init(FDCAN_GlobalTypeDef *Instance, uint32_t bitrate)
 	// RCC->APB1RSTR1 &= ~RCC_APB1RSTR1_FDCANRST;
 
 	// Select 48 MHz for FDCAN kernel clock (e.g., from PLLQ)
-	RCC->CCIPR &= ~RCC_CCIPR_FDCANSEL;			   // Clear bits
-	RCC->CCIPR |= (0x1 << RCC_CCIPR_FDCANSEL_Pos); // 01: PLLQ selected (check RM0440, section on CCIPR)
+	RCC->CCIPR &= ~RCC_CCIPR_FDCANSEL; // Clear bits
+	RCC->CCIPR |= (RCC_CCIPR_FDCANSEL_0 << RCC_CCIPR_FDCANSEL_Pos);
 
 	// Exit sleep mode
 	Instance->CCCR &= ~FDCAN_CCCR_CSR;

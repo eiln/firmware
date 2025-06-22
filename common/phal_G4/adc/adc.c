@@ -8,9 +8,7 @@
 
 #include "common/phal_G4/adc/adc.h"
 
-// Oversample count must be 2,4,8,16,32,64,128,256
-// The shift is automatically set as log2(oversample_count)
-static bool PHAL_configureOversampling(ADCInitConfig_t *config)
+static bool PHAL_configureOversampling(const ADCInitConfig_t *config)
 {
 	ADC_TypeDef *adc = config->periph;
 
@@ -51,7 +49,7 @@ static bool PHAL_configureOversampling(ADCInitConfig_t *config)
 	return true;
 }
 
-static bool PHAL_configureADCChannels(ADCInitConfig_t *config, ADCChannelConfig_t channels[], uint8_t num_channels)
+static bool PHAL_configureADCChannels(const ADCInitConfig_t *config, const ADCChannelConfig_t channels[], uint8_t num_channels)
 {
 	ADC_TypeDef *adc = config->periph;
 
@@ -103,7 +101,7 @@ static bool PHAL_configureADCChannels(ADCInitConfig_t *config, ADCChannelConfig_
 	return true;
 }
 
-bool PHAL_initADC(ADCInitConfig_t *config, ADCChannelConfig_t channels[], uint8_t num_channels)
+bool PHAL_initADC(const ADCInitConfig_t *config, const ADCChannelConfig_t channels[], uint8_t num_channels)
 {
 	if (num_channels >= 16)
 		return false;
@@ -187,13 +185,13 @@ bool PHAL_initADC(ADCInitConfig_t *config, ADCChannelConfig_t channels[], uint8_
 	return true;
 }
 
-bool PHAL_startADC(ADCInitConfig_t *config)
+bool PHAL_startADC(const ADCInitConfig_t *config)
 {
 	config->periph->CR |= ADC_CR_ADSTART;
 	return true;
 }
 
-bool PHAL_stopADC(ADCInitConfig_t *config)
+bool PHAL_stopADC(const ADCInitConfig_t *config)
 {
 	ADC_TypeDef *adc = config->periph;
 	if (adc->CR & ADC_CR_ADSTART) {
@@ -201,15 +199,4 @@ bool PHAL_stopADC(ADCInitConfig_t *config)
 	}
 	adc->CR &= ~ADC_CR_ADSTART;
 	return true;
-}
-
-uint16_t PHAL_readADC(ADCInitConfig_t *config)
-{
-	ADC_TypeDef *adc = config->periph;
-	if (!config->cont_conv_mode) {
-		adc->CR |= ADC_CR_ADSTART; // Start conversion if single-shot mode
-	}
-	while (!(adc->ISR & ADC_ISR_EOC))
-		;					  // Wait for end of conversion
-	return (uint16_t)adc->DR; // Read result
 }

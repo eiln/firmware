@@ -10,14 +10,14 @@
 
 #include "main.h"
 
-rcc_config_t rcc_config = {
+static const rcc_config_t rcc_config = {
 	.use_hse = false,
 	.target_hz = RCC_144_MHZ,
-	.input_hz = RCC_8_MHZ,
+	.input_hz = RCC_16_MHZ,
 	.hse_crystal = true,
 };
 
-GPIOInitConfig_t gpio_config[] = {
+static const GPIOInitConfig_t gpio_config[] = {
 	GPIO_INIT_OUTPUT(LED_GREEN_PORT, LED_GREEN_PIN, GPIO_OUTPUT_LOW_SPEED),
 	GPIO_INIT_OUTPUT(LED_RED_PORT, LED_RED_PIN, GPIO_OUTPUT_LOW_SPEED),
 	GPIO_INIT_OUTPUT(LED_BLUE_PORT, LED_BLUE_PIN, GPIO_OUTPUT_LOW_SPEED),
@@ -32,7 +32,7 @@ GPIOInitConfig_t gpio_config[] = {
 	GPIO_INIT_ANALOG(ADC1_CH4_GPIO_Port, ADC1_CH4_Pin),
 };
 
-ADCInitConfig_t adc_config = {
+static const ADCInitConfig_t adc_config = {
 	.periph = ADC1,
 	.prescaler = ADC_CLK_PRESC_0,
 	.resolution = ADC_RES_12_BIT,
@@ -42,7 +42,7 @@ ADCInitConfig_t adc_config = {
 	.oversample = ADC_OVERSAMPLE_16,
 };
 
-ADCChannelConfig_t adc_channel_config[] = {
+static const ADCChannelConfig_t adc_channel_config[] = {
 	{.channel = ADC_CHANNEL_1, .rank = 1, .sampling_time = ADC_CHN_SMP_CYCLES_480},
 	{.channel = ADC_CHANNEL_2, .rank = 2, .sampling_time = ADC_CHN_SMP_CYCLES_480},
 	{.channel = ADC_CHANNEL_3, .rank = 3, .sampling_time = ADC_CHN_SMP_CYCLES_480},
@@ -50,7 +50,7 @@ ADCChannelConfig_t adc_channel_config[] = {
 };
 
 volatile raw_adc_values_t raw_adc_values = {0};
-dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t)&raw_adc_values, ADC_NUM_CHANNELS, 0b01);
+dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG(ADC_NUM_CHANNELS, 0b01);
 
 void HardFault_Handler();
 
@@ -63,8 +63,6 @@ defineThreadStack(ledblink1, 250, osPriorityNormal, 64);
 defineThreadStack(ledblink2, 300, osPriorityNormal, 64);
 defineThreadStack(ledblink3, 500, osPriorityNormal, 64);
 defineThreadStack(ledblink4, 1000, osPriorityNormal, 64);
-
-static void pwm_init(void);
 
 int main()
 {
@@ -82,7 +80,7 @@ int main()
 		HardFault_Handler();
 	}
 
-	if (!PHAL_initDMA(&adc_dma_config)) {
+	if (!PHAL_initDMA(&adc_dma_config, (uint32_t)&raw_adc_values)) {
 		HardFault_Handler();
 	}
 
@@ -134,6 +132,6 @@ static void ledblink4(void)
 void HardFault_Handler()
 {
 	while (1) {
-		__asm__("nop");
+		__asm__("nop"); // NOLINT: (hicpp-no-assembler)
 	}
 }

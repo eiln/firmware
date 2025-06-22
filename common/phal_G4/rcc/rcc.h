@@ -26,6 +26,6 @@ typedef struct {
 	bool hse_crystal;  // if HSE is crystal
 } rcc_config_t;
 
-bool PHAL_configureClockRates(rcc_config_t *config);
+bool PHAL_configureClockRates(const rcc_config_t *config);
 
 #endif // __PHAL_G4_RCC_H__
