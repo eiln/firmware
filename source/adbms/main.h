@@ -2,11 +2,13 @@
 #define _MAIN_H_
 
 #include "adbms/adbms.h"
-#include "faults.h"
+#include "bms/faults.h"
+#include "soc/ekf.h"
 
 #include "common/freertos/freertos.h"
 #include "common/phal_F4_F7/spi/spi.h"
 #include "common/log/log.h"
+
 #define printf debug_printf
 
 // F4 Disco
@@ -33,7 +35,6 @@
 #define CHARGE_ENABLED_PIN   (12)
 
 extern SPI_InitConfig_t bms_spi_config;
-
 typedef enum
 {
     BMS_STATE_IDLE = 0,
@@ -45,6 +46,7 @@ typedef enum
 typedef struct
 {
     bms_state_t state;
+    uint32_t connect_time;
 
     uint32_t fault[TOTAL_AD68]; // bitfield of bms_error_t
     uint32_t first_fault_time[TOTAL_AD68][BMS_ERROR_COUNT];
@@ -63,6 +65,12 @@ typedef struct
     int charger_fail_count;
     bms_errors_t errors;
 
+    // soc/isense
+    ekf_state_t ekf;
+    bool ekf_initialized;
+    float32_t pack_current;
+    float32_t pack_voltage;
+    bool soc_available;
 } bms_t;
 
 extern bms_t bms;

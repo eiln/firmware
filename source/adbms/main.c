@@ -10,6 +10,7 @@
 #include "main.h"
 #include "adbms/adbms.h"
 #include "bms/charge.h"
+#include "soc/soc.h"
 
 dma_init_t spi_rx_dma_config = SPI2_RXDMA_CONT_CONFIG(NULL, 2);
 dma_init_t spi_tx_dma_config = SPI2_TXDMA_CONT_CONFIG(NULL, 1);
@@ -82,6 +83,7 @@ static void bms_periodic(void);
 
 bms_t bms = {
     .state = BMS_STATE_IDLE,
+    .connect_time = 0,
 
     .fault_global = 0,
     .fault = {0},
@@ -91,6 +93,9 @@ bms_t bms = {
     .fault_cell = {0},
 
     .charger_fail_count = 0,
+    .ekf_initialized = false,
+    .soc_available = false,
+    .pack_current = 0.0f,
 };
 
 defineStaticSemaphore(spi1_lock);
@@ -136,7 +141,7 @@ int main(void)
 
 // ADBMS shuts off after ~2200ms
 defineThreadStack(bms_heartbeat, 250, osPriorityNormal, 128);
-defineThreadStack(bms_periodic, 500, osPriorityNormal, 2056);
+defineThreadStack(bms_periodic, 250, osPriorityNormal, 2056);
 defineThreadStack(bms_error_handler, 250, osPriorityNormal, 1024);
 
 static void bms_create_threads(void)
@@ -168,6 +173,7 @@ static void bms_update_connection(void)
         if (bms.state == BMS_STATE_IDLE)
         {
             bms.state = BMS_STATE_CONNECTED;
+            bms.connect_time = getTick();
             printf("Connected to %d AFEs!\n", TOTAL_AD68);
         }
         PHAL_writeGPIO(LED_PORT_GREEN, LED_PIN_GREEN, 1);
@@ -204,6 +210,7 @@ static void bms_periodic(void)
         // Run regular tasks first then enter charge mode
         bms_monitor_cells();
         bms_monitor_temps();
+        soc_ekf_update(&bms);
         bms_charge_task();
     }
 }
