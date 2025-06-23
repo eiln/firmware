@@ -97,6 +97,8 @@ bms_t bms = {
     .ekf_initialized = false,
     .soc_available = false,
     .pack_current = 0.0f,
+    .pack_temperature = 25.0f,
+    .cell_v_max = 3.5f,
     .cells_ok = false,
     .temp_last_tick = 0,
 };
@@ -214,7 +216,7 @@ static void bms_periodic(void)
         // Run regular tasks first then enter charge mode
         bms_cells_update();
         bms_temps_update();
-        soc_ekf_update(&bms);
+        soc_update(&bms);
         bms_charge_task();
     }
 }

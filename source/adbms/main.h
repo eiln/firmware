@@ -70,10 +70,12 @@ typedef struct
     bool ekf_initialized;
     float32_t pack_current;
     float32_t pack_voltage;
+    float32_t pack_temperature;
     bool soc_available;
 
     bool cells_ok;
     uint32_t temp_last_tick;
+    float32_t cell_v_max;
 } bms_t;
 
 extern bms_t bms;

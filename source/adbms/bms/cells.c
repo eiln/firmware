@@ -215,6 +215,7 @@ static void process_cell_readings(bms_t *bms)
         bms_set_fault(ic, BMS_ERROR_PACK_WEAK, set);
     }
 
+    bms->cell_v_max = ema_filter(pack_vstat[MOD_VOLT_MAX], bms->cell_v_max, 0.50f);
     bms->pack_voltage = ema_filter(pack_volts, bms->pack_voltage, 0.50f);
     print_pack_readings(bms, pack_vstat);
 }

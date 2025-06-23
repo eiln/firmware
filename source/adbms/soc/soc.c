@@ -58,7 +58,7 @@ static void print_soc_status(bms_t *bms)
 	printf("soc available: %d", bms->soc_available);
 }
 
-void soc_ekf_update(bms_t *bms)
+static void soc_ekf_update(bms_t *bms)
 {
 	bool soc_available = collect_pack_data(bms);
 	if (soc_available) {
@@ -75,4 +75,10 @@ void soc_ekf_update(bms_t *bms)
 	bms->soc_available = soc_available;
 	// print_soc_status(bms);
 	// TODO: send SOC data (1 bit available, 1 bit: 32-bit: float 0.0-1.0)
+}
+
+void soc_update(bms_t *bms)
+{
+	soc_ekf_update(bms);
+	regen_ccl_update(bms);
 }

@@ -7,7 +7,7 @@
 static void bms_read_temps(void);
 static void bms_send_temps(void);
 
-#define TEMP_MONITOR_MS (1000) // 1000 ms
+#define TEMP_MONITOR_MS (500) // 1000 ms
 
 void bms_temps_update(void)
 {
