@@ -21,6 +21,7 @@ void bms_monitor_temps(void)
 {
     bms_read_temps();
     bms_send_temps();
+    printf("\n");
 }
 
 static void bms_print_aux_voltages(bool ow)

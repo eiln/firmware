@@ -143,7 +143,7 @@ int main(void)
 
 // ADBMS shuts off after ~2200ms
 defineThreadStack(bms_heartbeat, 250, osPriorityNormal, 128);
-defineThreadStack(bms_periodic, 250, osPriorityNormal, 2056);
+defineThreadStack(bms_periodic, 500, osPriorityNormal, 2056);
 defineThreadStack(bms_error_handler, 250, osPriorityNormal, 1024);
 
 static void bms_create_threads(void)

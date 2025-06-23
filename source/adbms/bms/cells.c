@@ -28,10 +28,11 @@ static void print_c_voltages(void)
         {
             printf("Cell %02d: %.4f ", i, data.cell_v_c[ic][i]);
             if (i % 4 == 3)
-            printf("\n");
+            {
+                printf("\n");
+            }
         }
     }
-    printf("\n");
 }
 
 static void print_s_voltages(void)
@@ -43,10 +44,11 @@ static void print_s_voltages(void)
         {
             printf("Cell %02d: %.4f ", i, data.cell_v_s[ic][i]);
             if (i % 4 == 3)
-            printf("\n");
+            {
+                printf("\n");
+            }
         }
     }
-    printf("\n");
 }
 
 static void bms_read_cells(bms_t *bms)
