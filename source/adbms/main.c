@@ -9,6 +9,7 @@
 
 #include "main.h"
 #include "adbms/adbms.h"
+#include "bms/bms.h"
 #include "bms/charge.h"
 #include "soc/soc.h"
 
@@ -96,6 +97,7 @@ bms_t bms = {
     .ekf_initialized = false,
     .soc_available = false,
     .pack_current = 0.0f,
+    .cells_ok = false,
 };
 
 defineStaticSemaphore(spi1_lock);
@@ -196,19 +198,20 @@ static void bms_periodic(void)
             bms.state = BMS_STATE_IDLE;
             return;
         }
-        bms_monitor_cells_start();
+        bms_cells_start();
         if (bms_any_fault(BMS_ERROR_RXPEC))
         {
             bms.state = BMS_STATE_IDLE;
             return;
         }
+
         bms.state = BMS_STATE_DISCHARGE;
     }
 
     if (bms.state >= BMS_STATE_DISCHARGE)
     {
         // Run regular tasks first then enter charge mode
-        bms_monitor_cells();
+        bms_cells_update();
         bms_monitor_temps();
         soc_ekf_update(&bms);
         bms_charge_task();

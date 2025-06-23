@@ -86,5 +86,5 @@ void ekf_estimate_init(ekf_state_t *ekf, float voltage_meas, float current_ma)
 	}
 
 	ekf->soc = soc;
-	ekf->P = 1e-3; // Set high uncertainty initially
+	ekf->P = 1e-3f; // Set high uncertainty initially
 }

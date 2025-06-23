@@ -24,36 +24,9 @@ static bool can_i_trust_pack_current(bms_t *bms)
 	return false;
 }
 
-static bool can_i_get_bms_voltage_data(bms_t *bms)
-{
-	return (bms->state == BMS_STATE_CONNECTED) && ((getTick() - bms->connect_time) >= SOC_INIT_DELAY_MS);
-}
-
-static float calc_pack_voltage(bms_t *bms)
-{
-	float pack_voltage = 0.0f;
-	for (int ic = 0; ic < TOTAL_AD68; ic++) {
-		for (int cell = 0; cell < TOTAL_CELL; cell++) {
-			pack_voltage += data.cell_v_c[ic][cell];
-		}
-	}
-	return pack_voltage;
-}
-
 static bool can_i_trust_pack_voltage(bms_t *bms)
 {
-	if (can_i_get_bms_voltage_data(bms)) {
-		float pack_voltage = calc_pack_voltage(bms);
-		bms->pack_voltage = pack_voltage;
-		return true;
-		// if (pack_voltage >= 200.0f && pack_voltage <= 1000.0f)
-		// {
-		//     bms->pack_voltage = pack_voltage;
-		//     return true;
-		// }
-		// // lmfao idk anymore
-	}
-	return false;
+	return (bms->state == BMS_STATE_CONNECTED) && ((getTick() - bms->connect_time) >= SOC_INIT_DELAY_MS) && bms->cells_ok;
 }
 
 static bool collect_pack_data(bms_t *bms)

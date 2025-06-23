@@ -71,6 +71,8 @@ typedef struct
     float32_t pack_current;
     float32_t pack_voltage;
     bool soc_available;
+
+    bool cells_ok;
 } bms_t;
 
 extern bms_t bms;
@@ -79,9 +81,7 @@ extern SemaphoreHandle_t spi1_lock;
 #define bms_error log_red
 #define bms_warn  log_yellow
 
-void bms_monitor_cells(void);
 void bms_monitor_temps(void);
-void bms_monitor_cells_start(void);
 
 static inline void catch_error(void)
 {
