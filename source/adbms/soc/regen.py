@@ -39,4 +39,3 @@ cbar.set_label('Max Regen Current Limit (A)')
 plt.grid(True)
 plt.tight_layout()
 plt.show()
-

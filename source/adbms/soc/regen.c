@@ -86,6 +86,6 @@ static float compute_regen_limit(float soc, float temperature, float voltage)
 
 void regen_ccl_update(bms_t *bms)
 {
-	float32_t ccl = compute_regen_limit(bms->ekf.soc, bms->pack_temperature, bms->cell_v_max);
+	float32_t ccl = compute_regen_limit(bms->ekf.soc, bms->pack_temperature, bms->pack_vstats.max);
 	printf("regen ccl: %.3f\n", ccl);
 }

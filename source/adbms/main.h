@@ -45,6 +45,13 @@ typedef enum
 
 typedef struct
 {
+    float32_t min;
+    float32_t max;
+    float32_t avg;
+    float32_t delta;
+} bms_voltage_stats_t;
+typedef struct
+{
     bms_state_t state;
     uint32_t connect_time;
 
@@ -75,7 +82,8 @@ typedef struct
 
     bool cells_ok;
     uint32_t temp_last_tick;
-    float32_t cell_v_max;
+    bms_voltage_stats_t pack_vstats;
+    bms_voltage_stats_t mod_vstats[TOTAL_AD68];
 } bms_t;
 
 extern bms_t bms;

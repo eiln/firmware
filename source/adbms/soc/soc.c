@@ -80,5 +80,5 @@ static void soc_ekf_update(bms_t *bms)
 void soc_update(bms_t *bms)
 {
 	soc_ekf_update(bms);
-	regen_ccl_update(bms);
+	regen_ccl_update(bms); // TODO: if ready to drive mode
 }

@@ -98,7 +98,8 @@ bms_t bms = {
     .soc_available = false,
     .pack_current = 0.0f,
     .pack_temperature = 25.0f,
-    .cell_v_max = 3.5f,
+    .pack_vstats = {0},
+    .mod_vstats = {0},
     .cells_ok = false,
     .temp_last_tick = 0,
 };

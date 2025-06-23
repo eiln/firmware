@@ -159,7 +159,6 @@ static void process_cell_readings(bms_t *bms)
     bool set;
 
     float pack_vstat[MOD_VOLT_NUM]; // min, max, avg
-    float mod_vstat[TOTAL_AD68][MOD_VOLT_NUM];
 
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
@@ -187,9 +186,9 @@ static void process_cell_readings(bms_t *bms)
             
         }
 
-        mod_vstat[ic][MOD_VOLT_MIN] = min;
-        mod_vstat[ic][MOD_VOLT_MAX] = max;
-        mod_vstat[ic][MOD_VOLT_AVG] = avg;
+        bms->mod_vstats[ic].min = min;
+        bms->mod_vstats[ic].max = max;
+        bms->mod_vstats[ic].avg = avg;
 
         if (!ic)
         {
@@ -215,7 +214,10 @@ static void process_cell_readings(bms_t *bms)
         bms_set_fault(ic, BMS_ERROR_PACK_WEAK, set);
     }
 
-    bms->cell_v_max = ema_filter(pack_vstat[MOD_VOLT_MAX], bms->cell_v_max, 0.50f);
+    bms->pack_vstats.min = pack_vstat[MOD_VOLT_MIN];
+    bms->pack_vstats.max = pack_vstat[MOD_VOLT_MAX];
+    bms->pack_vstats.avg = pack_vstat[MOD_VOLT_AVG];
+
     bms->pack_voltage = ema_filter(pack_volts, bms->pack_voltage, 0.50f);
     print_pack_readings(bms, pack_vstat);
 }
