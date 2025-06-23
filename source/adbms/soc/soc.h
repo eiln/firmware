@@ -1,5 +1,6 @@
 
 #pragma once
+
 #include "main.h"
 
 #define SOC_EKF_STEP_DT (10E-3f) // EKF runs at 100Hz or 10ms

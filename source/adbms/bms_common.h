@@ -11,3 +11,9 @@ typedef      double float64_t;
 
 _Static_assert(sizeof(float32_t)*CHAR_BIT == 32, "float 32");
 _Static_assert(sizeof(float64_t)*CHAR_BIT == 64, "float 64");
+
+// Higher the alpha, slower the response/smoother the curve
+static inline float32_t ema_filter(float32_t new_sample, float32_t prev_filtered, float32_t alpha)
+{
+	return alpha * new_sample + (1.0f - alpha) * prev_filtered;
+}

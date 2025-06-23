@@ -2,14 +2,9 @@
 #include "soc/ekf.h"
 #include "soc/soc.h"
 #include "common/freertos/freertos.h"
+#include "bms_common.h"
 
 #define PACK_INT_RESISTANCE (1.0f) // Ohms (TODO)
-
-// Higher the alpha, slower the response/smoother the curve
-static inline float32_t ema_filter(float32_t new_sample, float32_t prev_filtered, float32_t alpha)
-{
-	return alpha * new_sample + (1.0f - alpha) * prev_filtered;
-}
 
 static bool can_i_trust_pack_current(bms_t *bms)
 {

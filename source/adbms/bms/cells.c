@@ -3,6 +3,7 @@
 #include "adbms/adbms.h"
 #include "bms/bms.h"
 #include "math.h"
+#include "bms_common.h"
 
 static void bms_read_cells(bms_t *bms);
 static void bms_check_cells(bms_t *bms);
@@ -214,6 +215,6 @@ static void process_cell_readings(bms_t *bms)
         bms_set_fault(ic, BMS_ERROR_PACK_WEAK, set);
     }
 
-    bms->pack_voltage = pack_volts;
+    bms->pack_voltage = ema_filter(pack_volts, bms->pack_voltage, 0.50f);
     print_pack_readings(bms, pack_vstat);
 }
