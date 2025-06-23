@@ -218,6 +218,6 @@ static void process_cell_readings(bms_t *bms)
     bms->pack_vstats.max = pack_vstat[MOD_VOLT_MAX];
     bms->pack_vstats.avg = pack_vstat[MOD_VOLT_AVG];
 
-    bms->pack_voltage = ema_filter(pack_volts, bms->pack_voltage, 0.50f);
+    bms->pack_voltage = ema_filter(pack_volts, bms->pack_voltage, 0.25f);
     print_pack_readings(bms, pack_vstat);
 }

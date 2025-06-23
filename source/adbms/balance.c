@@ -3,9 +3,7 @@
 #include "adbms/adbms.h"
 #include "bms_common.h"
 
-#include <math.h>
-
-#define BALANCE_DELTA     0.01f    // 10 mV threshold to trigger balancing
+#define BALANCE_DELTA     0.02f    // 20 mV threshold to trigger balancing
 #define BALANCING_MIN_V   3.80f    // Do not balance below this voltage
 #define RAMP_ALPHA        80.0f    // Steepness of exponential ramp
 // 60–80 for moderate curve
@@ -25,6 +23,14 @@
 
 #endif
 
+static float32_t fast_expf(float x) {
+    // Approximate exp(x) for x in small range
+    x = 1.0f + x / 256.0f;
+    x *= x; x *= x; x *= x; x *= x;
+    x *= x; x *= x; x *= x; x *= x;
+    return x;
+}
+
 static float32_t calc_cell_pwm(float32_t cell_v, float32_t max_volts)
 {
     float32_t vdelta = max_volts - cell_v;
@@ -39,7 +45,7 @@ static float32_t calc_cell_pwm(float32_t cell_v, float32_t max_volts)
     }
     else {
         float32_t effective_delta = vdelta - BALANCE_DELTA;
-        duty = 1.0f - expf(-RAMP_ALPHA * effective_delta);
+        duty = 1.0f - fast_expf(-RAMP_ALPHA * effective_delta);
         duty = clampf(duty, 0.0f, 1.0f);
     }
 
@@ -48,38 +54,16 @@ static float32_t calc_cell_pwm(float32_t cell_v, float32_t max_volts)
 
 void bms_cell_balance_task(void)
 {
-    #if 0
+    float32_t duty;
     uint8_t pwm[TOTAL_AD68][TOTAL_CELL] = {0};
-
-    int16_t min_volts = data.cell_v_c[0][0];
-    int16_t max_volts = data.cell_v_c[0][0];
     for (int ic = 0; ic < TOTAL_AD68; ic++)
     {
         for (int cell = 0; cell < TOTAL_CELL; cell++)
         {
-            int16_t volts = data.cell_v_c[ic][cell];
-            min_volts = MIN(volts, min_volts);
-            max_volts = MIN(volts, max_volts);
+            duty = calc_cell_pwm(data.cell_v_c[ic][cell], bms.mod_vstats[ic].max);
+            pwm[ic][cell] = (0b1111 * duty); // TODO calculate duty
         }
     }
 
-    float max_v = getVoltage(max_volts);
-    float min_v = getVoltage(max_volts);
-    if (min_v >= BALANCING_MIN_V)
-    {
-        for (int ic = 0; ic < TOTAL_AD68; ic++)
-        {
-            for (int cell = 0; cell < TOTAL_CELL; cell++)
-            {
-                float v = getVoltage(data.cell_v_c[ic][cell]);
-                if (v >= BALANCING_MIN_V && (v - min_v) >= MAX_DELTA)
-                {
-                    pwm[ic][cell] = 0b1111; // TODO calculate duty
-                }
-            }
-        }
-    }
-
-    bms_startDischarge(pwm);
-    #endif
+    // bms_startDischarge(pwm);
 }
