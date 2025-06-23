@@ -1,27 +1,23 @@
 
 #include "main.h"
 #include "adbms/adbms.h"
+
 #include <math.h>
-
-// AUX GPIO / TEMPS
-
-#if 0
-
-Cell Temps
-max           -  60 C - open SDC/full shutdown
-min charge    -   0 C - prohibit charging
-min discharge - -40 C - prohibit discharging
-
-#endif
 
 static void bms_read_temps(void);
 static void bms_send_temps(void);
 
-void bms_monitor_temps(void)
+#define TEMP_MONITOR_MS (1000) // 1000 ms
+
+void bms_temps_update(void)
 {
-    bms_read_temps();
-    bms_send_temps();
-    printf("\n");
+    uint32_t now = getTick();
+    if (!bms.temp_last_tick || (now - bms.temp_last_tick) >= TEMP_MONITOR_MS)
+    {
+        bms.temp_last_tick = now;
+        bms_read_temps();
+        bms_send_temps();
+    }
 }
 
 static void bms_print_aux_voltages(bool ow)
@@ -69,7 +65,6 @@ static void bms_aux_ow_check(void)
     adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
     bms_mDelay(5); // adbms_transmit_poll(PLAUX1); TODO this doesn't settle when it's hot
     bms_readAuxVoltagesAll();
-
     bms_print_aux_all(false);
 
     // TODO compare values
@@ -196,7 +191,7 @@ static void bms_read_temps(void)
 }
 
 static void bms_send_temps(void)
-{
+{    
     #if 0
     // send raw, module min/max
     uint16_t max_temps[TOTAL_AD68] = {0};

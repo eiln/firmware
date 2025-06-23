@@ -1,5 +1,14 @@
 
 
+#if 0
+
+Cell Temps
+max           -  60 C - open SDC/full shutdown
+min charge    -   0 C - prohibit charging
+min discharge - -40 C - prohibit discharging
+
+#endif
+
 typedef struct {
     uint64_t index: 4;   // 4-bit index of module number (0b0000 - 0b1111)
     uint64_t faults: 60; // bitmask of each fault field

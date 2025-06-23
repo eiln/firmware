@@ -16,6 +16,7 @@ void bms_cells_start(void)
 
 void bms_cells_update(void)
 {
+    printf("\n");
     bms_read_cells(&bms);
 }
 

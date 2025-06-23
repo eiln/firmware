@@ -73,6 +73,7 @@ typedef struct
     bool soc_available;
 
     bool cells_ok;
+    uint32_t temp_last_tick;
 } bms_t;
 
 extern bms_t bms;
@@ -80,8 +81,6 @@ extern SemaphoreHandle_t spi1_lock;
 
 #define bms_error log_red
 #define bms_warn  log_yellow
-
-void bms_monitor_temps(void);
 
 static inline void catch_error(void)
 {

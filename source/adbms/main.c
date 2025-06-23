@@ -98,6 +98,7 @@ bms_t bms = {
     .soc_available = false,
     .pack_current = 0.0f,
     .cells_ok = false,
+    .temp_last_tick = 0,
 };
 
 defineStaticSemaphore(spi1_lock);
@@ -212,7 +213,7 @@ static void bms_periodic(void)
     {
         // Run regular tasks first then enter charge mode
         bms_cells_update();
-        bms_monitor_temps();
+        bms_temps_update();
         soc_ekf_update(&bms);
         bms_charge_task();
     }
