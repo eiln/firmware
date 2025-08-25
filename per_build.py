@@ -99,26 +99,8 @@ def print_available_targets():
         "torque_vector",
         "dashboard",
         "pdu",
-        "daq"
-    ]
-    modules_sorted = sorted(modules)
-    print("Available targets to build:")
-    for m in modules_sorted:
-        print(f'\t{m}')
-
-def print_available_targets():
-    modules = [
-        "main_module",
-        "bootloader",
-        "l4_testing",
-        "f4_testing",
-        "f7_testing",
-        "g4_testing",
-        "a_box",
-        "torque_vector",
-        "dashboard",
-        "pdu",
-        "daq"
+        "daq",
+        "adbms",
     ]
     modules_sorted = sorted(modules)
     print("Available targets to build:")

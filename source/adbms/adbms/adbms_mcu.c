@@ -5,8 +5,8 @@
 #include "string.h"
 
 #include "common/freertos/freertos.h"
-#include "common/phal_F4_F7/gpio/gpio.h"
-#include "common/phal_F4_F7/spi/spi.h"
+#include "common/phal/gpio.h"
+#include "common/phal/spi.h"
 
 uint32_t bms_getTick(void)
 {

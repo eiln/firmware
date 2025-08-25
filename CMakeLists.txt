@@ -93,6 +93,7 @@ set(MODULES "" CACHE STRING "Semicolon-separated list of source modules to build
 if(MODULES STREQUAL "")
     set(MODULES
         a_box
+        adbms
         bootloader
         dashboard
         daq

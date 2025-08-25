@@ -5,7 +5,7 @@
 #include "faults.h"
 
 #include "common/freertos/freertos.h"
-#include "common/phal_F4_F7/spi/spi.h"
+#include "common/phal/spi.h"
 #include "common/log/log.h"
 #define printf debug_printf
 
